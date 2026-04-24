@@ -1,0 +1,181 @@
+{
+  "id": null,
+  "uid": "ml-ops-readiness",
+  "title": "TDSP Phase 4 - Impaye Operations Readiness",
+  "tags": ["tdsp", "phase4", "impaye", "ceo"],
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Readiness Score",
+      "gridPos": {"h": 7, "w": 6, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus-main"},
+      "targets": [
+        {
+          "expr": "maghrebia_ml_ops_readiness_score",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "orange", "value": 70},
+              {"color": "green", "value": 85}
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Readiness Status Code",
+      "gridPos": {"h": 7, "w": 6, "x": 6, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus-main"},
+      "targets": [
+        {
+          "expr": "maghrebia_ml_ops_readiness_status_code",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "2": {"text": "GREEN"},
+                "1": {"text": "AMBER"},
+                "0": {"text": "RED"},
+                "-1": {"text": "UNAVAILABLE"}
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "orange", "value": 1},
+              {"color": "green", "value": 2}
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Recommendations Count",
+      "gridPos": {"h": 7, "w": 6, "x": 12, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus-main"},
+      "targets": [
+        {
+          "expr": "maghrebia_ml_ops_recommendations_count",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "orange", "value": 1},
+              {"color": "red", "value": 3}
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Monitoring Up",
+      "gridPos": {"h": 7, "w": 6, "x": 18, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus-main"},
+      "targets": [
+        {
+          "expr": "maghrebia_ml_ops_readiness_up",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": {"text": "UP"},
+                "0": {"text": "DOWN"}
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "green", "value": 1}
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Predicted vs Observed Impaye Rate",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 7},
+      "datasource": {"type": "prometheus", "uid": "prometheus-main"},
+      "targets": [
+        {
+          "expr": "maghrebia_ml_ops_predicted_positive_rate",
+          "legendFormat": "Predicted positive rate",
+          "refId": "A"
+        },
+        {
+          "expr": "maghrebia_ml_ops_observed_impaye_rate",
+          "legendFormat": "Observed impaye rate",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Risk Gap and Volume",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 7},
+      "datasource": {"type": "prometheus", "uid": "prometheus-main"},
+      "targets": [
+        {
+          "expr": "maghrebia_ml_ops_rate_gap",
+          "legendFormat": "Rate gap",
+          "refId": "A"
+        },
+        {
+          "expr": "maghrebia_ml_ops_recent_emissions_count",
+          "legendFormat": "Recent emissions",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    }
+  ]
+}

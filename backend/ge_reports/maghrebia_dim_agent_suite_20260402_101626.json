@@ -1,0 +1,84 @@
+{
+  "suite": "maghrebia_dim_agent_suite",
+  "run_date": "2026-04-02T10:16:26.934406",
+  "n_rows": 200,
+  "total_exp": 9,
+  "passed_exp": "7",
+  "failed_exp": "2",
+  "success_pct": 77.8,
+  "status": "FAILED",
+  "expectations": [
+    {
+      "name": "expect_table_row_count_to_be_between(190, 210)",
+      "passed": true,
+      "n_ok": 200,
+      "n_total": 200,
+      "pct": 100.0,
+      "details": ""
+    },
+    {
+      "name": "expect_column_values_to_not_be_null(ID_AGENT)",
+      "passed": "True",
+      "n_ok": 200,
+      "n_total": 200,
+      "pct": 100.0,
+      "details": ""
+    },
+    {
+      "name": "expect_column_values_to_be_unique(ID_AGENT)",
+      "passed": "True",
+      "n_ok": 200,
+      "n_total": 200,
+      "pct": 100.0,
+      "details": "dups=0"
+    },
+    {
+      "name": "expect_column_values_to_not_be_null(CODE_AGENT)",
+      "passed": "False",
+      "n_ok": 198,
+      "n_total": 200,
+      "pct": 99.0,
+      "details": ""
+    },
+    {
+      "name": "expect_column_values_to_be_in_set(ETAT_AGENT, ['A', 'I', 'R'])",
+      "passed": "False",
+      "n_ok": 181,
+      "n_total": 200,
+      "pct": 90.5,
+      "details": "invalid sample=['S']"
+    },
+    {
+      "name": "expect_column_values_to_be_in_set(TYPE_AGENT, ['AG', 'BA', 'BR', 'CO', 'MA'])",
+      "passed": "True",
+      "n_ok": 200,
+      "n_total": 200,
+      "pct": 100.0,
+      "details": "invalid sample=[]"
+    },
+    {
+      "name": "expect_column_values_to_be_between(LATITUDE_AGENT, lo=30.0, hi=38.0)",
+      "passed": "True",
+      "n_ok": 200,
+      "n_total": 200,
+      "pct": 100.0,
+      "details": "threshold=99%"
+    },
+    {
+      "name": "expect_column_values_to_be_between(LONGITUDE_AGENT, lo=8.0, hi=12.0)",
+      "passed": "True",
+      "n_ok": 200,
+      "n_total": 200,
+      "pct": 100.0,
+      "details": "threshold=99%"
+    },
+    {
+      "name": "expect_column_values_to_be_in_set(GROUPE_AGENT, ['Agent G\u00e9n\u00e9ral', 'Bancassurance', 'Courtier', 'Mandataire', 'R\u00e9seau Direct'])",
+      "passed": "True",
+      "n_ok": 200,
+      "n_total": 200,
+      "pct": 100.0,
+      "details": "invalid sample=[]"
+    }
+  ]
+}

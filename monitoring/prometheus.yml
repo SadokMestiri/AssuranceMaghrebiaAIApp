@@ -1,0 +1,13 @@
+﻿global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["prometheus:9090"]
+
+  - job_name: "maghrebia_backend_ops"
+    scrape_interval: 30s
+    metrics_path: /api/v1/ml/metrics/operations-readiness
+    static_configs:
+      - targets: ["backend:8000"]

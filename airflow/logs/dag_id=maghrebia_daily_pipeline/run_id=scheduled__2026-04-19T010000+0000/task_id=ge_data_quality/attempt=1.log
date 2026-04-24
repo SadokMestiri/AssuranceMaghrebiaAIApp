@@ -1,0 +1,142 @@
+[2026-04-20T09:00:15.225+0000] {local_task_job_runner.py:120} INFO - ::group::Pre task execution logs
+[2026-04-20T09:00:15.249+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: maghrebia_daily_pipeline.ge_data_quality scheduled__2026-04-19T01:00:00+00:00 [queued]>
+[2026-04-20T09:00:15.258+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: maghrebia_daily_pipeline.ge_data_quality scheduled__2026-04-19T01:00:00+00:00 [queued]>
+[2026-04-20T09:00:15.259+0000] {taskinstance.py:2306} INFO - Starting attempt 1 of 2
+[2026-04-20T09:00:15.273+0000] {taskinstance.py:2330} INFO - Executing <Task(PythonOperator): ge_data_quality> on 2026-04-19 01:00:00+00:00
+[2026-04-20T09:00:15.278+0000] {warnings.py:110} WARNING - /home/airflow/.local/lib/python3.12/site-packages/airflow/task/task_runner/standard_task_runner.py:61: DeprecationWarning: This process (pid=62) is multi-threaded, use of fork() may lead to deadlocks in the child.
+  pid = os.fork()
+
+[2026-04-20T09:00:15.280+0000] {standard_task_runner.py:63} INFO - Started process 63 to run task
+[2026-04-20T09:00:15.280+0000] {standard_task_runner.py:90} INFO - Running: ['airflow', 'tasks', 'run', '***_daily_pipeline', 'ge_data_quality', 'scheduled__2026-04-19T01:00:00+00:00', '--job-id', '131', '--raw', '--subdir', 'DAGS_FOLDER/***_daily_pipeline.py', '--cfg-path', '/tmp/tmpyxgvttny']
+[2026-04-20T09:00:15.281+0000] {standard_task_runner.py:91} INFO - Job 131: Subtask ge_data_quality
+[2026-04-20T09:00:15.343+0000] {task_command.py:426} INFO - Running <TaskInstance: maghrebia_daily_pipeline.ge_data_quality scheduled__2026-04-19T01:00:00+00:00 [running]> on host 7bf32ae3b5cb
+[2026-04-20T09:00:15.457+0000] {taskinstance.py:2648} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='***-data' AIRFLOW_CTX_DAG_ID='***_daily_pipeline' AIRFLOW_CTX_TASK_ID='ge_data_quality' AIRFLOW_CTX_EXECUTION_DATE='2026-04-19T01:00:00+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='scheduled__2026-04-19T01:00:00+00:00'
+[2026-04-20T09:00:15.459+0000] {taskinstance.py:430} INFO - ::endgroup::
+[2026-04-20T09:00:16.691+0000] {ge_pipeline.py:349} INFO - Loading /opt/airflow/data/raw/DIM_AGENT.csv …
+[2026-04-20T09:00:16.716+0000] {logging_mixin.py:188} INFO - 
+======================================================================
+[2026-04-20T09:00:16.717+0000] {logging_mixin.py:188} INFO -   SUITE : ***_dim_agent_suite
+[2026-04-20T09:00:16.718+0000] {logging_mixin.py:188} INFO -   Table : 200 rows × 12 cols
+[2026-04-20T09:00:16.718+0000] {logging_mixin.py:188} INFO -   =================================================================
+[2026-04-20T09:00:16.719+0000] {logging_mixin.py:188} INFO -   ✅ expect_table_row_count_to_be_between(190, 210)              200/200     (100.0%)  
+[2026-04-20T09:00:16.719+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_not_be_null(ID_AGENT)               200/200     (100.0%)  
+[2026-04-20T09:00:16.720+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_be_unique(ID_AGENT)                 200/200     (100.0%)  dups=0
+[2026-04-20T09:00:16.721+0000] {logging_mixin.py:188} INFO -   🔴 expect_column_values_to_not_be_null(CODE_AGENT)             198/200     (99.0%)  
+[2026-04-20T09:00:16.721+0000] {logging_mixin.py:188} INFO -   🔴 expect_column_values_to_be_in_set(ETAT_AGENT, ['A', 'I', 'R'])     181/200     (90.5%)  invalid sample=['S']
+[2026-04-20T09:00:16.722+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_be_in_set(TYPE_AGENT, ['AG', 'BA', 'BR', 'CO', 'MA'])     200/200     (100.0%)  invalid sample=[]
+[2026-04-20T09:00:16.722+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_be_between(LATITUDE_AGENT, lo=30.0, hi=38.0)     200/200     (100.0%)  threshold=99%
+[2026-04-20T09:00:16.723+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_be_between(LONGITUDE_AGENT, lo=8.0, hi=12.0)     200/200     (100.0%)  threshold=99%
+[2026-04-20T09:00:16.723+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_be_in_set(GROUPE_AGENT, ['Agent Général', 'Bancassurance', 'Courtier', 'Mandataire', 'Réseau Direct'])     200/200     (100.0%)  invalid sample=[]
+[2026-04-20T09:00:16.724+0000] {logging_mixin.py:188} INFO -   =================================================================
+[2026-04-20T09:00:16.724+0000] {logging_mixin.py:188} INFO -   🔴 FAILED  —  7/9 expectations OK  (77.8%)
+[2026-04-20T09:00:16.725+0000] {logging_mixin.py:188} INFO - ======================================================================
+[2026-04-20T09:00:16.726+0000] {ge_pipeline.py:364} INFO - Report saved: ge_reports/***_dim_agent_suite_20260420_090016.json
+[2026-04-20T09:00:16.726+0000] {maghrebia_daily_pipeline.py:118} WARNING - ⚠️  Suite FAILED: dim_agent (77.8%)
+[2026-04-20T09:00:16.727+0000] {ge_pipeline.py:349} INFO - Loading /opt/airflow/data/raw/DIM_CLIENT.csv …
+[2026-04-20T09:00:16.888+0000] {logging_mixin.py:188} INFO - 
+======================================================================
+[2026-04-20T09:00:16.889+0000] {logging_mixin.py:188} INFO -   SUITE : ***_dim_client_suite
+[2026-04-20T09:00:16.890+0000] {logging_mixin.py:188} INFO -   Table : 30,000 rows × 13 cols
+[2026-04-20T09:00:16.890+0000] {logging_mixin.py:188} INFO -   =================================================================
+[2026-04-20T09:00:16.890+0000] {logging_mixin.py:188} INFO -   ✅ expect_table_row_count_to_be_between(25000, 35000)       30,000/30,000  (100.0%)  
+[2026-04-20T09:00:16.891+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_not_be_null(ID_CLIENT)           30,000/30,000  (100.0%)  
+[2026-04-20T09:00:16.891+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_be_unique(ID_CLIENT)             30,000/30,000  (100.0%)  dups=0
+[2026-04-20T09:00:16.891+0000] {logging_mixin.py:188} INFO -   🔴 expect_column_values_to_not_be_null(NOM)                 29,321/30,000  (97.7%)  
+[2026-04-20T09:00:16.892+0000] {logging_mixin.py:188} INFO -   🔴 expect_column_values_to_be_in_set(TYPE_PERSONNE, ['M', 'P'])  29,102/29,604  (98.3%)  invalid sample=['  P  ', 'p', '  M  ']
+[2026-04-20T09:00:16.892+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_be_in_set(SEXE, ['<NA>', '<NA>', 'F', 'M', 'N/A'])  22,454/22,454  (100.0%)  invalid sample=[]
+[2026-04-20T09:00:16.892+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_be_between(CODE_POSTAL, lo=1000, hi=9999)  30,000/30,000  (100.0%)  threshold=99%
+[2026-04-20T09:00:16.893+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_match_regex(CIN_MF, '^\d{8}$')   22,454/30,000  (74.8%)  
+[2026-04-20T09:00:16.893+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_match_regex(EMAIL, '^[^@]+@[^@]+\.[^@]+$')  19,491/19,491  (100.0%)  
+[2026-04-20T09:00:16.893+0000] {logging_mixin.py:188} INFO -   =================================================================
+[2026-04-20T09:00:16.894+0000] {logging_mixin.py:188} INFO -   🔴 FAILED  —  7/9 expectations OK  (77.8%)
+[2026-04-20T09:00:16.895+0000] {logging_mixin.py:188} INFO - ======================================================================
+[2026-04-20T09:00:16.896+0000] {ge_pipeline.py:364} INFO - Report saved: ge_reports/***_dim_client_suite_20260420_090016.json
+[2026-04-20T09:00:16.897+0000] {maghrebia_daily_pipeline.py:118} WARNING - ⚠️  Suite FAILED: dim_client (77.8%)
+[2026-04-20T09:00:16.898+0000] {ge_pipeline.py:349} INFO - Loading /opt/airflow/data/raw/DIM_POLICE.csv …
+[2026-04-20T09:00:16.990+0000] {logging_mixin.py:188} INFO - 
+======================================================================
+[2026-04-20T09:00:16.991+0000] {logging_mixin.py:188} INFO -   SUITE : ***_dim_police_suite
+[2026-04-20T09:00:16.992+0000] {logging_mixin.py:188} INFO -   Table : 30,000 rows × 16 cols
+[2026-04-20T09:00:16.992+0000] {logging_mixin.py:188} INFO -   =================================================================
+[2026-04-20T09:00:16.993+0000] {logging_mixin.py:188} INFO -   ✅ expect_table_row_count_to_be_between(25000, 35000)       30,000/30,000  (100.0%)  
+[2026-04-20T09:00:16.993+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_not_be_null(ID_POLICE)           30,000/30,000  (100.0%)  
+[2026-04-20T09:00:16.994+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_be_unique(ID_POLICE)             30,000/30,000  (100.0%)  dups=0
+[2026-04-20T09:00:16.994+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_be_in_set(BRANCHE, ['AUTO', 'IRDS', 'SANTE'])  30,000/30,000  (100.0%)  invalid sample=[]
+[2026-04-20T09:00:16.995+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_be_in_set(SITUATION, ['A', 'R', 'S', 'T', 'V'])  30,000/30,000  (100.0%)  invalid sample=[]
+[2026-04-20T09:00:16.995+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_be_in_set(TYPE_POLICE, ['flotte', 'individuel'])  30,000/30,000  (100.0%)  invalid sample=[]
+[2026-04-20T09:00:16.996+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_be_between(CODE_PRODUIT, lo=17, hi=89)  30,000/30,000  (100.0%)  threshold=99%
+[2026-04-20T09:00:16.996+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_be_between(BONUS_MALUS, lo=1, hi=10)  20,000/20,000  (100.0%)  threshold=95%
+[2026-04-20T09:00:16.996+0000] {logging_mixin.py:188} INFO -   =================================================================
+[2026-04-20T09:00:16.997+0000] {logging_mixin.py:188} INFO -   ✅ PASSED  —  8/8 expectations OK  (100.0%)
+[2026-04-20T09:00:16.997+0000] {logging_mixin.py:188} INFO - ======================================================================
+[2026-04-20T09:00:16.998+0000] {ge_pipeline.py:364} INFO - Report saved: ge_reports/***_dim_police_suite_20260420_090016.json
+[2026-04-20T09:00:17.000+0000] {maghrebia_daily_pipeline.py:120} INFO - ✅ Suite PASSED: dim_police (100.0%)
+[2026-04-20T09:00:17.001+0000] {ge_pipeline.py:349} INFO - Loading /opt/airflow/data/raw/DWH_FACT_EMISSION.csv …
+[2026-04-20T09:00:17.431+0000] {logging_mixin.py:188} INFO - 
+======================================================================
+[2026-04-20T09:00:17.432+0000] {logging_mixin.py:188} INFO -   SUITE : ***_fact_emission_suite
+[2026-04-20T09:00:17.433+0000] {logging_mixin.py:188} INFO -   Table : 65,000 rows × 33 cols
+[2026-04-20T09:00:17.433+0000] {logging_mixin.py:188} INFO -   =================================================================
+[2026-04-20T09:00:17.434+0000] {logging_mixin.py:188} INFO -   ✅ expect_table_row_count_to_be_between(60000, 70000)       65,000/65,000  (100.0%)  
+[2026-04-20T09:00:17.434+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_not_be_null(NUM_QUITTANCE)       65,000/65,000  (100.0%)  
+[2026-04-20T09:00:17.435+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_be_unique(NUM_QUITTANCE)         65,000/65,000  (100.0%)  dups=0
+[2026-04-20T09:00:17.436+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_not_be_null(ID_POLICE)           65,000/65,000  (100.0%)  
+[2026-04-20T09:00:17.436+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_not_be_null(ID_AGENT)            65,000/65,000  (100.0%)  
+[2026-04-20T09:00:17.437+0000] {logging_mixin.py:188} INFO -   🔴 expect_column_values_to_be_in_set(ETAT_QUIT, ['A', 'E', 'P'])  63,693/64,682  (98.5%)  invalid sample=['e', 'X', 'p']
+[2026-04-20T09:00:17.437+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_be_in_set(BRANCHE, ['AUTO', 'IRDS', 'SANTE'])  65,000/65,000  (100.0%)  invalid sample=[]
+[2026-04-20T09:00:17.438+0000] {logging_mixin.py:188} INFO -   🔴 custom: ANNEE_ECHEANCE between 2015 and 2025             63,625/65,000  (97.9%)  threshold=98%
+[2026-04-20T09:00:17.438+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_be_between(MOIS_ECHEANCE, lo=1, hi=12)  65,000/65,000  (100.0%)  threshold=99%
+[2026-04-20T09:00:17.439+0000] {logging_mixin.py:188} INFO -   ✅ custom: MT_PNET >= 0                                     64,336/65,000  (99.0%)  threshold=98%
+[2026-04-20T09:00:17.439+0000] {logging_mixin.py:188} INFO -   ✅ custom: MT_FGA ≈ MT_RC × 0.25                            65,000/65,000  (100.0%)  threshold=90%
+[2026-04-20T09:00:17.440+0000] {logging_mixin.py:188} INFO -   🔴 custom: MT_PTT = MT_PNET + MT_FGA + MT_TIMBRE + MT_TAXE  63,480/65,000  (97.7%)  threshold=98%
+[2026-04-20T09:00:17.440+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_be_between(MT_TIMBRE, lo=3, hi=20)  65,000/65,000  (100.0%)  threshold=95%
+[2026-04-20T09:00:17.440+0000] {logging_mixin.py:188} INFO -   =================================================================
+[2026-04-20T09:00:17.441+0000] {logging_mixin.py:188} INFO -   🔴 FAILED  —  10/13 expectations OK  (76.9%)
+[2026-04-20T09:00:17.441+0000] {logging_mixin.py:188} INFO - ======================================================================
+[2026-04-20T09:00:17.442+0000] {ge_pipeline.py:364} INFO - Report saved: ge_reports/***_fact_emission_suite_20260420_090017.json
+[2026-04-20T09:00:17.445+0000] {maghrebia_daily_pipeline.py:118} WARNING - ⚠️  Suite FAILED: dwh_fact_emission (76.9%)
+[2026-04-20T09:00:17.446+0000] {ge_pipeline.py:349} INFO - Loading /opt/airflow/data/raw/DWH_FACT_IMPAYE.csv …
+[2026-04-20T09:00:17.455+0000] {logging_mixin.py:188} INFO - 
+======================================================================
+[2026-04-20T09:00:17.456+0000] {logging_mixin.py:188} INFO -   SUITE : ***_fact_impaye_suite
+[2026-04-20T09:00:17.457+0000] {logging_mixin.py:188} INFO -   Table : 868 rows × 16 cols
+[2026-04-20T09:00:17.457+0000] {logging_mixin.py:188} INFO -   =================================================================
+[2026-04-20T09:00:17.458+0000] {logging_mixin.py:188} INFO -   ✅ expect_table_row_count_to_be_between(600, 900)              868/868     (100.0%)  
+[2026-04-20T09:00:17.458+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_not_be_null(NUM_QUITTANCE)          868/868     (100.0%)  
+[2026-04-20T09:00:17.459+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_not_be_null(ID_POLICE)              868/868     (100.0%)  
+[2026-04-20T09:00:17.459+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_not_be_null(ID_AGENT)               868/868     (100.0%)  
+[2026-04-20T09:00:17.460+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_be_in_set(BRANCHE, ['AUTO', 'IRDS', 'SANTE'])     868/868     (100.0%)  invalid sample=[]
+[2026-04-20T09:00:17.461+0000] {logging_mixin.py:188} INFO -   🔴 expect_column_values_to_be_between(ANNEE_ECHEANCE, lo=2015, hi=2025)     840/868     (96.8%)  threshold=99%
+[2026-04-20T09:00:17.461+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_be_between(MOIS_ECHEANCE, lo=1, hi=12)     868/868     (100.0%)  threshold=99%
+[2026-04-20T09:00:17.462+0000] {logging_mixin.py:188} INFO -   ✅ custom: MT_ACP >= 0                                         863/868     (99.4%)  threshold=98%
+[2026-04-20T09:00:17.462+0000] {logging_mixin.py:188} INFO -   🔴 custom: MT_PTT >= 0                                         832/868     (95.9%)  threshold=98%
+[2026-04-20T09:00:17.463+0000] {logging_mixin.py:188} INFO -   =================================================================
+[2026-04-20T09:00:17.463+0000] {logging_mixin.py:188} INFO -   🔴 FAILED  —  7/9 expectations OK  (77.8%)
+[2026-04-20T09:00:17.463+0000] {logging_mixin.py:188} INFO - ======================================================================
+[2026-04-20T09:00:17.464+0000] {ge_pipeline.py:364} INFO - Report saved: ge_reports/***_fact_impaye_suite_20260420_090017.json
+[2026-04-20T09:00:17.465+0000] {maghrebia_daily_pipeline.py:118} WARNING - ⚠️  Suite FAILED: dwh_fact_impaye (77.8%)
+[2026-04-20T09:00:17.465+0000] {ge_pipeline.py:349} INFO - Loading /opt/airflow/data/raw/DWH_FACT_EMISSION_DETAIL.csv …
+[2026-04-20T09:00:17.838+0000] {logging_mixin.py:188} INFO - 
+======================================================================
+[2026-04-20T09:00:17.839+0000] {logging_mixin.py:188} INFO -   SUITE : ***_fact_emission_detail_suite
+[2026-04-20T09:00:17.840+0000] {logging_mixin.py:188} INFO -   Table : 208,290 rows × 9 cols
+[2026-04-20T09:00:17.841+0000] {logging_mixin.py:188} INFO -   =================================================================
+[2026-04-20T09:00:17.841+0000] {logging_mixin.py:188} INFO -   ✅ expect_table_row_count_to_be_between(190000, 220000)    208,290/208,290 (100.0%)  
+[2026-04-20T09:00:17.842+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_not_be_null(NUM_QUITTANCE)      208,290/208,290 (100.0%)  
+[2026-04-20T09:00:17.843+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_not_be_null(ID_POLICE)          208,290/208,290 (100.0%)  
+[2026-04-20T09:00:17.843+0000] {logging_mixin.py:188} INFO -   ✅ expect_column_values_to_be_between(ID_GARANTIE, lo=1, hi=20) 208,290/208,290 (100.0%)  threshold=99%
+[2026-04-20T09:00:17.844+0000] {logging_mixin.py:188} INFO -   🔴 expect_column_values_to_be_between(ANNEE_ECHEANCE, lo=2015, hi=2025) 203,879/208,290 (97.9%)  threshold=99%
+[2026-04-20T09:00:17.844+0000] {logging_mixin.py:188} INFO -   ✅ custom: MT_PRIME >= 0                                   205,077/208,290 (98.5%)  threshold=98%
+[2026-04-20T09:00:17.845+0000] {logging_mixin.py:188} INFO -   ✅ custom: MT_FRAIS >= 0                                   208,290/208,290 (100.0%)  threshold=98%
+[2026-04-20T09:00:17.845+0000] {logging_mixin.py:188} INFO -   =================================================================
+[2026-04-20T09:00:17.846+0000] {logging_mixin.py:188} INFO -   🔴 FAILED  —  6/7 expectations OK  (85.7%)
+[2026-04-20T09:00:17.846+0000] {logging_mixin.py:188} INFO - ======================================================================
+[2026-04-20T09:00:17.847+0000] {ge_pipeline.py:364} INFO - Report saved: ge_reports/***_fact_emission_detail_suite_20260420_090017.json
+[2026-04-20T09:00:17.851+0000] {maghrebia_daily_pipeline.py:118} WARNING - ⚠️  Suite FAILED: dwh_fact_emission_detail (85.7%)
+[2026-04-20T09:00:17.908+0000] {maghrebia_daily_pipeline.py:134} INFO - GE overall: 81.8% — Failed suites: ['dim_agent', 'dim_client', 'dwh_fact_emission', 'dwh_fact_impaye', 'dwh_fact_emission_detail']
+[2026-04-20T09:00:17.909+0000] {python.py:237} INFO - Done. Returned value was: None
+[2026-04-20T09:00:17.910+0000] {taskinstance.py:441} INFO - ::group::Post task execution logs
+[2026-04-20T09:00:17.925+0000] {taskinstance.py:1206} INFO - Marking task as SUCCESS. dag_id=***_daily_pipeline, task_id=ge_data_quality, run_id=scheduled__2026-04-19T01:00:00+00:00, execution_date=20260419T010000, start_date=20260420T090015, end_date=20260420T090017
+[2026-04-20T09:00:17.985+0000] {local_task_job_runner.py:240} INFO - Task exited with return code 0
+[2026-04-20T09:00:18.018+0000] {taskinstance.py:3498} INFO - 1 downstream tasks scheduled from follow-on schedule check
+[2026-04-20T09:00:18.021+0000] {local_task_job_runner.py:222} INFO - ::endgroup::

@@ -1,0 +1,84 @@
+2026-04-15 10:16:12,511 [INFO] ======================================================================
+2026-04-15 10:16:12,512 [INFO]   MAGHREBIA ASSURANCE — PIPELINE PHASE 2
+2026-04-15 10:16:12,512 [INFO]   Start : 2026-04-15 10:16:12
+2026-04-15 10:16:12,512 [INFO]   Mode  : PRODUCTION
+2026-04-15 10:16:12,512 [INFO] ======================================================================
+2026-04-15 10:16:12,512 [INFO] 
+[0/5] Connexion PostgreSQL...
+2026-04-15 10:16:12,561 [INFO]   ✅ Connexion OK
+2026-04-15 10:16:12,563 [INFO] 
+[1/5] EXTRACT — Lecture CSV bruts...
+2026-04-15 10:16:12,571 [INFO]   Chargé : DIM_AGENT.csv → 200 lignes × 12 cols
+2026-04-15 10:16:12,613 [INFO]   Chargé : DIM_CLIENT.csv → 30,000 lignes × 13 cols
+2026-04-15 10:16:12,651 [INFO]   Chargé : DIM_POLICE.csv → 30,000 lignes × 16 cols
+2026-04-15 10:16:12,684 [INFO]   Chargé : DIM_VEHICULE.csv → 20,000 lignes × 15 cols
+2026-04-15 10:16:12,829 [INFO]   Chargé : DWH_FACT_EMISSION.csv → 65,000 lignes × 33 cols
+2026-04-15 10:16:12,833 [INFO]   Chargé : DWH_FACT_ANNULATION.csv → 1,273 lignes × 22 cols
+2026-04-15 10:16:12,836 [INFO]   Chargé : DWH_FACT_IMPAYE.csv → 868 lignes × 16 cols
+2026-04-15 10:16:12,953 [INFO]   Chargé : DWH_FACT_EMISSION_DETAIL.csv → 208,290 lignes × 9 cols
+2026-04-15 10:16:12,966 [INFO]   Chargé : DWH_FACT_SINISTRE.csv → 8,000 lignes × 16 cols
+2026-04-15 10:16:12,966 [INFO] 
+[2/5] CLEAN — Application des 34 règles de nettoyage...
+2026-04-15 10:16:12,967 [INFO]   → DIM_AGENT
+2026-04-15 10:16:12,969 [INFO]   [DIM_AGENT] A4 - email_agent null rempli: 23 corrections
+2026-04-15 10:16:12,972 [INFO]   [DIM_AGENT] A7 - ligne UNKNOWN agent (ID=0) ajoutée: 1 corrections
+2026-04-15 10:16:12,973 [INFO]   → DIM_CLIENT
+2026-04-15 10:16:12,984 [INFO]   [DIM_CLIENT] C2 - TYPE_PERSONNE invalide → P: 396 corrections
+2026-04-15 10:16:12,992 [INFO]   [DIM_CLIENT] C3 - NOM null → INCONNU: 679 corrections
+2026-04-15 10:16:13,904 [INFO]   [DIM_CLIENT] C9 - ligne UNKNOWN client (ID=0) ajoutée: 1 corrections
+2026-04-15 10:16:13,910 [INFO]   → DIM_POLICE
+2026-04-15 10:16:13,918 [INFO]   [DIM_POLICE] P2 - NUM_POLICE null → généré: 196 corrections
+2026-04-15 10:16:16,231 [INFO]   [DIM_POLICE] P8 - BONUS_MALUS hors [0.5,3.5] → 1.0: 14,147 corrections
+2026-04-15 10:16:16,248 [INFO]   [DIM_POLICE] P9 - POLRP orphelin → NaN: 2,404 corrections
+2026-04-15 10:16:16,275 [INFO]   [DIM_POLICE] P11 - ligne UNKNOWN police (ID=0) ajoutée: 1 corrections
+2026-04-15 10:16:16,287 [INFO]   → DIM_VEHICULE
+2026-04-15 10:16:16,307 [INFO]   [DIM_VEHICULE] V3 - IMMATRICULATION null → INCONNU: 274 corrections
+2026-04-15 10:16:17,099 [INFO]   [DIM_VEHICULE] V6 - VALEUR_A_NEUF invalide → NaN: 19,699 corrections
+2026-04-15 10:16:17,105 [INFO]   → FACT_EMISSION
+2026-04-15 10:16:17,139 [INFO]   [FACT_EMISSION] E2 - ETAT_QUIT invalide → E: 650 corrections
+2026-04-15 10:16:37,473 [INFO]   [FACT_EMISSION] E5 - ANNEE_ECHEANCE invalide → imputation: 1,375 corrections
+2026-04-15 10:16:37,506 [INFO]   [FACT_EMISSION] E6 - MT_PNET négatif → ABS: 256 corrections
+2026-04-15 10:16:37,508 [INFO]   [FACT_EMISSION] E7 - MT_PNET null → 0.0: 408 corrections
+2026-04-15 10:16:37,518 [INFO]   [FACT_EMISSION] E6 - MT_PTT négatif → ABS: 252 corrections
+2026-04-15 10:16:37,521 [INFO]   [FACT_EMISSION] E7 - MT_PTT null → 0.0: 381 corrections
+2026-04-15 10:16:37,525 [INFO]   [FACT_EMISSION] E7 - MT_COMMISSION null → 0.0: 1,324 corrections
+2026-04-15 10:16:37,531 [INFO]   [FACT_EMISSION] E8 - MT_PNET > 109713 DT winsorisé: 65 corrections
+2026-04-15 10:16:37,576 [INFO]   [FACT_EMISSION] E9 - MT_PNET recalculé (Σ garanties): 4,865 corrections
+2026-04-15 10:16:37,678 [INFO]   [FACT_EMISSION] E11 - MT_PTT recalculé (PNET+FGA+TIMBRE+TAXE): 4,849 corrections
+2026-04-15 10:16:37,913 [INFO]   → FACT_ANNULATION
+2026-04-15 10:16:38,812 [INFO]   [FACT_ANNULATION] N5 - DATE_ANNULATION < DATE_EMISSION → swap: 319 corrections
+2026-04-15 10:16:38,885 [INFO]   → FACT_IMPAYE
+2026-04-15 10:16:38,893 [INFO]   [FACT_IMPAYE] I2 - MT_ACP > MT_PTT → plafonné: 22 corrections
+2026-04-15 10:16:39,707 [INFO]   → FACT_SINISTRE
+2026-04-15 10:17:02,525 [INFO]   [FACT_EMISSION_DETAIL] D3 - ANNEE_ECHEANCE invalide → imputation: 4,411 corrections
+2026-04-15 10:17:02,638 [INFO]   → FACT_EMISSION_DETAIL : 208,290 → 208,290 lignes (imputation sans suppression)
+2026-04-15 10:17:02,639 [INFO] 
+[3/5] VALIDATE — Skip (--skip-validate)
+2026-04-15 10:17:02,639 [INFO] 
+[4/5] LOAD — Chargement PostgreSQL...
+2026-04-15 10:17:11,094 [INFO]   ✅ dwh_fact_sinistre : 8,000 lignes chargées (TRUNCATE+INSERT)
+2026-04-15 10:17:11,096 [INFO] 
+[5/5] REPORT — Génération rapport qualité JSON...
+2026-04-15 10:17:11,097 [INFO] 
+======================================================================
+2026-04-15 10:17:11,098 [INFO]   RÉSUMÉ DES CORRECTIONS APPLIQUÉES
+2026-04-15 10:17:11,099 [INFO] ======================================================================
+2026-04-15 10:17:11,102 [INFO]   DIM_AGENT                      →     200 →     201  (−0 supprimés, +1 ajoutés, 24 corrections)
+2026-04-15 10:17:11,103 [INFO]   DIM_CLIENT                     →  30,000 →  30,001  (−0 supprimés, +1 ajoutés, 1,076 corrections)
+2026-04-15 10:17:11,108 [INFO]   DIM_POLICE                     →  30,000 →  30,001  (−0 supprimés, +1 ajoutés, 16,748 corrections)
+2026-04-15 10:17:11,110 [INFO]   DIM_VEHICULE                   →  20,000 →  20,000  (−0 supprimés, +0 ajoutés, 19,973 corrections)
+2026-04-15 10:17:11,111 [INFO]   FACT_EMISSION                  →  65,000 →  65,000  (−0 supprimés, +0 ajoutés, 14,425 corrections)
+2026-04-15 10:17:11,113 [INFO]   FACT_ANNULATION                →   1,273 →   1,273  (−0 supprimés, +0 ajoutés, 319 corrections)
+2026-04-15 10:17:11,114 [INFO]   FACT_IMPAYE                    →     868 →     868  (−0 supprimés, +0 ajoutés, 22 corrections)
+2026-04-15 10:17:11,115 [INFO]   FACT_SINISTRE                  →   8,000 →   8,000  (−0 supprimés, +0 ajoutés, 0 corrections)
+2026-04-15 10:17:11,117 [INFO]   FACT_EMISSION_DETAIL           → 208,290 → 208,290  (−0 supprimés, +0 ajoutés, 4,411 corrections)
+2026-04-15 10:17:11,118 [INFO] ----------------------------------------------------------------------
+2026-04-15 10:17:11,120 [INFO]   TOTAL                             Total corrections : 56,998
+2026-04-15 10:17:11,121 [INFO]                                     Total suppressions: 0
+2026-04-15 10:17:11,123 [INFO]                                     Total ajouts      : 3
+2026-04-15 10:17:11,125 [INFO] 
+  Durée totale : 58.6s
+2026-04-15 10:17:11,127 [INFO] ======================================================================
+2026-04-15 10:17:11,133 [INFO] 
+  💾 Rapport : maghrebia\reports\data_quality\import_report_20260415_1016.json
+2026-04-15 10:17:18,921 [INFO]   💾 CSV nettoyés : maghrebia\data\clean/

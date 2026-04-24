@@ -1,0 +1,21 @@
+﻿ID_GARANTIE,ID_BRANCHE,CODE_GARANTIE,LIB_GARANTIE,TYPE_GARANTIE
+1,1,RC,Responsabilité Civile,RC
+2,1,DOM,Dommage Tous Risques,Dommage
+3,1,INC,Incendie,Dommage
+4,1,VOL,Vol,Vol
+5,1,BGL,Bris de Glace,Annexe
+6,1,DOMCOLL,Dommage & Collision,Dommage
+7,1,TEL,GEMP/Incendie,Annexe
+8,1,CAS,Recours,Annexe
+9,1,PTA,Personne Transportée,Annexe
+10,1,ASS,Assistance,Annexe
+11,2,RC,Responsabilité Civile,RC
+12,2,INC,Incendie,Dommage
+13,2,VOL,Vol,Vol
+14,2,DOM,Dommage,Dommage
+15,2,BGL,Bris de Glace,Annexe
+16,3,HOS,Hospitalisation,Santé
+17,3,CONS,Consultation,Santé
+18,3,PHAR,Pharmacie,Santé
+19,3,DENT,Dentaire,Santé
+20,3,OPT,Optique,Santé

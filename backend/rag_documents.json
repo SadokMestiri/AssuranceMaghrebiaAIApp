@@ -1,0 +1,52 @@
+[
+  {
+    "id": "tdsp_phase3",
+    "title": "TDSP Phase 3 - KPI dashboard",
+    "content": "La phase 3 met l accent sur les KPI business: prime nette, commission, taux de resiliation, impayes, top agents et analyse par branche pour le pilotage CEO."
+  },
+  {
+    "id": "tdsp_phase4",
+    "title": "TDSP Phase 4 - Agent IA",
+    "content": "La phase 4 ajoute un agent IA metier qui orchestre des tools analytiques: KPI, rag, forecast, anomaly, drift, explain et segment."
+  },
+  {
+    "id": "kpi_prime_nette",
+    "title": "Definition prime nette",
+    "content": "La prime nette represente la production hors taxes et hors frais additionnels. Elle est la base de reference pour la performance commerciale."
+  },
+  {
+    "id": "kpi_sp_proxy",
+    "title": "S over P proxy",
+    "content": "Dans cette plateforme, un ratio proxy de sinistralite est calcule via impayes sur prime nette quand les sinistres detailles ne sont pas totalement disponibles."
+  },
+  {
+    "id": "kpi_churn",
+    "title": "Taux de resiliation",
+    "content": "Le churn mesure la proportion de polices resiliees sur le portefeuille total. Un churn eleve signale une erosion de valeur client."
+  },
+  {
+    "id": "kpi_commission",
+    "title": "Commission reseau",
+    "content": "Le suivi de commission par branche et par agent aide a piloter l efficacite commerciale et la rentabilite du reseau de distribution."
+  },
+  {
+    "id": "risk_recouvrement",
+    "title": "Risque recouvrement",
+    "content": "Le risque recouvrement est surveille via taux impaye, montant impaye et ecart entre signal predit et signal observe."
+  },
+  {
+    "id": "governance_model",
+    "title": "Gouvernance modele",
+    "content": "La gouvernance champion challenger trace les entrainements et promotions avec historique des decisions pour auditabilite et stabilite en production."
+  },
+  {
+    "id": "geo_risk",
+    "title": "Geo risque Tunisie",
+    "content": "La carte geo met en evidence les zones a risque via un signal proxy impaye par gouvernorat afin de prioriser les actions terrain."
+  },
+  {
+    "id": "ceo_usage",
+    "title": "Usage CEO",
+    "content": "Le dashboard CEO doit fournir des recommandations actionnables: acceleration commerciale, retention, recouvrement cible et reduction des zones de risque."
+  }
+]

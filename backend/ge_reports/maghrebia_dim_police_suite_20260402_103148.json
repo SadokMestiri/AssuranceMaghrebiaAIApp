@@ -1,0 +1,76 @@
+{
+  "suite": "maghrebia_dim_police_suite",
+  "run_date": "2026-04-02T10:31:48.405280",
+  "n_rows": 30000,
+  "total_exp": 8,
+  "passed_exp": "8",
+  "failed_exp": "0",
+  "success_pct": 100.0,
+  "status": "PASSED",
+  "expectations": [
+    {
+      "name": "expect_table_row_count_to_be_between(25000, 35000)",
+      "passed": true,
+      "n_ok": 30000,
+      "n_total": 30000,
+      "pct": 100.0,
+      "details": ""
+    },
+    {
+      "name": "expect_column_values_to_not_be_null(ID_POLICE)",
+      "passed": "True",
+      "n_ok": 30000,
+      "n_total": 30000,
+      "pct": 100.0,
+      "details": ""
+    },
+    {
+      "name": "expect_column_values_to_be_unique(ID_POLICE)",
+      "passed": "True",
+      "n_ok": 30000,
+      "n_total": 30000,
+      "pct": 100.0,
+      "details": "dups=0"
+    },
+    {
+      "name": "expect_column_values_to_be_in_set(BRANCHE, ['AUTO', 'IRDS', 'SANTE'])",
+      "passed": "True",
+      "n_ok": 30000,
+      "n_total": 30000,
+      "pct": 100.0,
+      "details": "invalid sample=[]"
+    },
+    {
+      "name": "expect_column_values_to_be_in_set(SITUATION, ['A', 'R', 'S', 'T', 'V'])",
+      "passed": "True",
+      "n_ok": 30000,
+      "n_total": 30000,
+      "pct": 100.0,
+      "details": "invalid sample=[]"
+    },
+    {
+      "name": "expect_column_values_to_be_in_set(TYPE_POLICE, ['flotte', 'individuel'])",
+      "passed": "True",
+      "n_ok": 30000,
+      "n_total": 30000,
+      "pct": 100.0,
+      "details": "invalid sample=[]"
+    },
+    {
+      "name": "expect_column_values_to_be_between(CODE_PRODUIT, lo=17, hi=89)",
+      "passed": "True",
+      "n_ok": 30000,
+      "n_total": 30000,
+      "pct": 100.0,
+      "details": "threshold=99%"
+    },
+    {
+      "name": "expect_column_values_to_be_between(BONUS_MALUS, lo=1, hi=10)",
+      "passed": "True",
+      "n_ok": 20000,
+      "n_total": 20000,
+      "pct": 100.0,
+      "details": "threshold=95%"
+    }
+  ]
+}

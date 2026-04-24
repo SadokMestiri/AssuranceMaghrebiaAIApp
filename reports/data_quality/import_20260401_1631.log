@@ -1,0 +1,19 @@
+2026-04-01 16:31:21,209 [INFO] ======================================================================
+2026-04-01 16:31:21,209 [INFO]   MAGHREBIA ASSURANCE — PIPELINE PHASE 2
+2026-04-01 16:31:21,209 [INFO]   Start : 2026-04-01 16:31:21
+2026-04-01 16:31:21,209 [INFO]   Mode  : PRODUCTION
+2026-04-01 16:31:21,210 [INFO] ======================================================================
+2026-04-01 16:31:21,210 [INFO] 
+[0/5] Connexion PostgreSQL...
+2026-04-01 16:31:21,261 [INFO] 
+[1/5] EXTRACT — Lecture CSV bruts...
+2026-04-01 16:31:21,637 [INFO] 
+[2/5] CLEAN — Application des 34 règles de nettoyage...
+2026-04-01 16:31:21,645 [INFO]   [DIM_AGENT] A4 - email_agent null rempli: 23 corrections
+2026-04-01 16:31:25,818 [INFO]   [FACT_EMISSION] E8 - MT_PNET > 109730 DT winsorisé: 64 corrections
+2026-04-01 16:31:25,858 [INFO]   [FACT_EMISSION] E11 - MT_PTT recalculé (PNET+FGA+TIMBRE+TAXE): 4,737 corrections
+2026-04-01 16:31:33,149 [INFO] 
+[3/5] VALIDATE — Great Expectations post-cleaning...
+2026-04-01 16:31:33,207 [INFO]   Score qualité : 100.0% (18/18 règles)
+2026-04-01 16:31:33,209 [INFO] 
+[4/5] LOAD — Chargement PostgreSQL...

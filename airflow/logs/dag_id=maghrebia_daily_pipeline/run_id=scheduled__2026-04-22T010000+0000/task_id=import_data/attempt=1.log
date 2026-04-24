@@ -1,0 +1,100 @@
+[2026-04-23T07:38:55.242+0000] {local_task_job_runner.py:120} INFO - ::group::Pre task execution logs
+[2026-04-23T07:38:55.261+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: maghrebia_daily_pipeline.import_data scheduled__2026-04-22T01:00:00+00:00 [queued]>
+[2026-04-23T07:38:55.268+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: maghrebia_daily_pipeline.import_data scheduled__2026-04-22T01:00:00+00:00 [queued]>
+[2026-04-23T07:38:55.268+0000] {taskinstance.py:2306} INFO - Starting attempt 1 of 2
+[2026-04-23T07:38:55.283+0000] {taskinstance.py:2330} INFO - Executing <Task(PythonOperator): import_data> on 2026-04-22 01:00:00+00:00
+[2026-04-23T07:38:55.288+0000] {warnings.py:110} WARNING - /home/airflow/.local/lib/python3.12/site-packages/airflow/task/task_runner/standard_task_runner.py:61: DeprecationWarning: This process (pid=65) is multi-threaded, use of fork() may lead to deadlocks in the child.
+  pid = os.fork()
+
+[2026-04-23T07:38:55.289+0000] {standard_task_runner.py:90} INFO - Running: ['airflow', 'tasks', 'run', '***_daily_pipeline', 'import_data', 'scheduled__2026-04-22T01:00:00+00:00', '--job-id', '222', '--raw', '--subdir', 'DAGS_FOLDER/***_daily_pipeline.py', '--cfg-path', '/tmp/tmpn7vj3_i3']
+[2026-04-23T07:38:55.296+0000] {standard_task_runner.py:63} INFO - Started process 66 to run task
+[2026-04-23T07:38:55.298+0000] {standard_task_runner.py:91} INFO - Job 222: Subtask import_data
+[2026-04-23T07:38:55.352+0000] {task_command.py:426} INFO - Running <TaskInstance: maghrebia_daily_pipeline.import_data scheduled__2026-04-22T01:00:00+00:00 [running]> on host 267974f74f8a
+[2026-04-23T07:38:55.433+0000] {taskinstance.py:2648} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='***-data' AIRFLOW_CTX_DAG_ID='***_daily_pipeline' AIRFLOW_CTX_TASK_ID='import_data' AIRFLOW_CTX_EXECUTION_DATE='2026-04-22T01:00:00+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='scheduled__2026-04-22T01:00:00+00:00'
+[2026-04-23T07:38:55.434+0000] {taskinstance.py:430} INFO - ::endgroup::
+[2026-04-23T07:40:20.751+0000] {maghrebia_daily_pipeline.py:175} INFO - on: 1,375 corrections
+2026-04-23 07:39:06,885 [INFO]   [FACT_EMISSION] E6 - MT_PNET négatif → Suppression: 256 corrections
+2026-04-23 07:39:06,919 [INFO]   [FACT_EMISSION] E6 - MT_PTT négatif → ABS: 252 corrections
+2026-04-23 07:39:06,920 [INFO]   [FACT_EMISSION] E7 - MT_PTT null → 0.0: 381 corrections
+2026-04-23 07:39:06,921 [INFO]   [FACT_EMISSION] E7 - MT_COMMISSION null → 0.0: 1,324 corrections
+2026-04-23 07:39:06,932 [INFO]   [FACT_EMISSION] E8 - MT_PNET > 109788 DT winsorisé: 63 corrections
+2026-04-23 07:39:06,943 [INFO]   [FACT_EMISSION] E9 - MT_PNET recalculé (Σ garanties): 4,354 corrections
+2026-04-23 07:39:06,962 [INFO]   [FACT_EMISSION] E11 - MT_PTT recalculé (PNET+FGA+TIMBRE+TAXE): 4,703 corrections
+2026-04-23 07:39:07,042 [INFO]   → FACT_ANNULATION
+2026-04-23 07:39:07,130 [INFO]   [FACT_ANNULATION] N5 - DATE_ANNULATION < DATE_EMISSION → swap: 319 corrections
+2026-04-23 07:39:07,150 [INFO]   → FACT_IMPAYE
+2026-04-23 07:39:07,152 [INFO]   [FACT_IMPAYE] I2 - MT_ACP > MT_PTT → plafonné: 22 corrections
+2026-04-23 07:39:07,225 [INFO]   → FACT_SINISTRE
+2026-04-23 07:39:10,019 [INFO]   [FACT_EMISSION_DETAIL] D1 - NUM_QUITTANCE orphelin → imputation: 6,490 corrections
+2026-04-23 07:39:10,128 [INFO]   [FACT_EMISSION_DETAIL] D3 - ANNEE_ECHEANCE invalide → imputation: 4,411 corrections
+2026-04-23 07:39:10,149 [INFO]   → FACT_EMISSION_DETAIL : 208,290 → 208,290 lignes (imputation sans suppression)
+2026-04-23 07:39:10,150 [INFO] 
+[3/5] VALIDATE — Great Expectations post-cleaning...
+2026-04-23 07:39:10,151 [INFO]   GE ✅ FE: NUM_QUITTANCE unique
+2026-04-23 07:39:10,154 [INFO]   GE ✅ FE: ETAT_QUIT ∈ {E,P,A}
+2026-04-23 07:39:10,155 [INFO]   GE ✅ FE: BRANCHE ∈ {AUTO,IRDS,SANTE}
+2026-04-23 07:39:10,197 [INFO]   GE ✅ FE: ANNEE_ECHEANCE ∈ [2018,2025]
+2026-04-23 07:39:10,293 [INFO]   GE ✅ FE: MT_PNET ≥ 0
+2026-04-23 07:39:10,294 [INFO]   GE ✅ FE: MT_PTT ≥ 0
+2026-04-23 07:39:10,296 [INFO]   GE ✅ FE: MT_PTT = PNET+FGA+TIMBRE+TAXE (±0.5)
+2026-04-23 07:39:10,297 [INFO]   GE ✅ FE: MT_FGA = MT_RC × 0.25 (±0.5)
+2026-04-23 07:39:10,354 [INFO]   GE ✅ FE: ID_POLICE FK valide
+2026-04-23 07:39:10,376 [INFO]   GE ✅ FE: ID_AGENT FK valide
+2026-04-23 07:39:10,377 [INFO]   GE ✅ DP: ID_POLICE unique
+2026-04-23 07:39:10,378 [INFO]   GE ✅ DP: SITUATION ∈ {V,R,T,S,A}
+2026-04-23 07:39:10,379 [INFO]   GE ✅ DP: BRANCHE ∈ {AUTO,IRDS,SANTE}
+2026-04-23 07:39:10,383 [INFO]   GE ✅ DP: BONUS_MALUS AUTO null < 5%
+2026-04-23 07:39:10,384 [INFO]   GE ✅ DC: ID_CLIENT unique
+2026-04-23 07:39:10,385 [INFO]   GE ✅ DC: TYPE_PERSONNE ∈ {P,M}
+2026-04-23 07:39:10,385 [INFO]   GE ✅ FI: MT_ACP ≤ MT_PTT (acompte cohérent)
+2026-04-23 07:39:10,386 [INFO]   GE ✅ FI: MT_PTT ≥ 0
+2026-04-23 07:39:10,388 [INFO]   Score qualité : 100.0% (18/18 règles)
+2026-04-23 07:39:10,388 [INFO]   ✅ Validation réussie
+2026-04-23 07:39:10,389 [INFO] 
+[4/5] LOAD — Chargement PostgreSQL...
+2026-04-23 07:39:10,486 [INFO]   ✅ dim_agent : 201 lignes chargées (UPSERT)
+2026-04-23 07:39:15,692 [INFO]   ✅ dim_client : 30,001 lignes chargées (UPSERT)
+2026-04-23 07:39:20,824 [INFO]   ✅ dim_police : 30,001 lignes chargées (UPSERT)
+2026-04-23 07:39:24,417 [INFO]   ✅ dim_vehicule : 20,000 lignes chargées (UPSERT)
+2026-04-23 07:39:51,093 [INFO]   ✅ dwh_fact_emission : 62,961 lignes chargées (TRUNCATE+INSERT)
+2026-04-23 07:40:15,214 [INFO]   ✅ dwh_fact_emission_detail : 208,290 lignes chargées (TRUNCATE+INSERT)
+2026-04-23 07:40:15,549 [INFO]   ✅ dwh_fact_annulation : 1,273 lignes chargées (TRUNCATE+INSERT)
+2026-04-23 07:40:15,712 [INFO]   ✅ dwh_fact_impaye : 868 lignes chargées (TRUNCATE+INSERT)
+2026-04-23 07:40:17,479 [INFO]   ✅ dwh_fact_sinistre : 8,000 lignes chargées (TRUNCATE+INSERT)
+2026-04-23 07:40:17,480 [INFO] 
+[5/5] REPORT — Génération rapport qualité JSON...
+2026-04-23 07:40:17,481 [INFO] 
+======================================================================
+2026-04-23 07:40:17,481 [INFO]   RÉSUMÉ DES CORRECTIONS APPLIQUÉES
+2026-04-23 07:40:17,482 [INFO] ======================================================================
+2026-04-23 07:40:17,482 [INFO]   DIM_AGENT                      →     200 →     201  (−0 supprimés, +1 ajoutés, 24 corrections)
+2026-04-23 07:40:17,483 [INFO]   DIM_CLIENT                     →  30,000 →  30,001  (−0 supprimés, +1 ajoutés, 8,622 corrections)
+2026-04-23 07:40:17,483 [INFO]   DIM_POLICE                     →  30,000 →  30,001  (−0 supprimés, +1 ajoutés, 16,748 corrections)
+2026-04-23 07:40:17,484 [INFO]   DIM_VEHICULE                   →  20,000 →  20,000  (−0 supprimés, +0 ajoutés, 19,973 corrections)
+2026-04-23 07:40:17,484 [INFO]   FACT_EMISSION                  →  65,000 →  62,961  (−2,039 supprimés, +0 ajoutés, 13,358 corrections)
+2026-04-23 07:40:17,485 [INFO]   FACT_ANNULATION                →   1,273 →   1,273  (−0 supprimés, +0 ajoutés, 319 corrections)
+2026-04-23 07:40:17,485 [INFO]   FACT_IMPAYE                    →     868 →     868  (−0 supprimés, +0 ajoutés, 22 corrections)
+2026-04-23 07:40:17,486 [INFO]   FACT_SINISTRE                  →   8,000 →   8,000  (−0 supprimés, +0 ajoutés, 0 corrections)
+2026-04-23 07:40:17,486 [INFO]   FACT_EMISSION_DETAIL           → 208,290 → 208,290  (−0 supprimés, +0 ajoutés, 10,901 corrections)
+2026-04-23 07:40:17,486 [INFO] ----------------------------------------------------------------------
+2026-04-23 07:40:17,487 [INFO]   TOTAL                             Total corrections : 69,967
+2026-04-23 07:40:17,487 [INFO]                                     Total suppressions: 2,039
+2026-04-23 07:40:17,487 [INFO]                                     Total ajouts      : 3
+2026-04-23 07:40:17,488 [INFO] 
+  Score GE post-nettoyage : 100.0%  (18/18 règles)
+2026-04-23 07:40:17,488 [INFO] 
+  Durée totale : 81.2s
+2026-04-23 07:40:17,488 [INFO] ======================================================================
+2026-04-23 07:40:17,493 [INFO] 
+  💾 Rapport : /opt/airflow/reports/data_quality/import_report_20260423_0738.json
+2026-04-23 07:40:20,618 [INFO]   💾 CSV nettoyés : /opt/airflow/data/clean/
+
+[2026-04-23T07:40:20.752+0000] {maghrebia_daily_pipeline.py:177} WARNING - /opt/airflow/tdsp_dags/import_data.py:215: FutureWarning: The behavior of DataFrame concatenation with empty or all-NA entries is deprecated. In a future version, this will no longer exclude empty or all-NA columns when determining the result dtypes. To retain the old behavior, exclude the relevant entries before the concat operation.
+  return pd.concat([df, pd.DataFrame([row])], ignore_index=True)
+
+[2026-04-23T07:40:20.854+0000] {python.py:237} INFO - Done. Returned value was: None
+[2026-04-23T07:40:20.856+0000] {taskinstance.py:441} INFO - ::group::Post task execution logs
+[2026-04-23T07:40:20.868+0000] {taskinstance.py:1206} INFO - Marking task as SUCCESS. dag_id=***_daily_pipeline, task_id=import_data, run_id=scheduled__2026-04-22T01:00:00+00:00, execution_date=20260422T010000, start_date=20260423T073855, end_date=20260423T074020
+[2026-04-23T07:40:20.919+0000] {local_task_job_runner.py:240} INFO - Task exited with return code 0
+[2026-04-23T07:40:20.945+0000] {taskinstance.py:3498} INFO - 1 downstream tasks scheduled from follow-on schedule check
+[2026-04-23T07:40:20.947+0000] {local_task_job_runner.py:222} INFO - ::endgroup::

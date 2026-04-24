@@ -1,0 +1,23 @@
+[2026-04-06T07:32:26.598+0000] {local_task_job_runner.py:120} INFO - ::group::Pre task execution logs
+[2026-04-06T07:32:26.630+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: maghrebia_daily_pipeline.health_check scheduled__2026-04-05T01:00:00+00:00 [queued]>
+[2026-04-06T07:32:26.637+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: maghrebia_daily_pipeline.health_check scheduled__2026-04-05T01:00:00+00:00 [queued]>
+[2026-04-06T07:32:26.638+0000] {taskinstance.py:2306} INFO - Starting attempt 1 of 2
+[2026-04-06T07:32:26.651+0000] {taskinstance.py:2330} INFO - Executing <Task(PythonOperator): health_check> on 2026-04-05 01:00:00+00:00
+[2026-04-06T07:32:26.656+0000] {warnings.py:110} WARNING - /home/airflow/.local/lib/python3.12/site-packages/airflow/task/task_runner/standard_task_runner.py:61: DeprecationWarning: This process (pid=60) is multi-threaded, use of fork() may lead to deadlocks in the child.
+  pid = os.fork()
+
+[2026-04-06T07:32:26.658+0000] {standard_task_runner.py:63} INFO - Started process 61 to run task
+[2026-04-06T07:32:26.657+0000] {standard_task_runner.py:90} INFO - Running: ['airflow', 'tasks', 'run', '***_daily_pipeline', 'health_check', 'scheduled__2026-04-05T01:00:00+00:00', '--job-id', '17', '--raw', '--subdir', 'DAGS_FOLDER/***_daily_pipeline.py', '--cfg-path', '/tmp/tmpdbpz9u0f']
+[2026-04-06T07:32:26.659+0000] {standard_task_runner.py:91} INFO - Job 17: Subtask health_check
+[2026-04-06T07:32:26.719+0000] {task_command.py:426} INFO - Running <TaskInstance: maghrebia_daily_pipeline.health_check scheduled__2026-04-05T01:00:00+00:00 [running]> on host 1d635d36acfe
+[2026-04-06T07:32:26.819+0000] {taskinstance.py:2648} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='***-data' AIRFLOW_CTX_DAG_ID='***_daily_pipeline' AIRFLOW_CTX_TASK_ID='health_check' AIRFLOW_CTX_EXECUTION_DATE='2026-04-05T01:00:00+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='scheduled__2026-04-05T01:00:00+00:00'
+[2026-04-06T07:32:26.821+0000] {taskinstance.py:430} INFO - ::endgroup::
+[2026-04-06T07:32:26.856+0000] {maghrebia_daily_pipeline.py:81} INFO - ✅ PostgreSQL OK
+[2026-04-06T07:32:26.883+0000] {maghrebia_daily_pipeline.py:91} INFO - ✅ Qdrant OK
+[2026-04-06T07:32:26.899+0000] {maghrebia_daily_pipeline.py:97} INFO - Health check complete: {'postgres': 'OK', 'qdrant': 'OK'}
+[2026-04-06T07:32:26.900+0000] {python.py:237} INFO - Done. Returned value was: None
+[2026-04-06T07:32:26.902+0000] {taskinstance.py:441} INFO - ::group::Post task execution logs
+[2026-04-06T07:32:26.915+0000] {taskinstance.py:1206} INFO - Marking task as SUCCESS. dag_id=***_daily_pipeline, task_id=health_check, run_id=scheduled__2026-04-05T01:00:00+00:00, execution_date=20260405T010000, start_date=20260406T073226, end_date=20260406T073226
+[2026-04-06T07:32:26.952+0000] {local_task_job_runner.py:240} INFO - Task exited with return code 0
+[2026-04-06T07:32:26.982+0000] {taskinstance.py:3498} INFO - 1 downstream tasks scheduled from follow-on schedule check
+[2026-04-06T07:32:26.984+0000] {local_task_job_runner.py:222} INFO - ::endgroup::

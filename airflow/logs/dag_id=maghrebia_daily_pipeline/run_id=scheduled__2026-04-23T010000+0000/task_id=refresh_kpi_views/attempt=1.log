@@ -1,0 +1,24 @@
+[2026-04-24T12:33:46.740+0000] {local_task_job_runner.py:120} INFO - ::group::Pre task execution logs
+[2026-04-24T12:33:46.760+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: maghrebia_daily_pipeline.refresh_kpi_views scheduled__2026-04-23T01:00:00+00:00 [queued]>
+[2026-04-24T12:33:46.766+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: maghrebia_daily_pipeline.refresh_kpi_views scheduled__2026-04-23T01:00:00+00:00 [queued]>
+[2026-04-24T12:33:46.767+0000] {taskinstance.py:2306} INFO - Starting attempt 1 of 2
+[2026-04-24T12:33:46.779+0000] {taskinstance.py:2330} INFO - Executing <Task(PythonOperator): refresh_kpi_views> on 2026-04-23 01:00:00+00:00
+[2026-04-24T12:33:46.784+0000] {warnings.py:110} WARNING - /home/airflow/.local/lib/python3.12/site-packages/airflow/task/task_runner/standard_task_runner.py:61: DeprecationWarning: This process (pid=88) is multi-threaded, use of fork() may lead to deadlocks in the child.
+  pid = os.fork()
+
+[2026-04-24T12:33:46.785+0000] {standard_task_runner.py:63} INFO - Started process 89 to run task
+[2026-04-24T12:33:46.785+0000] {standard_task_runner.py:90} INFO - Running: ['airflow', 'tasks', 'run', '***_daily_pipeline', 'refresh_kpi_views', 'scheduled__2026-04-23T01:00:00+00:00', '--job-id', '258', '--raw', '--subdir', 'DAGS_FOLDER/***_daily_pipeline.py', '--cfg-path', '/tmp/tmpt21wy5c9']
+[2026-04-24T12:33:46.786+0000] {standard_task_runner.py:91} INFO - Job 258: Subtask refresh_kpi_views
+[2026-04-24T12:33:46.832+0000] {task_command.py:426} INFO - Running <TaskInstance: maghrebia_daily_pipeline.refresh_kpi_views scheduled__2026-04-23T01:00:00+00:00 [running]> on host 205a53e44796
+[2026-04-24T12:33:46.908+0000] {taskinstance.py:2648} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='***-data' AIRFLOW_CTX_DAG_ID='***_daily_pipeline' AIRFLOW_CTX_TASK_ID='refresh_kpi_views' AIRFLOW_CTX_EXECUTION_DATE='2026-04-23T01:00:00+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='scheduled__2026-04-23T01:00:00+00:00'
+[2026-04-24T12:33:46.909+0000] {taskinstance.py:430} INFO - ::endgroup::
+[2026-04-24T12:33:46.926+0000] {maghrebia_daily_pipeline.py:224} INFO -   REFRESH MATERIALIZED VIEW mv_kpi_production_annuelle …
+[2026-04-24T12:33:46.955+0000] {maghrebia_daily_pipeline.py:224} INFO -   REFRESH MATERIALIZED VIEW mv_kpi_agent_performance …
+[2026-04-24T12:33:47.049+0000] {maghrebia_daily_pipeline.py:224} INFO -   REFRESH MATERIALIZED VIEW mv_kpi_portefeuille …
+[2026-04-24T12:33:47.068+0000] {maghrebia_daily_pipeline.py:229} INFO - ✅ KPI views refreshed
+[2026-04-24T12:33:47.069+0000] {python.py:237} INFO - Done. Returned value was: None
+[2026-04-24T12:33:47.070+0000] {taskinstance.py:441} INFO - ::group::Post task execution logs
+[2026-04-24T12:33:47.081+0000] {taskinstance.py:1206} INFO - Marking task as SUCCESS. dag_id=***_daily_pipeline, task_id=refresh_kpi_views, run_id=scheduled__2026-04-23T01:00:00+00:00, execution_date=20260423T010000, start_date=20260424T123346, end_date=20260424T123347
+[2026-04-24T12:33:47.119+0000] {local_task_job_runner.py:240} INFO - Task exited with return code 0
+[2026-04-24T12:33:47.143+0000] {taskinstance.py:3498} INFO - 4 downstream tasks scheduled from follow-on schedule check
+[2026-04-24T12:33:47.146+0000] {local_task_job_runner.py:222} INFO - ::endgroup::

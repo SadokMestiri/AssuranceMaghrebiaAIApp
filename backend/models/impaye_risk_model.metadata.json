@@ -1,0 +1,662 @@
+{
+  "model_path": "/app/models/impaye_risk_model.joblib",
+  "model_role": "champion",
+  "tracking_uri": "http://mlflow:5000",
+  "experiment_name": "maghrebia_impaye_risk",
+  "run_id": "186006471b584e26a5e539a87c18e793",
+  "trained_at": "2026-04-13T15:42:40.364334+00:00",
+  "training_rows": 65000,
+  "positive_rate": 0.011753846153846155,
+  "split_strategy_requested": "temporal",
+  "split_info": {
+    "split_strategy_used": "temporal",
+    "train_rows": 51027,
+    "test_rows": 13973,
+    "temporal_test_month_start": "2024-07",
+    "temporal_test_month_end": "2025-12",
+    "temporal_test_months": 18
+  },
+  "selected_model": "hgb_balanced",
+  "probability_inverted": false,
+  "fit_policy": {
+    "positive_class_weight": 1.5
+  },
+  "best_threshold": 0.6182548812251166,
+  "threshold_policy": {
+    "min_precision": 0.05,
+    "min_recall": 0.05,
+    "max_predicted_positive_rate": 0.1,
+    "f_beta": 1.0
+  },
+  "threshold_metrics": {
+    "precision": 0.021996615905245348,
+    "recall": 0.07514450867052024,
+    "f1": 0.03403141326223583,
+    "f_beta": 0.03403141326223583,
+    "predicted_positive_rate": 0.042295856294281835,
+    "constraints_satisfied": 0.0,
+    "threshold_min_precision": 0.05,
+    "threshold_min_recall": 0.05,
+    "threshold_max_predicted_positive_rate": 0.1,
+    "threshold_f_beta": 1.0
+  },
+  "branch_thresholds": {
+    "AUTO": {
+      "threshold": 0.6182548812251166,
+      "threshold_source": "branch_opt_f1",
+      "support": 9385,
+      "positive_rate": 0.012892914224826852,
+      "threshold_metrics": {
+        "precision": 0.025069637883008356,
+        "recall": 0.0743801652892562,
+        "f1": 0.037499999622925356,
+        "f_beta": 0.037499999622925356,
+        "predicted_positive_rate": 0.038252530633990416,
+        "constraints_satisfied": 0.0,
+        "threshold_min_precision": 0.05,
+        "threshold_min_recall": 0.05,
+        "threshold_max_predicted_positive_rate": 0.1,
+        "threshold_f_beta": 1.0
+      }
+    },
+    "IRDS": {
+      "threshold": 0.6499956475436925,
+      "threshold_source": "branch_opt_f1",
+      "support": 3630,
+      "positive_rate": 0.01046831955922865,
+      "threshold_metrics": {
+        "precision": 0.038461538461538464,
+        "recall": 0.05263157894736842,
+        "f1": 0.04444444395654322,
+        "f_beta": 0.04444444395654322,
+        "predicted_positive_rate": 0.014325068870523414,
+        "constraints_satisfied": 0.0,
+        "threshold_min_precision": 0.05,
+        "threshold_min_recall": 0.05,
+        "threshold_max_predicted_positive_rate": 0.1,
+        "threshold_f_beta": 1.0
+      }
+    },
+    "SANTE": {
+      "threshold": 0.5762766350356046,
+      "threshold_source": "branch_opt_f1",
+      "support": 958,
+      "positive_rate": 0.014613778705636743,
+      "threshold_metrics": {
+        "precision": 0.038461538461538464,
+        "recall": 0.42857142857142855,
+        "f1": 0.07058823514297577,
+        "f_beta": 0.07058823514297577,
+        "predicted_positive_rate": 0.16283924843423797,
+        "constraints_satisfied": 0.0,
+        "threshold_min_precision": 0.05,
+        "threshold_min_recall": 0.05,
+        "threshold_max_predicted_positive_rate": 0.1,
+        "threshold_f_beta": 1.0
+      }
+    }
+  },
+  "metrics": {
+    "accuracy": 0.9494739855435482,
+    "balanced_accuracy": 0.5292054117449946,
+    "precision": 0.029982363315696647,
+    "recall": 0.09826589595375723,
+    "f1": 0.04594594594594595,
+    "predicted_positive_rate": 0.04057825806913333,
+    "roc_auc": 0.5230914383848537,
+    "avg_precision": 0.014002729866923046,
+    "threshold_opt_f1": 0.6182548812251166,
+    "raw_roc_auc_before_inversion": 0.5230914383848537
+  },
+  "candidate_results": {
+    "logreg_balanced": {
+      "metrics": {
+        "accuracy": 0.7485149932011737,
+        "balanced_accuracy": 0.5216463516796516,
+        "precision": 0.014530659691950014,
+        "recall": 0.28901734104046245,
+        "f1": 0.02767017155506364,
+        "predicted_positive_rate": 0.2462606455306663,
+        "roc_auc": 0.5017542096004022,
+        "avg_precision": 0.012213587913672792,
+        "threshold_opt_f1": 0.4060210866515297,
+        "raw_roc_auc_before_inversion": 0.49824579039959793
+      },
+      "threshold_metrics": {
+        "precision": 0.014530659691950014,
+        "recall": 0.28901734104046245,
+        "f1": 0.02767017146390781,
+        "f_beta": 0.02767017146390781,
+        "predicted_positive_rate": 0.24626064553066634,
+        "constraints_satisfied": 0.0,
+        "threshold_min_precision": 0.05,
+        "threshold_min_recall": 0.05,
+        "threshold_max_predicted_positive_rate": 0.1,
+        "threshold_f_beta": 1.0
+      },
+      "probability_inverted": true,
+      "rolling_validation": {
+        "enabled": true,
+        "n_folds": 3,
+        "validation_months": 6,
+        "min_train_months": 18,
+        "metrics_mean": {
+          "accuracy": 0.8385455834559344,
+          "balanced_accuracy": 0.5267259859664448,
+          "precision": 0.019770900791617665,
+          "recall": 0.20718667583992664,
+          "f1": 0.03463455192242237,
+          "predicted_positive_rate": 0.15444347988437518,
+          "roc_auc": 0.5288500568405148,
+          "avg_precision": 0.014714370443424746
+        },
+        "metrics_std": {
+          "accuracy": 0.12972474587329905,
+          "balanced_accuracy": 0.008763550763057019,
+          "precision": 0.002986065649577584,
+          "recall": 0.1405949634749543,
+          "f1": 0.0052074054532642335,
+          "predicted_positive_rate": 0.1325641764297892,
+          "roc_auc": 0.03194702033106824,
+          "avg_precision": 0.0021059830279520873
+        },
+        "folds": [
+          {
+            "train_month_start": "2018-08",
+            "train_month_end": "2022-12",
+            "val_month_start": "2023-01",
+            "val_month_end": "2023-06",
+            "val_months": 6,
+            "metrics": {
+              "accuracy": 0.9410508329773601,
+              "balanced_accuracy": 0.5144910047802321,
+              "precision": 0.017167381974248927,
+              "recall": 0.0784313725490196,
+              "f1": 0.028169014084507043,
+              "predicted_positive_rate": 0.04976505766766339,
+              "roc_auc": 0.5093127728310067,
+              "avg_precision": 0.011737053406854936,
+              "threshold_opt_f1": 0.5827428321700574,
+              "raw_roc_auc_before_inversion": 0.4906872271689932
+            },
+            "threshold_metrics": {
+              "precision": 0.017167381974248927,
+              "recall": 0.0784313725490196,
+              "f1": 0.02816901378984825,
+              "f_beta": 0.02816901378984825,
+              "predicted_positive_rate": 0.04976505766766339,
+              "constraints_satisfied": 0.0,
+              "threshold_min_precision": 0.05,
+              "threshold_min_recall": 0.05,
+              "threshold_max_predicted_positive_rate": 0.1,
+              "threshold_f_beta": 1.0
+            },
+            "probability_inverted": true
+          },
+          {
+            "train_month_start": "2018-08",
+            "train_month_end": "2023-06",
+            "val_month_start": "2023-07",
+            "val_month_end": "2023-12",
+            "val_months": 6,
+            "metrics": {
+              "accuracy": 0.6555269922879178,
+              "balanced_accuracy": 0.5311321438932405,
+              "precision": 0.01819322459222083,
+              "recall": 0.4027777777777778,
+              "f1": 0.03481392557022809,
+              "predicted_positive_rate": 0.3414738646101114,
+              "roc_auc": 0.5033392563581859,
+              "avg_precision": 0.016136439031189023,
+              "threshold_opt_f1": 0.6645141808863017,
+              "raw_roc_auc_before_inversion": 0.5033392563581859
+            },
+            "threshold_metrics": {
+              "precision": 0.01819322459222083,
+              "recall": 0.4027777777777778,
+              "f1": 0.034813925487528985,
+              "f_beta": 0.034813925487528985,
+              "predicted_positive_rate": 0.34147386461011137,
+              "constraints_satisfied": 0.0,
+              "threshold_min_precision": 0.05,
+              "threshold_min_recall": 0.05,
+              "threshold_max_predicted_positive_rate": 0.1,
+              "threshold_f_beta": 1.0
+            },
+            "probability_inverted": false
+          },
+          {
+            "train_month_start": "2018-08",
+            "train_month_end": "2023-12",
+            "val_month_start": "2024-01",
+            "val_month_end": "2024-06",
+            "val_months": 6,
+            "metrics": {
+              "accuracy": 0.9190589251025254,
+              "balanced_accuracy": 0.5345548092258618,
+              "precision": 0.023952095808383235,
+              "recall": 0.14035087719298245,
+              "f1": 0.04092071611253197,
+              "predicted_positive_rate": 0.07209151737535074,
+              "roc_auc": 0.5738981413323518,
+              "avg_precision": 0.016269618892230275,
+              "threshold_opt_f1": 0.5230649148977162,
+              "raw_roc_auc_before_inversion": 0.42610185866764816
+            },
+            "threshold_metrics": {
+              "precision": 0.023952095808383235,
+              "recall": 0.14035087719298245,
+              "f1": 0.04092071586347552,
+              "f_beta": 0.04092071586347552,
+              "predicted_positive_rate": 0.07209151737535073,
+              "constraints_satisfied": 0.0,
+              "threshold_min_precision": 0.05,
+              "threshold_min_recall": 0.05,
+              "threshold_max_predicted_positive_rate": 0.1,
+              "threshold_f_beta": 1.0
+            },
+            "probability_inverted": true
+          }
+        ]
+      }
+    },
+    "hgb_balanced": {
+      "metrics": {
+        "accuracy": 0.9471838545766836,
+        "balanced_accuracy": 0.5166302253497529,
+        "precision": 0.021996615905245348,
+        "recall": 0.07514450867052024,
+        "f1": 0.034031413612565446,
+        "predicted_positive_rate": 0.04229585629428183,
+        "roc_auc": 0.5230914383848537,
+        "avg_precision": 0.014002729866923046,
+        "threshold_opt_f1": 0.6182548812251166,
+        "raw_roc_auc_before_inversion": 0.5230914383848537
+      },
+      "threshold_metrics": {
+        "precision": 0.021996615905245348,
+        "recall": 0.07514450867052024,
+        "f1": 0.03403141326223583,
+        "f_beta": 0.03403141326223583,
+        "predicted_positive_rate": 0.042295856294281835,
+        "constraints_satisfied": 0.0,
+        "threshold_min_precision": 0.05,
+        "threshold_min_recall": 0.05,
+        "threshold_max_predicted_positive_rate": 0.1,
+        "threshold_f_beta": 1.0
+      },
+      "probability_inverted": false,
+      "rolling_validation": {
+        "enabled": true,
+        "n_folds": 3,
+        "validation_months": 6,
+        "min_train_months": 18,
+        "metrics_mean": {
+          "accuracy": 0.8007840270024572,
+          "balanced_accuracy": 0.5359270462828362,
+          "precision": 0.025527312351744713,
+          "recall": 0.2649352138516225,
+          "f1": 0.041289426712698744,
+          "predicted_positive_rate": 0.19405949092216443,
+          "roc_auc": 0.52739666245478,
+          "avg_precision": 0.014841972289033537
+        },
+        "metrics_std": {
+          "accuracy": 0.21422276532301088,
+          "balanced_accuracy": 0.01442237192429914,
+          "precision": 0.00865613771762745,
+          "recall": 0.245028297765474,
+          "f1": 0.010222654338449159,
+          "predicted_positive_rate": 0.22029511192326282,
+          "roc_auc": 0.007061941856799837,
+          "avg_precision": 0.0016712093105060474
+        },
+        "folds": [
+          {
+            "train_month_start": "2018-08",
+            "train_month_end": "2022-12",
+            "val_month_start": "2023-01",
+            "val_month_end": "2023-06",
+            "val_months": 6,
+            "metrics": {
+              "accuracy": 0.948526270824434,
+              "balanced_accuracy": 0.5182698862313226,
+              "precision": 0.020202020202020204,
+              "recall": 0.0784313725490196,
+              "f1": 0.0321285140562249,
+              "predicted_positive_rate": 0.04228961982058949,
+              "roc_auc": 0.5367366553617776,
+              "avg_precision": 0.01252023138318445,
+              "threshold_opt_f1": 0.6244143950965344,
+              "raw_roc_auc_before_inversion": 0.5367366553617776
+            },
+            "threshold_metrics": {
+              "precision": 0.020202020202020204,
+              "recall": 0.0784313725490196,
+              "f1": 0.03212851373048822,
+              "f_beta": 0.03212851373048822,
+              "predicted_positive_rate": 0.042289619820589486,
+              "constraints_satisfied": 0.0,
+              "threshold_min_precision": 0.05,
+              "threshold_min_recall": 0.05,
+              "threshold_max_predicted_positive_rate": 0.1,
+              "threshold_f_beta": 1.0
+            },
+            "probability_inverted": false
+          },
+          {
+            "train_month_start": "2018-08",
+            "train_month_end": "2023-06",
+            "val_month_start": "2023-07",
+            "val_month_end": "2023-12",
+            "val_months": 6,
+            "metrics": {
+              "accuracy": 0.49785775492716366,
+              "balanced_accuracy": 0.5535973310124747,
+              "precision": 0.01864406779661017,
+              "recall": 0.6111111111111112,
+              "f1": 0.03618421052631579,
+              "predicted_positive_rate": 0.5055698371893744,
+              "roc_auc": 0.5257893337201431,
+              "avg_precision": 0.016385661516136463,
+              "threshold_opt_f1": 0.5769317141486857,
+              "raw_roc_auc_before_inversion": 0.47421066627985686
+            },
+            "threshold_metrics": {
+              "precision": 0.01864406779661017,
+              "recall": 0.6111111111111112,
+              "f1": 0.03618421046885821,
+              "f_beta": 0.03618421046885821,
+              "predicted_positive_rate": 0.5055698371893744,
+              "constraints_satisfied": 0.0,
+              "threshold_min_precision": 0.05,
+              "threshold_min_recall": 0.05,
+              "threshold_max_predicted_positive_rate": 0.1,
+              "threshold_f_beta": 1.0
+            },
+            "probability_inverted": true
+          },
+          {
+            "train_month_start": "2018-08",
+            "train_month_end": "2023-12",
+            "val_month_start": "2024-01",
+            "val_month_end": "2024-06",
+            "val_months": 6,
+            "metrics": {
+              "accuracy": 0.9559680552557738,
+              "balanced_accuracy": 0.5359139216047111,
+              "precision": 0.03773584905660377,
+              "recall": 0.10526315789473684,
+              "f1": 0.05555555555555555,
+              "predicted_positive_rate": 0.03431901575652924,
+              "roc_auc": 0.5196639982824194,
+              "avg_precision": 0.015620023967779702,
+              "threshold_opt_f1": 0.6567928098066492,
+              "raw_roc_auc_before_inversion": 0.5196639982824194
+            },
+            "threshold_metrics": {
+              "precision": 0.03773584905660377,
+              "recall": 0.10526315789473684,
+              "f1": 0.055555555167052476,
+              "f_beta": 0.055555555167052476,
+              "predicted_positive_rate": 0.03431901575652924,
+              "constraints_satisfied": 0.0,
+              "threshold_min_precision": 0.05,
+              "threshold_min_recall": 0.05,
+              "threshold_max_predicted_positive_rate": 0.1,
+              "threshold_f_beta": 1.0
+            },
+            "probability_inverted": false
+          }
+        ]
+      }
+    }
+  },
+  "features": [
+    "annee_echeance",
+    "mois_echeance",
+    "mt_pnet",
+    "mt_rc",
+    "mt_fga",
+    "mt_timbre",
+    "mt_taxe",
+    "mt_ptt",
+    "mt_commission",
+    "bonus_malus",
+    "client_age_years",
+    "policy_tenure_months",
+    "is_personne_morale",
+    "commission_rate",
+    "rc_share",
+    "fga_rate",
+    "tax_rate",
+    "tax_and_fee_share",
+    "ptt_gap",
+    "season_sin",
+    "season_cos",
+    "policy_pnet_change_ratio",
+    "agent_hist_count",
+    "agent_hist_impaye_rate",
+    "client_hist_count",
+    "police_hist_count",
+    "branche_hist_count",
+    "branche_hist_impaye_rate",
+    "ville_hist_count",
+    "ville_hist_impaye_rate",
+    "groupe_agent_hist_count",
+    "groupe_agent_hist_impaye_rate",
+    "agent_months_since_last_impaye",
+    "branche_months_since_last_impaye",
+    "ville_months_since_last_impaye",
+    "groupe_agent_months_since_last_impaye",
+    "branche",
+    "periodicite",
+    "police_situation",
+    "type_personne",
+    "sexe",
+    "ville_client",
+    "groupe_agent",
+    "type_agent",
+    "type_police",
+    "duree_police"
+  ],
+  "numeric_features": [
+    "annee_echeance",
+    "mois_echeance",
+    "mt_pnet",
+    "mt_rc",
+    "mt_fga",
+    "mt_timbre",
+    "mt_taxe",
+    "mt_ptt",
+    "mt_commission",
+    "bonus_malus",
+    "client_age_years",
+    "policy_tenure_months",
+    "is_personne_morale",
+    "commission_rate",
+    "rc_share",
+    "fga_rate",
+    "tax_rate",
+    "tax_and_fee_share",
+    "ptt_gap",
+    "season_sin",
+    "season_cos",
+    "policy_pnet_change_ratio",
+    "agent_hist_count",
+    "agent_hist_impaye_rate",
+    "client_hist_count",
+    "police_hist_count",
+    "branche_hist_count",
+    "branche_hist_impaye_rate",
+    "ville_hist_count",
+    "ville_hist_impaye_rate",
+    "groupe_agent_hist_count",
+    "groupe_agent_hist_impaye_rate",
+    "agent_months_since_last_impaye",
+    "branche_months_since_last_impaye",
+    "ville_months_since_last_impaye",
+    "groupe_agent_months_since_last_impaye"
+  ],
+  "categorical_features": [
+    "branche",
+    "periodicite",
+    "police_situation",
+    "type_personne",
+    "sexe",
+    "ville_client",
+    "groupe_agent",
+    "type_agent",
+    "type_police",
+    "duree_police"
+  ],
+  "dropped_saturated_features": [
+    "client_hist_impaye_rate",
+    "police_hist_impaye_rate",
+    "client_months_since_last_impaye",
+    "police_months_since_last_impaye"
+  ],
+  "historical_saturation_profile": {
+    "agent_hist_count": {
+      "dominant_value": 113.0,
+      "dominant_ratio": 0.003919493601426695
+    },
+    "agent_hist_impaye_rate": {
+      "dominant_value": 0.0,
+      "dominant_ratio": 0.33450918141376135
+    },
+    "client_hist_count": {
+      "dominant_value": 0.0,
+      "dominant_ratio": 0.3100123464048445
+    },
+    "client_hist_impaye_rate": {
+      "dominant_value": 0.0,
+      "dominant_ratio": 0.9799125952926881
+    },
+    "police_hist_count": {
+      "dominant_value": 0.0,
+      "dominant_ratio": 0.43761146059929057
+    },
+    "police_hist_impaye_rate": {
+      "dominant_value": 0.0,
+      "dominant_ratio": 0.9889666255119839
+    },
+    "branche_hist_count": {
+      "dominant_value": 565.0,
+      "dominant_ratio": 5.879240402140044e-05
+    },
+    "branche_hist_impaye_rate": {
+      "dominant_value": 0.0,
+      "dominant_ratio": 0.003076802477119956
+    },
+    "ville_hist_count": {
+      "dominant_value": 178.0,
+      "dominant_ratio": 0.00041154682814980307
+    },
+    "ville_hist_impaye_rate": {
+      "dominant_value": 0.0,
+      "dominant_ratio": 0.06363297861916241
+    },
+    "groupe_agent_hist_count": {
+      "dominant_value": 4955.0,
+      "dominant_ratio": 9.79873400356674e-05
+    },
+    "groupe_agent_hist_impaye_rate": {
+      "dominant_value": 0.0,
+      "dominant_ratio": 0.011444921316165951
+    },
+    "agent_months_since_last_impaye": {
+      "dominant_value": 999.0,
+      "dominant_ratio": 0.33450918141376135
+    },
+    "client_months_since_last_impaye": {
+      "dominant_value": 999.0,
+      "dominant_ratio": 0.9799125952926881
+    },
+    "police_months_since_last_impaye": {
+      "dominant_value": 999.0,
+      "dominant_ratio": 0.9889666255119839
+    },
+    "branche_months_since_last_impaye": {
+      "dominant_value": 0.0,
+      "dominant_ratio": 0.7390009210809964
+    },
+    "ville_months_since_last_impaye": {
+      "dominant_value": 1.0,
+      "dominant_ratio": 0.2737374331236404
+    },
+    "groupe_agent_months_since_last_impaye": {
+      "dominant_value": 0.0,
+      "dominant_ratio": 0.5552550610461129
+    }
+  },
+  "feature_selection_policy": {
+    "drop_saturated_historical_features": true,
+    "hist_saturation_threshold": 0.95
+  },
+  "rolling_validation_policy": {
+    "enabled": true,
+    "n_folds": 3,
+    "validation_months": 6,
+    "min_train_months": 18
+  },
+  "target": "target_impaye",
+  "mlflow_error": null,
+  "promotion_metrics": [
+    "f1",
+    "recall",
+    "avg_precision",
+    "roc_auc"
+  ],
+  "promotion_policy": {
+    "policy_env": "development",
+    "promotion_metrics": [
+      "f1",
+      "recall",
+      "avg_precision",
+      "roc_auc"
+    ],
+    "promotion_min_delta": 0.0,
+    "env_specific_key": "PROMOTION_MIN_DELTA_DEVELOPMENT",
+    "global_key": "PROMOTION_MIN_DELTA"
+  },
+  "promotion_comparison": {
+    "promotion_metrics": [
+      "f1",
+      "recall",
+      "avg_precision",
+      "roc_auc"
+    ],
+    "promotion_min_delta": 0.0,
+    "promotion_policy_env": "development",
+    "challenger_rank": [
+      0.04594594594594595,
+      0.09826589595375723,
+      0.014002729866923046,
+      0.5230914383848537
+    ],
+    "champion_rank": [
+      0.04019138755980861,
+      0.24277456647398843,
+      0.01382800109225253,
+      0.5137320934908268
+    ],
+    "rank_improvement": [
+      0.005754558386137337,
+      -0.1445086705202312,
+      0.00017472877467051597,
+      0.0093593448940269
+    ],
+    "primary_metric_delta": 0.005754558386137337
+  },
+  "promote_to_champion": true,
+  "promotion_decision": true,
+  "promotion_reason": "better_metrics",
+  "previous_champion_run_id": "033300e133a7411f89751b4cc400572f",
+  "promoted_to_champion": true,
+  "promoted_at": "2026-04-13T15:42:40.364334+00:00",
+  "champion_run_id_before": "033300e133a7411f89751b4cc400572f",
+  "champion_run_id_after": "186006471b584e26a5e539a87c18e793",
+  "active_champion_run_id": "186006471b584e26a5e539a87c18e793",
+  "force_promoted": false
+}

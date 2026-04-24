@@ -1,0 +1,335 @@
+# ══════════════════════════════════════════════════════════════════════════════
+#  Maghrebia Assurance — Plateforme Data & IA
+#  TDSP Phase 2 — Infrastructure complète
+#  Services : PostgreSQL · ClickHouse · MinIO · Redis · MongoDB · Qdrant
+#              Airflow × 3 · MLflow · FastAPI · Next.js · Prometheus · Grafana
+# ══════════════════════════════════════════════════════════════════════════════
+
+x-airflow-common: &airflow-common
+  build:
+    context: ./airflow
+    dockerfile: Dockerfile
+  image: maghrebia-airflow:2.9.1-custom
+  environment: &airflow-env
+    AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://maghrebia:maghrebia@postgres:5432/airflow
+    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://maghrebia:maghrebia@postgres:5432/airflow
+    AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+    AIRFLOW__CORE__FERNET_KEY: "GKnHV5KkWhF9FQWN5_p0aAGN02hEBFiWifhyM0M1Vk4="
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
+    PYTHONPATH: /opt/airflow
+    # App DB (partagé avec FastAPI)
+    POSTGRES_HOST: postgres
+    POSTGRES_PORT: 5432
+    POSTGRES_DB: maghrebia
+    POSTGRES_USER: maghrebia
+    POSTGRES_PASSWORD: maghrebia
+    MONGODB_URL: mongodb://maghrebia:maghrebia@mongodb:27017/maghrebia_events?authSource=admin
+    # Data paths
+    DATA_DIR: /opt/airflow/data/raw
+    CLEAN_DIR: /opt/airflow/data/clean
+    REPORT_DIR: /opt/airflow/reports/data_quality
+    DATABASE_URL: postgresql+psycopg2://maghrebia:maghrebia@postgres:5432/maghrebia
+  volumes:
+    - ./airflow/dags:/opt/airflow/dags
+    - ./airflow/logs:/opt/airflow/logs
+    - ./airflow/plugins:/opt/airflow/plugins
+    - ./data:/opt/airflow/data                   # CSV files mount
+    - ./reports:/opt/airflow/reports             # reports & pipeline outputs
+    - ./dags:/opt/airflow/tdsp_dags:ro           # strict TDSP scripts
+    - ./ge_suites:/opt/airflow/ge_suites          # Great Expectations
+    - ./backend:/opt/airflow/backend              # shared backend code
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+    mongodb:
+      condition: service_started
+
+services:
+
+  # ── PostgreSQL ─────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: maghrebia_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: maghrebia
+      POSTGRES_PASSWORD: maghrebia
+      POSTGRES_DB: maghrebia
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init_schema.sql:/docker-entrypoint-initdb.d/01_init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U maghrebia -d maghrebia"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── ClickHouse ─────────────────────────────────────────────────────────────
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3
+    container_name: maghrebia_clickhouse
+    restart: unless-stopped
+    ports:
+      - "8123:8123"   # HTTP
+      - "9000:9000"   # Native
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./sql/clickhouse_init.sql:/docker-entrypoint-initdb.d/init.sql
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1'"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis ──────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: maghrebia_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── MongoDB ────────────────────────────────────────────────────────────────
+  mongodb:
+    image: mongo:7
+    container_name: maghrebia_mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: maghrebia
+      MONGO_INITDB_ROOT_PASSWORD: maghrebia
+      MONGO_INITDB_DATABASE: maghrebia_events
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+  # ── MinIO (S3-compatible) ──────────────────────────────────────────────────
+  minio:
+    image: minio/minio:RELEASE.2024-05-10T01-41-38Z
+    container_name: maghrebia_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: maghrebia
+      MINIO_ROOT_PASSWORD: maghrebia123
+    ports:
+      - "9002:9000"   # S3 API (9000 taken by ClickHouse)
+      - "9001:9001"   # Console UI
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ── Qdrant ────────────────────────────────────────────────────────────────
+  qdrant:
+    image: qdrant/qdrant:v1.9.2
+    container_name: maghrebia_qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  # ── MLflow ────────────────────────────────────────────────────────────────
+  mlflow:
+    build:
+      context: ./mlflow
+      dockerfile: Dockerfile
+    image: maghrebia-mlflow:2.14.1-psycopg2
+    container_name: maghrebia_mlflow
+    restart: unless-stopped
+    command: >
+      mlflow server
+      --backend-store-uri postgresql://maghrebia:maghrebia@postgres:5432/mlflow_tracking
+      --default-artifact-root s3://mlflow-artifacts/
+      --host 0.0.0.0
+      --port 5000
+    environment:
+      MLFLOW_S3_ENDPOINT_URL: http://minio:9000
+      AWS_ACCESS_KEY_ID: maghrebia
+      AWS_SECRET_ACCESS_KEY: maghrebia123
+    ports:
+      - "5000:5000"
+    depends_on:
+      - postgres
+      - minio
+
+  # ── Airflow — Init ────────────────────────────────────────────────────────
+  airflow-init:
+    <<: *airflow-common
+    container_name: maghrebia_airflow_init
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db init
+        airflow users create \
+          --username admin \
+          --password admin \
+          --firstname Maghrebia \
+          --lastname Admin \
+          --role Admin \
+          --email admin@maghrebia.com.tn
+    restart: "no"
+
+  # ── Airflow — Webserver ───────────────────────────────────────────────────
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: maghrebia_airflow_webserver
+    restart: unless-stopped
+    command: webserver
+    ports:
+      - "8080:8080"
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+  # ── Airflow — Scheduler ───────────────────────────────────────────────────
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: maghrebia_airflow_scheduler
+    restart: unless-stopped
+    command: scheduler
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+  # ── Airflow — Worker (Celery) ─────────────────────────────────────────────
+  airflow-worker:
+    <<: *airflow-common
+    container_name: maghrebia_airflow_worker
+    restart: unless-stopped
+    command: celery worker
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+  # ── FastAPI Backend ───────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: maghrebia_backend
+    restart: unless-stopped
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: maghrebia
+      POSTGRES_USER: maghrebia
+      POSTGRES_PASSWORD: maghrebia
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: 8123
+      MONGODB_URL: mongodb://maghrebia:maghrebia@mongodb:27017/maghrebia_events?authSource=admin
+      REDIS_URL: redis://redis:6379/0
+      QDRANT_URL: http://qdrant:6333
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      MINIO_URL: http://minio:9000
+      MINIO_ACCESS_KEY: maghrebia
+      MINIO_SECRET_KEY: maghrebia123
+      APP_ENV: ${APP_ENV:-development}
+      PROMOTION_POLICY_ENV: ${PROMOTION_POLICY_ENV:-}
+      PROMOTION_MIN_DELTA_DEVELOPMENT: ${PROMOTION_MIN_DELTA_DEVELOPMENT:-0.0}
+      PROMOTION_MIN_DELTA_STAGING: ${PROMOTION_MIN_DELTA_STAGING:-0.0005}
+      PROMOTION_MIN_DELTA_PRODUCTION: ${PROMOTION_MIN_DELTA_PRODUCTION:-0.001}
+      OLLAMA_HOST: http://host.docker.internal:11434
+      OLLAMA_CHAT_MODEL: llama3
+      AGENT_FORCE_DETERMINISTIC: "false"
+      AGENT_DETERMINISTIC_INTENTS: ""
+      AGENT_LLM_MIN_CONFIDENCE: "0.62"
+      AGENT_LLM_MIN_ANSWER_CHARS: "90"
+      DATA_DIR: /app/data/raw
+      CLEAN_DIR: /app/data/clean
+      REPORT_DIR: /app/reports/data_quality
+      DATABASE_URL: postgresql+psycopg2://maghrebia:maghrebia@postgres:5432/maghrebia
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./data:/app/data
+      - ./reports:/app/reports
+      - ./dags:/app/tdsp_dags:ro
+    depends_on:
+      - postgres
+      - redis
+      - mongodb
+      - qdrant
+
+  # ── Next.js Frontend ──────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: maghrebia_frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_WS_URL: ws://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+  # ── Prometheus ────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: maghrebia_prometheus
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=30d"
+
+  # ── Grafana ───────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:11.0.0
+    container_name: maghrebia_grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+
+# ── Volumes ────────────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+  clickhouse_data:
+  redis_data:
+  mongodb_data:
+  minio_data:
+  qdrant_data:
+  prometheus_data:
+  grafana_data:

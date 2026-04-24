@@ -1,0 +1,68 @@
+{
+  "suite": "maghrebia_fact_emission_detail_suite",
+  "run_date": "2026-04-02T10:32:50.536991",
+  "n_rows": 208290,
+  "total_exp": 7,
+  "passed_exp": "6",
+  "failed_exp": "1",
+  "success_pct": 85.7,
+  "status": "FAILED",
+  "expectations": [
+    {
+      "name": "expect_table_row_count_to_be_between(190000, 220000)",
+      "passed": true,
+      "n_ok": 208290,
+      "n_total": 208290,
+      "pct": 100.0,
+      "details": ""
+    },
+    {
+      "name": "expect_column_values_to_not_be_null(NUM_QUITTANCE)",
+      "passed": "True",
+      "n_ok": 208290,
+      "n_total": 208290,
+      "pct": 100.0,
+      "details": ""
+    },
+    {
+      "name": "expect_column_values_to_not_be_null(ID_POLICE)",
+      "passed": "True",
+      "n_ok": 208290,
+      "n_total": 208290,
+      "pct": 100.0,
+      "details": ""
+    },
+    {
+      "name": "expect_column_values_to_be_between(ID_GARANTIE, lo=1, hi=20)",
+      "passed": "True",
+      "n_ok": 208290,
+      "n_total": 208290,
+      "pct": 100.0,
+      "details": "threshold=99%"
+    },
+    {
+      "name": "expect_column_values_to_be_between(ANNEE_ECHEANCE, lo=2015, hi=2025)",
+      "passed": "False",
+      "n_ok": 203879,
+      "n_total": 208290,
+      "pct": 97.9,
+      "details": "threshold=99%"
+    },
+    {
+      "name": "custom: MT_PRIME >= 0",
+      "passed": "True",
+      "n_ok": 205077,
+      "n_total": 208290,
+      "pct": 98.5,
+      "details": "threshold=98%"
+    },
+    {
+      "name": "custom: MT_FRAIS >= 0",
+      "passed": "True",
+      "n_ok": 208290,
+      "n_total": 208290,
+      "pct": 100.0,
+      "details": "threshold=98%"
+    }
+  ]
+}

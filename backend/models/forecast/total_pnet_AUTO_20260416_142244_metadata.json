@@ -1,0 +1,23 @@
+{
+  "run_id": "20260416_142244",
+  "target_metric": "total_pnet",
+  "branch": "AUTO",
+  "event_threshold_pct": 0.0,
+  "best_model": "linear_trend",
+  "best_params": {},
+  "best_metrics": {
+    "mae": 91223.50669979368,
+    "rmse": 108511.47083007511,
+    "mape": 9.65030896646853,
+    "smape": 9.820785656572761,
+    "precision": 0.8492063492063492,
+    "recall": 0.7379310344827587,
+    "n_cutoffs": 43
+  },
+  "artifact_paths": {
+    "model": "c:\\Users\\LENOVO\\Desktop\\PFE_\\maghrebia\\backend\\models\\forecast\\total_pnet_AUTO_20260416_142244_model.joblib",
+    "leaderboard": "c:\\Users\\LENOVO\\Desktop\\PFE_\\maghrebia\\backend\\models\\forecast\\total_pnet_AUTO_20260416_142244_leaderboard.csv",
+    "horizon_metrics": "c:\\Users\\LENOVO\\Desktop\\PFE_\\maghrebia\\backend\\models\\forecast\\total_pnet_AUTO_20260416_142244_horizon_metrics.csv",
+    "future_forecast": "c:\\Users\\LENOVO\\Desktop\\PFE_\\maghrebia\\backend\\models\\forecast\\total_pnet_AUTO_20260416_142244_future_forecast.csv"
+  }
+}

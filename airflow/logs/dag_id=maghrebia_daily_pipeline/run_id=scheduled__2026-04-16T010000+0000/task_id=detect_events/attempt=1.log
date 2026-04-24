@@ -1,0 +1,21 @@
+[2026-04-17T08:56:31.015+0000] {local_task_job_runner.py:120} INFO - ::group::Pre task execution logs
+[2026-04-17T08:56:31.045+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: maghrebia_daily_pipeline.detect_events scheduled__2026-04-16T01:00:00+00:00 [queued]>
+[2026-04-17T08:56:31.054+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: maghrebia_daily_pipeline.detect_events scheduled__2026-04-16T01:00:00+00:00 [queued]>
+[2026-04-17T08:56:31.055+0000] {taskinstance.py:2306} INFO - Starting attempt 1 of 2
+[2026-04-17T08:56:31.071+0000] {taskinstance.py:2330} INFO - Executing <Task(PythonOperator): detect_events> on 2026-04-16 01:00:00+00:00
+[2026-04-17T08:56:31.077+0000] {warnings.py:110} WARNING - /home/airflow/.local/lib/python3.12/site-packages/airflow/task/task_runner/standard_task_runner.py:61: DeprecationWarning: This process (pid=92) is multi-threaded, use of fork() may lead to deadlocks in the child.
+  pid = os.fork()
+
+[2026-04-17T08:56:31.078+0000] {standard_task_runner.py:63} INFO - Started process 96 to run task
+[2026-04-17T08:56:31.078+0000] {standard_task_runner.py:90} INFO - Running: ['airflow', 'tasks', 'run', '***_daily_pipeline', 'detect_events', 'scheduled__2026-04-16T01:00:00+00:00', '--job-id', '115', '--raw', '--subdir', 'DAGS_FOLDER/***_daily_pipeline.py', '--cfg-path', '/tmp/tmpkntgbydo']
+[2026-04-17T08:56:31.080+0000] {standard_task_runner.py:91} INFO - Job 115: Subtask detect_events
+[2026-04-17T08:56:31.143+0000] {task_command.py:426} INFO - Running <TaskInstance: maghrebia_daily_pipeline.detect_events scheduled__2026-04-16T01:00:00+00:00 [running]> on host d9c142dc0c94
+[2026-04-17T08:56:31.253+0000] {taskinstance.py:2648} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='***-data' AIRFLOW_CTX_DAG_ID='***_daily_pipeline' AIRFLOW_CTX_TASK_ID='detect_events' AIRFLOW_CTX_EXECUTION_DATE='2026-04-16T01:00:00+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='scheduled__2026-04-16T01:00:00+00:00'
+[2026-04-17T08:56:31.255+0000] {taskinstance.py:430} INFO - ::endgroup::
+[2026-04-17T08:56:31.550+0000] {maghrebia_daily_pipeline.py:344} INFO - ✅ 11 alertes insérées dans MongoDB
+[2026-04-17T08:56:31.590+0000] {python.py:237} INFO - Done. Returned value was: None
+[2026-04-17T08:56:31.591+0000] {taskinstance.py:441} INFO - ::group::Post task execution logs
+[2026-04-17T08:56:31.606+0000] {taskinstance.py:1206} INFO - Marking task as SUCCESS. dag_id=***_daily_pipeline, task_id=detect_events, run_id=scheduled__2026-04-16T01:00:00+00:00, execution_date=20260416T010000, start_date=20260417T085631, end_date=20260417T085631
+[2026-04-17T08:56:31.654+0000] {local_task_job_runner.py:240} INFO - Task exited with return code 0
+[2026-04-17T08:56:31.677+0000] {taskinstance.py:3498} INFO - 0 downstream tasks scheduled from follow-on schedule check
+[2026-04-17T08:56:31.679+0000] {local_task_job_runner.py:222} INFO - ::endgroup::

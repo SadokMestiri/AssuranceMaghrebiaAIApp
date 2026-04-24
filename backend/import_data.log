@@ -1,0 +1,115 @@
+2026-04-02 11:13:33,908 [INFO] ============================================================
+2026-04-02 11:13:33,909 [INFO]   Maghrebia Import Data — TDSP Phase 2
+2026-04-02 11:13:33,910 [INFO]   Start: 2026-04-02 11:13:33
+2026-04-02 11:13:33,910 [INFO]   DATA_DIR: /app/data/raw
+2026-04-02 11:13:33,911 [INFO]   DRY RUN: False
+2026-04-02 11:13:33,911 [INFO] ============================================================
+2026-04-02 11:13:33,942 [INFO] [dim_agent] Reading /app/data/raw/1775038521294_DIM_AGENT.csv …
+2026-04-02 11:13:33,946 [ERROR] [dim_agent] FAILED: CSV not found: /app/data/raw/1775038521294_DIM_AGENT.csv
+2026-04-02 11:13:33,947 [INFO] [dim_client] Reading /app/data/raw/1775038521295_DIM_CLIENT.csv …
+2026-04-02 11:13:33,948 [ERROR] [dim_client] FAILED: CSV not found: /app/data/raw/1775038521295_DIM_CLIENT.csv
+2026-04-02 11:13:33,948 [INFO] [dim_police] Reading /app/data/raw/1775038521295_DIM_POLICE.csv …
+2026-04-02 11:13:33,949 [ERROR] [dim_police] FAILED: CSV not found: /app/data/raw/1775038521295_DIM_POLICE.csv
+2026-04-02 11:13:33,950 [INFO] [dim_vehicule] Reading /app/data/raw/1775038521295_DIM_VEHICULE.csv …
+2026-04-02 11:13:33,951 [ERROR] [dim_vehicule] FAILED: CSV not found: /app/data/raw/1775038521295_DIM_VEHICULE.csv
+2026-04-02 11:13:33,951 [INFO] [dwh_fact_emission] Reading /app/data/raw/1775038521296_DWH_FACT_EMISSION.csv …
+2026-04-02 11:13:33,953 [ERROR] [dwh_fact_emission] FAILED: CSV not found: /app/data/raw/1775038521296_DWH_FACT_EMISSION.csv
+2026-04-02 11:13:33,953 [INFO] [dwh_fact_emission_detail] Reading /app/data/raw/1775038521296_DWH_FACT_EMISSION_DETAIL.csv …
+2026-04-02 11:13:33,954 [ERROR] [dwh_fact_emission_detail] FAILED: CSV not found: /app/data/raw/1775038521296_DWH_FACT_EMISSION_DETAIL.csv
+2026-04-02 11:13:33,954 [INFO] [dwh_fact_annulation] Reading /app/data/raw/1775038521296_DWH_FACT_ANNULATION.csv …
+2026-04-02 11:13:33,955 [ERROR] [dwh_fact_annulation] FAILED: CSV not found: /app/data/raw/1775038521296_DWH_FACT_ANNULATION.csv
+2026-04-02 11:13:33,955 [INFO] [dwh_fact_impaye] Reading /app/data/raw/1775038521296_DWH_FACT_IMPAYE.csv …
+2026-04-02 11:13:33,956 [ERROR] [dwh_fact_impaye] FAILED: CSV not found: /app/data/raw/1775038521296_DWH_FACT_IMPAYE.csv
+2026-04-02 11:13:33,957 [INFO] Refreshing materialized views …
+2026-04-02 11:13:33,971 [INFO]   REFRESH MATERIALIZED VIEW mv_kpi_production_annuelle …
+2026-04-02 11:13:33,981 [INFO]   REFRESH MATERIALIZED VIEW mv_kpi_agent_performance …
+2026-04-02 11:13:33,988 [INFO]   REFRESH MATERIALIZED VIEW mv_kpi_portefeuille …
+2026-04-02 11:13:33,995 [INFO] ✅ Materialized views refreshed
+2026-04-02 11:13:33,996 [INFO] Logging DQ run …
+2026-04-02 11:13:34,015 [INFO] ✅ DQ run logged in dq_run_log
+2026-04-02 11:13:34,016 [INFO] ============================================================
+2026-04-02 11:13:34,017 [INFO]   SUMMARY
+2026-04-02 11:13:34,017 [INFO]   dim_agent                                 0/      0  (0.0%)  [FAILED]
+2026-04-02 11:13:34,017 [INFO]   dim_client                                0/      0  (0.0%)  [FAILED]
+2026-04-02 11:13:34,018 [INFO]   dim_police                                0/      0  (0.0%)  [FAILED]
+2026-04-02 11:13:34,018 [INFO]   dim_vehicule                              0/      0  (0.0%)  [FAILED]
+2026-04-02 11:13:34,018 [INFO]   dwh_fact_emission                         0/      0  (0.0%)  [FAILED]
+2026-04-02 11:13:34,018 [INFO]   dwh_fact_emission_detail                  0/      0  (0.0%)  [FAILED]
+2026-04-02 11:13:34,019 [INFO]   dwh_fact_annulation                       0/      0  (0.0%)  [FAILED]
+2026-04-02 11:13:34,019 [INFO]   dwh_fact_impaye                           0/      0  (0.0%)  [FAILED]
+2026-04-02 11:13:34,019 [INFO] ============================================================
+2026-04-02 11:13:34,020 [INFO]   End: 2026-04-02 11:13:34
+2026-04-02 11:14:15,200 [INFO] ============================================================
+2026-04-02 11:14:15,201 [INFO]   Maghrebia Import Data — TDSP Phase 2
+2026-04-02 11:14:15,202 [INFO]   Start: 2026-04-02 11:14:15
+2026-04-02 11:14:15,202 [INFO]   DATA_DIR: /app/data/raw
+2026-04-02 11:14:15,202 [INFO]   DRY RUN: False
+2026-04-02 11:14:15,203 [INFO] ============================================================
+2026-04-02 11:14:15,230 [INFO] [dim_agent] Reading /app/data/raw/DIM_AGENT.csv …
+2026-04-02 11:14:15,239 [INFO]   Raw rows: 200
+2026-04-02 11:14:15,239 [INFO]   Cleaning DIM_AGENT …
+2026-04-02 11:14:15,243 [INFO]     → 200 rows after dedup
+2026-04-02 11:14:15,244 [INFO]   Clean rows: 200  (dropped: 0)
+2026-04-02 11:14:15,323 [INFO]   ✅ Inserted 200 rows into dim_agent
+2026-04-02 11:14:15,326 [INFO] [dim_client] Reading /app/data/raw/DIM_CLIENT.csv …
+2026-04-02 11:14:15,408 [INFO]   Raw rows: 30,000
+2026-04-02 11:14:15,409 [INFO]   Cleaning DIM_CLIENT …
+2026-04-02 11:14:16,340 [INFO]     → 30000 rows after dedup
+2026-04-02 11:14:16,344 [INFO]   Clean rows: 30,000  (dropped: 0)
+2026-04-02 11:14:20,329 [INFO]   ✅ Inserted 30,000 rows into dim_client
+2026-04-02 11:14:20,335 [INFO] [dim_police] Reading /app/data/raw/DIM_POLICE.csv …
+2026-04-02 11:14:20,413 [INFO]   Raw rows: 30,000
+2026-04-02 11:14:20,413 [INFO]   Cleaning DIM_POLICE …
+2026-04-02 11:14:22,481 [INFO]     → 30000 rows after dedup
+2026-04-02 11:14:22,484 [INFO]   Clean rows: 30,000  (dropped: 0)
+2026-04-02 11:14:27,865 [INFO]   ✅ Inserted 30,000 rows into dim_police
+2026-04-02 11:14:27,871 [INFO] [dim_vehicule] Reading /app/data/raw/DIM_VEHICULE.csv …
+2026-04-02 11:14:27,922 [INFO]   Raw rows: 20,000
+2026-04-02 11:14:27,923 [INFO]   Cleaning DIM_VEHICULE …
+2026-04-02 11:14:28,635 [INFO]     → 20000 rows after dedup
+2026-04-02 11:14:28,637 [INFO]   Clean rows: 20,000  (dropped: 0)
+2026-04-02 11:14:31,592 [INFO]   ✅ Inserted 20,000 rows into dim_vehicule
+2026-04-02 11:14:31,596 [INFO] [dwh_fact_emission] Reading /app/data/raw/DWH_FACT_EMISSION.csv …
+2026-04-02 11:14:31,805 [INFO]   Raw rows: 65,000
+2026-04-02 11:14:31,806 [INFO]   Cleaning DWH_FACT_EMISSION …
+2026-04-02 11:14:38,743 [INFO]     → deduped 0 quittances
+2026-04-02 11:14:38,744 [INFO]     DQ flags — etat_quit: 64350/65000 OK | year: 63625/65000 OK | pnet>=0: 64744/65000 OK | ptt_formula: 63480/65000 OK
+2026-04-02 11:14:38,749 [INFO]   Clean rows: 65,000  (dropped: 0)
+2026-04-02 11:15:05,949 [INFO]   ✅ Inserted 65,000 rows into dwh_fact_emission
+2026-04-02 11:15:05,956 [INFO] [dwh_fact_emission_detail] Reading /app/data/raw/DWH_FACT_EMISSION_DETAIL.csv …
+2026-04-02 11:15:06,096 [INFO]   Raw rows: 208,290
+2026-04-02 11:15:06,097 [INFO]   Cleaning DWH_FACT_EMISSION_DETAIL …
+2026-04-02 11:15:06,102 [INFO]     → 208290 rows
+2026-04-02 11:15:06,106 [INFO]   Clean rows: 208,290  (dropped: 0)
+2026-04-02 11:15:28,349 [INFO]   ✅ Inserted 208,290 rows into dwh_fact_emission_detail
+2026-04-02 11:15:28,355 [INFO] [dwh_fact_annulation] Reading /app/data/raw/DWH_FACT_ANNULATION.csv …
+2026-04-02 11:15:28,361 [INFO]   Raw rows: 1,147
+2026-04-02 11:15:28,362 [INFO]   Cleaning DWH_FACT_ANNULATION …
+2026-04-02 11:15:28,445 [INFO]     → 1147 rows
+2026-04-02 11:15:28,446 [INFO]   Clean rows: 1,147  (dropped: 0)
+2026-04-02 11:15:28,706 [INFO]   ✅ Inserted 1,147 rows into dwh_fact_annulation
+2026-04-02 11:15:28,709 [INFO] [dwh_fact_impaye] Reading /app/data/raw/DWH_FACT_IMPAYE.csv …
+2026-04-02 11:15:28,714 [INFO]   Raw rows: 764
+2026-04-02 11:15:28,714 [INFO]   Cleaning DWH_FACT_IMPAYE …
+2026-04-02 11:15:28,773 [INFO]     → 764 rows
+2026-04-02 11:15:28,774 [INFO]   Clean rows: 764  (dropped: 0)
+2026-04-02 11:15:28,899 [INFO]   ✅ Inserted 764 rows into dwh_fact_impaye
+2026-04-02 11:15:28,899 [INFO] Refreshing materialized views …
+2026-04-02 11:15:28,900 [INFO]   REFRESH MATERIALIZED VIEW mv_kpi_production_annuelle …
+2026-04-02 11:15:28,930 [INFO]   REFRESH MATERIALIZED VIEW mv_kpi_agent_performance …
+2026-04-02 11:15:29,031 [INFO]   REFRESH MATERIALIZED VIEW mv_kpi_portefeuille …
+2026-04-02 11:15:29,043 [INFO] ✅ Materialized views refreshed
+2026-04-02 11:15:29,044 [INFO] Logging DQ run …
+2026-04-02 11:15:29,049 [INFO] ✅ DQ run logged in dq_run_log
+2026-04-02 11:15:29,050 [INFO] ============================================================
+2026-04-02 11:15:29,051 [INFO]   SUMMARY
+2026-04-02 11:15:29,051 [INFO]   dim_agent                               200/    200  (100.0%)  [OK]
+2026-04-02 11:15:29,052 [INFO]   dim_client                           30,000/ 30,000  (100.0%)  [OK]
+2026-04-02 11:15:29,052 [INFO]   dim_police                           30,000/ 30,000  (100.0%)  [OK]
+2026-04-02 11:15:29,052 [INFO]   dim_vehicule                         20,000/ 20,000  (100.0%)  [OK]
+2026-04-02 11:15:29,053 [INFO]   dwh_fact_emission                    65,000/ 65,000  (100.0%)  [OK]
+2026-04-02 11:15:29,053 [INFO]   dwh_fact_emission_detail            208,290/208,290  (100.0%)  [OK]
+2026-04-02 11:15:29,054 [INFO]   dwh_fact_annulation                   1,147/  1,147  (100.0%)  [OK]
+2026-04-02 11:15:29,054 [INFO]   dwh_fact_impaye                         764/    764  (100.0%)  [OK]
+2026-04-02 11:15:29,055 [INFO] ============================================================
+2026-04-02 11:15:29,055 [INFO]   End: 2026-04-02 11:15:29

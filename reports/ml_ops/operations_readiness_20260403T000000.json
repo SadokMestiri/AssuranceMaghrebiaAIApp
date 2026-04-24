@@ -1,0 +1,14 @@
+{
+  "run_date": "2026-04-03T08:49:25.025877",
+  "endpoint": "http://backend:8000/api/v1/ml/operations-readiness?months=6",
+  "summary": {
+    "status": "red",
+    "score": 75.0,
+    "fail_count": 1,
+    "warn_count": 1,
+    "recommendations_count": 2,
+    "window_months": 6,
+    "reason": "ok",
+    "model_run_id": "967bc8ed865a4acb9027b5fe87013f6e"
+  }
+}

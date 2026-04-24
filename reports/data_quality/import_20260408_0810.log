@@ -1,0 +1,81 @@
+2026-04-08 08:10:36,701 [INFO] ======================================================================
+2026-04-08 08:10:36,702 [INFO]   MAGHREBIA ASSURANCE — PIPELINE PHASE 2
+2026-04-08 08:10:36,703 [INFO]   Start : 2026-04-08 08:10:36
+2026-04-08 08:10:36,703 [INFO]   Mode  : PRODUCTION
+2026-04-08 08:10:36,704 [INFO] ======================================================================
+2026-04-08 08:10:36,704 [INFO] 
+[0/5] Connexion PostgreSQL...
+2026-04-08 08:10:36,752 [INFO]   ✅ Connexion OK
+2026-04-08 08:10:36,755 [INFO] 
+[1/5] EXTRACT — Lecture CSV bruts...
+2026-04-08 08:10:36,775 [INFO]   Chargé : DIM_AGENT.csv → 200 lignes × 12 cols
+2026-04-08 08:10:36,897 [INFO]   Chargé : DIM_CLIENT.csv → 30,000 lignes × 13 cols
+2026-04-08 08:10:36,948 [INFO]   Chargé : DIM_POLICE.csv → 30,000 lignes × 16 cols
+2026-04-08 08:10:36,994 [INFO]   Chargé : DIM_VEHICULE.csv → 20,000 lignes × 15 cols
+2026-04-08 08:10:37,212 [INFO]   Chargé : DWH_FACT_EMISSION.csv → 65,000 lignes × 33 cols
+2026-04-08 08:10:37,222 [INFO]   Chargé : DWH_FACT_ANNULATION.csv → 1,147 lignes × 22 cols
+2026-04-08 08:10:37,227 [INFO]   Chargé : DWH_FACT_IMPAYE.csv → 764 lignes × 16 cols
+2026-04-08 08:10:37,391 [INFO]   Chargé : DWH_FACT_EMISSION_DETAIL.csv → 208,290 lignes × 9 cols
+2026-04-08 08:10:37,391 [INFO] 
+[2/5] CLEAN — Application des 34 règles de nettoyage...
+2026-04-08 08:10:37,392 [INFO]   → DIM_AGENT
+2026-04-08 08:10:37,396 [INFO]   [DIM_AGENT] A4 - email_agent null rempli: 23 corrections
+2026-04-08 08:10:37,402 [INFO]   [DIM_AGENT] A7 - ligne UNKNOWN agent (ID=0) ajoutée: 1 corrections
+2026-04-08 08:10:37,403 [INFO]   → DIM_CLIENT
+2026-04-08 08:10:37,418 [INFO]   [DIM_CLIENT] C2 - TYPE_PERSONNE invalide → P: 396 corrections
+2026-04-08 08:10:37,431 [INFO]   [DIM_CLIENT] C3 - NOM null → INCONNU: 679 corrections
+2026-04-08 08:10:38,152 [INFO]   [DIM_CLIENT] C9 - ligne UNKNOWN client (ID=0) ajoutée: 1 corrections
+2026-04-08 08:10:38,166 [INFO]   → DIM_POLICE
+2026-04-08 08:10:38,175 [INFO]   [DIM_POLICE] P2 - NUM_POLICE null → généré: 196 corrections
+2026-04-08 08:10:39,912 [INFO]   [DIM_POLICE] P8 - BONUS_MALUS hors [0.5,3.5] → 1.0: 14,147 corrections
+2026-04-08 08:10:39,932 [INFO]   [DIM_POLICE] P9 - POLRP orphelin → NaN: 2,404 corrections
+2026-04-08 08:10:39,974 [INFO]   [DIM_POLICE] P11 - ligne UNKNOWN police (ID=0) ajoutée: 1 corrections
+2026-04-08 08:10:39,985 [INFO]   → DIM_VEHICULE
+2026-04-08 08:10:40,012 [INFO]   [DIM_VEHICULE] V3 - IMMATRICULATION null → INCONNU: 274 corrections
+2026-04-08 08:10:40,571 [INFO]   [DIM_VEHICULE] V6 - VALEUR_A_NEUF invalide → NaN: 19,699 corrections
+2026-04-08 08:10:40,575 [INFO]   → FACT_EMISSION
+2026-04-08 08:10:40,616 [INFO]   [FACT_EMISSION] E2 - ETAT_QUIT invalide → E: 650 corrections
+2026-04-08 08:10:46,336 [INFO]   [FACT_EMISSION] E5 - ANNEE_ECHEANCE invalide → imputation: 1,375 corrections
+2026-04-08 08:10:46,343 [INFO]   [FACT_EMISSION] E6 - MT_PNET négatif → ABS: 256 corrections
+2026-04-08 08:10:46,344 [INFO]   [FACT_EMISSION] E7 - MT_PNET null → 0.0: 408 corrections
+2026-04-08 08:10:46,346 [INFO]   [FACT_EMISSION] E6 - MT_PTT négatif → ABS: 252 corrections
+2026-04-08 08:10:46,347 [INFO]   [FACT_EMISSION] E7 - MT_PTT null → 0.0: 381 corrections
+2026-04-08 08:10:46,348 [INFO]   [FACT_EMISSION] E7 - MT_COMMISSION null → 0.0: 1,324 corrections
+2026-04-08 08:10:46,351 [INFO]   [FACT_EMISSION] E8 - MT_PNET > 109713 DT winsorisé: 65 corrections
+2026-04-08 08:10:46,364 [INFO]   [FACT_EMISSION] E9 - MT_PNET recalculé (Σ garanties): 4,865 corrections
+2026-04-08 08:10:46,383 [INFO]   [FACT_EMISSION] E11 - MT_PTT recalculé (PNET+FGA+TIMBRE+TAXE): 4,849 corrections
+2026-04-08 08:10:46,457 [INFO]   → FACT_ANNULATION
+2026-04-08 08:10:46,536 [INFO]   [FACT_ANNULATION] N5 - DATE_ANNULATION < DATE_EMISSION → swap: 277 corrections
+2026-04-08 08:10:46,557 [INFO]   → FACT_IMPAYE
+2026-04-08 08:10:46,559 [INFO]   [FACT_IMPAYE] I2 - MT_ACP > MT_PTT → plafonné: 13 corrections
+2026-04-08 08:10:49,212 [INFO]   [FACT_EMISSION_DETAIL] D3 - ANNEE_ECHEANCE invalide → imputation: 4,411 corrections
+2026-04-08 08:10:49,234 [INFO]   → FACT_EMISSION_DETAIL : 208,290 → 208,290 lignes (imputation sans suppression)
+2026-04-08 08:10:49,235 [INFO] 
+[3/5] VALIDATE — Great Expectations post-cleaning...
+2026-04-08 08:10:49,237 [INFO]   GE ✅ FE: NUM_QUITTANCE unique
+2026-04-08 08:10:49,238 [INFO]   GE ✅ FE: ETAT_QUIT ∈ {E,P,A}
+2026-04-08 08:10:49,240 [INFO]   GE ✅ FE: BRANCHE ∈ {AUTO,IRDS,SANTE}
+2026-04-08 08:10:49,241 [INFO]   GE ✅ FE: ANNEE_ECHEANCE ∈ [2018,2025]
+2026-04-08 08:10:49,242 [INFO]   GE ✅ FE: MT_PNET ≥ 0
+2026-04-08 08:10:49,243 [INFO]   GE ✅ FE: MT_PTT ≥ 0
+2026-04-08 08:10:49,245 [INFO]   GE ✅ FE: MT_PTT = PNET+FGA+TIMBRE+TAXE (±0.5)
+2026-04-08 08:10:49,246 [INFO]   GE ✅ FE: MT_FGA = MT_RC × 0.25 (±0.5)
+2026-04-08 08:10:49,305 [INFO]   GE ✅ FE: ID_POLICE FK valide
+2026-04-08 08:10:49,306 [INFO]   GE ✅ FE: ID_AGENT FK valide
+2026-04-08 08:10:49,307 [INFO]   GE ✅ DP: ID_POLICE unique
+2026-04-08 08:10:49,308 [INFO]   GE ✅ DP: SITUATION ∈ {V,R,T,S,A}
+2026-04-08 08:10:49,309 [INFO]   GE ✅ DP: BRANCHE ∈ {AUTO,IRDS,SANTE}
+2026-04-08 08:10:49,313 [INFO]   GE ✅ DP: BONUS_MALUS AUTO null < 5%
+2026-04-08 08:10:49,314 [INFO]   GE ✅ DC: ID_CLIENT unique
+2026-04-08 08:10:49,315 [INFO]   GE ✅ DC: TYPE_PERSONNE ∈ {P,M}
+2026-04-08 08:10:49,316 [INFO]   GE ✅ FI: MT_ACP ≤ MT_PTT (acompte cohérent)
+2026-04-08 08:10:49,317 [INFO]   GE ✅ FI: MT_PTT ≥ 0
+2026-04-08 08:10:49,319 [INFO]   Score qualité : 100.0% (18/18 règles)
+2026-04-08 08:10:49,320 [INFO]   ✅ Validation réussie
+2026-04-08 08:10:49,320 [INFO] 
+[4/5] LOAD — Chargement PostgreSQL...
+2026-04-08 08:10:49,385 [INFO]   ✅ dim_agent : 201 lignes chargées (UPSERT)
+2026-04-08 08:10:53,653 [INFO]   ✅ dim_client : 30,001 lignes chargées (UPSERT)
+2026-04-08 08:10:58,793 [INFO]   ✅ dim_police : 30,001 lignes chargées (UPSERT)
+2026-04-08 08:11:02,080 [INFO]   ✅ dim_vehicule : 20,000 lignes chargées (UPSERT)
+2026-04-08 08:11:28,377 [INFO]   ✅ dwh_fact_emission : 65,000 lignes chargées (TRUNCATE+INSERT)
