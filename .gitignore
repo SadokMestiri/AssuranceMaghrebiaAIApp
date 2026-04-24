@@ -1,0 +1,78 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+env/
+.venv/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Data & outputs
+*.csv
+*.tsv
+*.xls
+*.xlsx
+*.h5
+*.db
+*.sqlite
+*.sqlite3
+*.parquet
+*.feather
+*.pkl
+*.joblib
+*.npy
+*.npz
+*.sav
+*.rds
+*.rdata
+*.sas7bdat
+*.json
+*.xml
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+*.gz
+*.tgz
+*.bak
+*.tmp
+*.swp
+.DS_Store
+
+# Docker
+logs/
+data/
+output/
+reports/
+mlruns/
+mlflow/
+ge_reports/
+ge_suites/
+
+# VSCode
+.vscode/
+.history/
+
+# OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Ignore frontend build
+frontend/.next/
+frontend/out/
+frontend/.turbo/
