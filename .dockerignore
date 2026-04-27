@@ -1,0 +1,4 @@
+airflow/logs
+**/.venv
+node_modules
+.git

@@ -856,3 +856,154 @@ th {
     height: 360px;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   DIMENSION NAVIGATION BAR  (Power BI style)
+═══════════════════════════════════════════════════════════════ */
+
+.dim-nav {
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid rgba(0, 74, 141, 0.12);
+}
+
+.dim-nav-track {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.dim-nav-track::-webkit-scrollbar {
+  display: none;
+}
+
+.dim-nav-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.75rem 1.25rem;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #64748b;
+  white-space: nowrap;
+  transition: color 0.18s, border-color 0.18s, background 0.18s;
+  border-radius: 6px 6px 0 0;
+}
+
+.dim-nav-tab:hover {
+  color: #004A8D;
+  background: rgba(0, 74, 141, 0.05);
+}
+
+.dim-nav-tab.active {
+  color: #004A8D;
+  border-bottom-color: #004A8D;
+  font-weight: 600;
+  background: rgba(0, 74, 141, 0.06);
+}
+
+.dim-tab-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.dim-tab-label {
+  letter-spacing: 0.01em;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DIMENSION KPI ROW
+═══════════════════════════════════════════════════════════════ */
+
+.dim-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.dim-kpi-card {
+  background: #fff;
+  border: 1px solid rgba(0, 74, 141, 0.1);
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.18s;
+}
+
+.dim-kpi-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 74, 141, 0.1);
+}
+
+.dim-kpi-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.dim-kpi-body {
+  min-width: 0;
+}
+
+.dim-kpi-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #004A8D;
+  line-height: 1.2;
+  margin: 0 0 0.15rem 0;
+}
+
+.dim-kpi-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.1rem 0;
+}
+
+.dim-kpi-sub {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DIMENSION CHARTS GRID
+═══════════════════════════════════════════════════════════════ */
+
+.dim-panel {
+  animation: dimFadeIn 0.25s ease;
+}
+
+@keyframes dimFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+.dim-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.25rem;
+}
+
+.dim-chart-wide {
+  grid-column: 1 / -1;
+}
+
+.dim-loading {
+  padding: 2rem;
+  color: #64748b;
+  text-align: center;
+  font-style: italic;
+}

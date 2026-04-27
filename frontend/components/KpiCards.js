@@ -32,9 +32,9 @@ export default function KpiCards({ dashboard }) {
       helper: `${asNumber(production.nb_quittances)} quittances`,
     },
     {
-      title: "LTV Moyen (ML)",
-      value: asCurrency(ml_ltv.avg_ltv),
-      helper: `Ancienneté Moy: ${asNumber(ml_ltv.avg_anciennete_annees)} ans`,
+      title: "Ratio Combiné",
+      value: asNumber(overview.ratio_combine, "%"),
+      helper: `Selon filtre branche`,
     },
     {
       title: "Taux resiliation",
@@ -42,9 +42,9 @@ export default function KpiCards({ dashboard }) {
       helper: `${asNumber(portefeuille.polices_resiliees)} polices resiliees`,
     },
     {
-      title: "Risque Churn (ML)",
-      value: asNumber(ml_churn.avg_sinistralite_pct, "%"),
-      helper: `Impayé lié: ${asNumber(ml_churn.avg_impaye_pct, "%")}`,
+      title: "Nombre de Sinistres",
+      value: asNumber(overview.nb_sinistres),
+      helper: `Selon filtre branche`,
     },
   ];
 

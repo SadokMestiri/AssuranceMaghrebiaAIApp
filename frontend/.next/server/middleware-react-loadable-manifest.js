@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST='{"pages\\\\index.js -> ../components/CarteWidget":{"id":1364,"files":["static/chunks/0b7b90cd.abad55a865e4a8c0.js","static/chunks/364.9ed57f1f77cc27cf.js"]}}';
+self.__REACT_LOADABLE_MANIFEST='{"pages\\\\index.js -> ../components/CarteWidget":{"id":1364,"files":["static/chunks/0b7b90cd.abad55a865e4a8c0.js","static/chunks/364.5978c7c8b41bfab0.js"]}}';

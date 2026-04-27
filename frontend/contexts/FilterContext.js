@@ -3,7 +3,7 @@ import { createContext, useContext, useMemo, useState } from "react";
 const FilterContext = createContext(null);
 
 export const YEAR_MIN = 2019;
-export const YEAR_MAX = 2026;
+export const YEAR_MAX = 2025;
 
 const initialFilters = {
   yearFrom: YEAR_MIN,

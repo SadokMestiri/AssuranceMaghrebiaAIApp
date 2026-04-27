@@ -3,10 +3,17 @@ import { useEffect, useMemo, useState } from "react";
 
 import AgentChat from "../components/AgentChat";
 import ChartsPanel from "../components/ChartsPanel";
+import DimNav from "../components/dims/DimNav";
 import FiltersBar from "../components/FiltersBar";
 import GeoInsights from "../components/GeoInsights";
 import KpiCards from "../components/KpiCards";
 import MLOpsContent from "../components/MLOpsContent";
+import AgentDim from "../components/dims/AgentDim";
+import ClientDim from "../components/dims/ClientDim";
+import PoliceDim from "../components/dims/PoliceDim";
+import ProduitDim from "../components/dims/ProduitDim";
+import SinistreDim from "../components/dims/SinistreDim";
+import VehiculeDim from "../components/dims/VehiculeDim";
 import { useFilters, YEAR_MAX, YEAR_MIN } from "../contexts/FilterContext";
 
 const CarteWidget = dynamic(() => import("../components/CarteWidget"), {
@@ -68,20 +75,27 @@ function buildCommonQuery(filters) {
 
 export default function DashboardPage() {
   const { filters } = useFilters();
-  const [activeSection, setActiveSection] = useState("dashboard");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [dashboard, setDashboard] = useState(null);
-  const [heatmapPoints, setHeatmapPoints] = useState([]);
+  const [activeSection, setActiveSection]   = useState("dashboard");
+  const [activeDim, setActiveDim]           = useState("overview");
+  const [loading, setLoading]               = useState(true);
+  const [error, setError]                   = useState("");
+  const [dashboard, setDashboard]           = useState(null);
+  const [heatmapPoints, setHeatmapPoints]   = useState([]);
   const [sinistresByGov, setSinistresByGov] = useState([]);
-  const [topZones, setTopZones] = useState([]);
-  const [updatedAt, setUpdatedAt] = useState("");
-  const [agentStatus, setAgentStatus] = useState(null);
-  const [smokeEval, setSmokeEval] = useState(null);
-  const [smokeLoading, setSmokeLoading] = useState(false);
-  const [warmupReport, setWarmupReport] = useState(null);
-  const [warmupLoading, setWarmupLoading] = useState(false);
+  const [topZones, setTopZones]             = useState([]);
+  const [updatedAt, setUpdatedAt]           = useState("");
+  const [agentStatus, setAgentStatus]       = useState(null);
+  const [smokeEval, setSmokeEval]           = useState(null);
+  const [smokeLoading, setSmokeLoading]     = useState(false);
+  const [warmupReport, setWarmupReport]     = useState(null);
+  const [warmupLoading, setWarmupLoading]   = useState(false);
 
+  // Dimension data state
+  const [dimData, setDimData]         = useState(null);
+  const [dimLoading, setDimLoading]   = useState(false);
+  const [dimError, setDimError]       = useState("");
+
+  // ── Load main dashboard data ─────────────────────────────────
   useEffect(() => {
     let active = true;
 
@@ -92,20 +106,19 @@ export default function DashboardPage() {
       try {
         const query = buildCommonQuery(filters);
 
-        const [dashboardPayload, heatmapPayload, sinistresPayload, zonesPayload, ltvPayload, churnPayload] = await Promise.all([
-          fetchJson(`${API_BASE}/api/v1/kpis/dashboard/ceo?${query}`),
-          fetchJson(`${API_BASE}/api/v1/geo/heatmap-polices?${query}&limit=300`),
-          fetchJson(`${API_BASE}/api/v1/geo/sinistres/by-gouvernorat?${query}`),
-          fetchJson(`${API_BASE}/api/v1/geo/top-zones-risque?${query}&limit=10`),
-          fetchJson(`${API_BASE}/api/v1/kpis/ml/client-ltv`),
-          fetchJson(`${API_BASE}/api/v1/kpis/ml/churn-risk`),
-        ]);
+        const [dashboardPayload, heatmapPayload, sinistresPayload, zonesPayload, ltvPayload, churnPayload] =
+          await Promise.all([
+            fetchJson(`${API_BASE}/api/v1/kpis/dashboard/ceo?${query}`),
+            fetchJson(`${API_BASE}/api/v1/geo/heatmap-polices?${query}&limit=300`),
+            fetchJson(`${API_BASE}/api/v1/geo/sinistres/by-gouvernorat?${query}`),
+            fetchJson(`${API_BASE}/api/v1/geo/top-zones-risque?${query}&limit=10`),
+            fetchJson(`${API_BASE}/api/v1/kpis/ml/client-ltv`),
+            fetchJson(`${API_BASE}/api/v1/kpis/ml/churn-risk`),
+          ]);
 
-        if (!active) {
-          return;
-        }
+        if (!active) return;
 
-        dashboardPayload.ml_ltv = ltvPayload;
+        dashboardPayload.ml_ltv   = ltvPayload;
         dashboardPayload.ml_churn = churnPayload;
         setDashboard(dashboardPayload);
         setHeatmapPoints(heatmapPayload.items || []);
@@ -113,47 +126,54 @@ export default function DashboardPage() {
         setTopZones(zonesPayload.items || []);
         setUpdatedAt(new Date().toISOString());
       } catch (requestError) {
-        if (!active) {
-          return;
-        }
+        if (!active) return;
         setError(String(requestError.message || requestError));
       } finally {
-        if (active) {
-          setLoading(false);
-        }
+        if (active) setLoading(false);
       }
     };
 
     loadData();
-
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [filters.branch, filters.yearFrom, filters.yearTo]);
 
+  // ── Load dimension data once ──────────────────────────────────
+  useEffect(() => {
+    let active = true;
+
+    const loadDimData = async () => {
+      setDimLoading(true);
+      setDimError("");
+      try {
+        const payload = await fetchJson("/api/dims");
+        if (active) setDimData(payload);
+      } catch (err) {
+        if (active) setDimError(String(err.message || err));
+      } finally {
+        if (active) setDimLoading(false);
+      }
+    };
+
+    loadDimData();
+    return () => { active = false; };
+  }, []);
+
+  // ── Agent status polling ─────────────────────────────────────
   useEffect(() => {
     let active = true;
 
     const loadAgentStatus = async () => {
       try {
         const payload = await fetchJson(`${API_BASE}/api/v1/agent/status`);
-        if (active) {
-          setAgentStatus(payload);
-        }
+        if (active) setAgentStatus(payload);
       } catch {
-        if (active) {
-          setAgentStatus({ status: "degraded", dependencies: {} });
-        }
+        if (active) setAgentStatus({ status: "degraded", dependencies: {} });
       }
     };
 
     loadAgentStatus();
     const timer = setInterval(loadAgentStatus, 30000);
-
-    return () => {
-      active = false;
-      clearInterval(timer);
-    };
+    return () => { active = false; clearInterval(timer); };
   }, []);
 
   const runSmokeEval = async () => {
@@ -179,28 +199,15 @@ export default function DashboardPage() {
       const response = await fetch(`${API_BASE}/api/v1/agent/warmup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          preindex,
-          strict: false,
-          max_docs_per_collection: 250,
-        }),
+        body: JSON.stringify({ preindex, strict: false, max_docs_per_collection: 250 }),
       });
-
-      if (!response.ok) {
-        throw new Error(`Warmup API error ${response.status}`);
-      }
-
+      if (!response.ok) throw new Error(`Warmup API error ${response.status}`);
       const payload = await response.json();
       setWarmupReport(payload);
       const statusPayload = await fetchJson(`${API_BASE}/api/v1/agent/status`);
       setAgentStatus(statusPayload);
     } catch (requestError) {
-      setWarmupReport({
-        status: "error",
-        warmup: {
-          errors: [String(requestError.message || requestError)],
-        },
-      });
+      setWarmupReport({ status: "error", warmup: { errors: [String(requestError.message || requestError)] } });
     } finally {
       setWarmupLoading(false);
     }
@@ -208,48 +215,72 @@ export default function DashboardPage() {
 
   const governorates = useMemo(() => {
     const set = new Set();
-
-    (sinistresByGov || []).forEach((item) => {
-      if (item.gouvernorat) {
-        set.add(item.gouvernorat);
-      }
-    });
-
-    (heatmapPoints || []).forEach((item) => {
-      if (item.gouvernorat) {
-        set.add(item.gouvernorat);
-      }
-    });
-
-    (topZones || []).forEach((item) => {
-      if (item.gouvernorat) {
-        set.add(item.gouvernorat);
-      }
-    });
-
+    (sinistresByGov || []).forEach((item) => { if (item.gouvernorat) set.add(item.gouvernorat); });
+    (heatmapPoints  || []).forEach((item) => { if (item.gouvernorat) set.add(item.gouvernorat); });
+    (topZones       || []).forEach((item) => { if (item.gouvernorat) set.add(item.gouvernorat); });
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [heatmapPoints, sinistresByGov, topZones]);
 
   const filteredHeatmap = useMemo(() => {
-    if (filters.gouvernorat === "ALL") {
-      return heatmapPoints;
-    }
+    if (filters.gouvernorat === "ALL") return heatmapPoints;
     return (heatmapPoints || []).filter((item) => item.gouvernorat === filters.gouvernorat);
   }, [filters.gouvernorat, heatmapPoints]);
 
   const filteredSinistresByGov = useMemo(() => {
-    if (filters.gouvernorat === "ALL") {
-      return sinistresByGov;
-    }
+    if (filters.gouvernorat === "ALL") return sinistresByGov;
     return (sinistresByGov || []).filter((item) => item.gouvernorat === filters.gouvernorat);
   }, [filters.gouvernorat, sinistresByGov]);
 
   const filteredTopZones = useMemo(() => {
-    if (filters.gouvernorat === "ALL") {
-      return topZones;
-    }
+    if (filters.gouvernorat === "ALL") return topZones;
     return (topZones || []).filter((item) => item.gouvernorat === filters.gouvernorat);
   }, [filters.gouvernorat, topZones]);
+
+  // ── Dimension content renderer ────────────────────────────────
+  function renderDimContent() {
+    if (activeDim === "overview") {
+      return (
+        <>
+          <KpiCards dashboard={dashboard} />
+          <ChartsPanel dashboard={dashboard} monthFilter={filters.month} />
+          <section className="layout-geo">
+            <article className="panel map-panel">
+              <h3>Carte Leaflet Tunisie — heatmap polices</h3>
+              <CarteWidget points={filteredHeatmap} />
+            </article>
+            <GeoInsights sinistresByGov={filteredSinistresByGov} topZones={filteredTopZones} />
+          </section>
+        </>
+      );
+    }
+
+    if (dimLoading) {
+      return (
+        <section className="panel loading-panel">
+          <p>Chargement des données dimensionnelles…</p>
+        </section>
+      );
+    }
+
+    if (dimError) {
+      return (
+        <section className="panel error-panel">
+          <h3>Erreur dimensions</h3>
+          <p>{dimError}</p>
+        </section>
+      );
+    }
+
+    switch (activeDim) {
+      case "clients":   return <ClientDim   data={dimData?.clients}   />;
+      case "agents":    return <AgentDim    data={dimData?.agents}    />;
+      case "produits":  return <ProduitDim  data={dimData?.produits}  />;
+      case "vehicules": return <VehiculeDim data={dimData?.vehicules} />;
+      case "polices":   return <PoliceDim   data={dimData?.polices}   />;
+      case "sinistres": return <SinistreDim data={dimData?.sinistres} />;
+      default:          return null;
+    }
+  }
 
   return (
     <main className="app-shell">
@@ -323,17 +354,11 @@ export default function DashboardPage() {
 
         {activeSection === "dashboard" ? (
           <section className="dashboard-section">
-            <KpiCards dashboard={dashboard} />
-            <ChartsPanel dashboard={dashboard} monthFilter={filters.month} />
+            {/* ── Power BI–style dimension nav ── */}
+            <DimNav activeDim={activeDim} onDimChange={setActiveDim} />
 
-            <section className="layout-geo">
-              <article className="panel map-panel">
-                <h3>Carte Leaflet Tunisie - heatmap polices</h3>
-                <CarteWidget points={filteredHeatmap} />
-              </article>
-
-              <GeoInsights sinistresByGov={filteredSinistresByGov} topZones={filteredTopZones} />
-            </section>
+            {/* ── Active dimension content ── */}
+            {renderDimContent()}
           </section>
         ) : activeSection === "mlops" ? (
           <section className="mlops-section-layout">
@@ -435,7 +460,7 @@ export default function DashboardPage() {
           </section>
         )}
 
-        {loading ? (
+        {loading && activeSection === "dashboard" && activeDim === "overview" ? (
           <section className="panel loading-panel">
             <p>Chargement en cours...</p>
           </section>

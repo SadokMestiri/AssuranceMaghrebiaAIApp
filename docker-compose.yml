@@ -279,8 +279,8 @@ services:
   # ── Next.js Frontend ──────────────────────────────────────────────────────
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/Dockerfile
     container_name: maghrebia_frontend
     restart: unless-stopped
     environment:
@@ -290,6 +290,8 @@ services:
       - "3000:3000"
     depends_on:
       - backend
+    volumes:
+      - ./data:/app/data:ro
 
   # ── Prometheus ────────────────────────────────────────────────────────────
   prometheus:
