@@ -137,87 +137,51 @@ def get_heatmap_polices(
 
 @router.get("/sinistres/by-gouvernorat")
 def get_sinistres_by_gouvernorat(
-    branch: str | None = Query(default=None, description="AUTO | IRDS | SANTE"),
-    year_from: int | None = Query(default=2019, ge=2019, le=2026),
-    year_to: int | None = Query(default=2026, ge=2019, le=2026),
+    branch: str | None = Query(default=None),
+    year_from: int | None = Query(default=None, ge=2019, le=2025),
+    year_to: int | None = Query(default=None, ge=2019, le=2025),
+    gouvernorat: str | None = Query(default=None),   # ← ajouter
     db: Session = Depends(get_db),
-) -> dict[str, Any]:
-    normalized_branch = _normalize_branch(branch)
-    _validate_year_range(year_from, year_to)
-
+) -> dict:
     sql = text(
         """
-        WITH emission AS (
-            SELECT
-                COALESCE(a.localite_agent, 'N/A') AS gouvernorat,
-                COUNT(DISTINCT e.id_police) AS nb_polices,
-                COALESCE(SUM(e.mt_pnet), 0) AS total_pnet
-            FROM dwh_fact_emission e
-            LEFT JOIN dim_agent a ON a.id_agent = e.id_agent
-            WHERE e.etat_quit IN ('E','P','A')
-              AND e.mt_pnet >= 0
-              AND (:branch IS NULL OR e.branche = :branch)
-              AND (:year_from IS NULL OR e.annee_echeance >= :year_from)
-              AND (:year_to IS NULL OR e.annee_echeance <= :year_to)
-            GROUP BY COALESCE(a.localite_agent, 'N/A')
-        ),
-        sinistres_proxy AS (
-            SELECT
-                COALESCE(a.localite_agent, 'N/A') AS gouvernorat,
-                COUNT(*) AS nb_sinistres_proxy,
-                COALESCE(SUM(i.mt_acp), 0) AS total_sinistres_proxy
-            FROM dwh_fact_impaye i
-            LEFT JOIN dim_agent a ON a.id_agent = i.id_agent
-            WHERE (:branch IS NULL OR i.branche = :branch)
-              AND (:year_from IS NULL OR i.annee_echeance >= :year_from)
-              AND (:year_to IS NULL OR i.annee_echeance <= :year_to)
-            GROUP BY COALESCE(a.localite_agent, 'N/A')
-        )
         SELECT
-            COALESCE(e.gouvernorat, s.gouvernorat) AS gouvernorat,
-            COALESCE(e.nb_polices, 0) AS nb_polices,
-            COALESCE(e.total_pnet, 0) AS total_pnet,
-            COALESCE(s.nb_sinistres_proxy, 0) AS nb_sinistres_proxy,
-            COALESCE(s.total_sinistres_proxy, 0) AS total_sinistres_proxy,
-            ROUND(
-                100.0 * COALESCE(s.total_sinistres_proxy, 0) / NULLIF(COALESCE(e.total_pnet, 0), 0),
-                2
-            ) AS taux_sinistres_proxy_sur_pnet_pct
-        FROM emission e
-        FULL OUTER JOIN sinistres_proxy s ON s.gouvernorat = e.gouvernorat
-        ORDER BY total_sinistres_proxy DESC, nb_sinistres_proxy DESC
+            TRIM(UPPER(c.ville))              AS gouvernorat,
+            COUNT(*)                           AS nb_sinistres,
+            COALESCE(SUM(s.mt_paye), 0)       AS total_mt_paye,
+            COALESCE(SUM(s.mt_evaluation), 0) AS total_mt_evaluation
+        FROM dwh_fact_sinistre s
+        JOIN dim_client c ON c.id_client = s.id_client
+        WHERE c.ville IS NOT NULL
+          AND TRIM(c.ville) != ''
+          AND (:branch IS NULL OR s.branche = :branch)
+          AND (:year_from IS NULL OR s.annee_survenance >= :year_from)
+          AND (:year_to   IS NULL OR s.annee_survenance <= :year_to)
+          AND (:gouvernorat IS NULL OR TRIM(UPPER(c.ville)) = UPPER(TRIM(:gouvernorat)))  -- ← ajouter
+        GROUP BY TRIM(UPPER(c.ville))
+        ORDER BY nb_sinistres DESC
         """
     )
-
     rows = db.execute(
         sql,
         {
-            "branch": normalized_branch,
+            "branch": branch,
             "year_from": year_from,
             "year_to": year_to,
-        },
+            "gouvernorat": gouvernorat,
+        }
     ).mappings().all()
 
     return {
-        "filters": {
-            "branch": normalized_branch,
-            "year_from": year_from,
-            "year_to": year_to,
-        },
-        "signal_source": "impayes_proxy_for_sinistres",
         "items": [
             {
                 "gouvernorat": row["gouvernorat"],
-                "nb_polices": _to_int(row["nb_polices"]),
-                "total_pnet": _to_float(row["total_pnet"]),
-                "nb_sinistres_proxy": _to_int(row["nb_sinistres_proxy"]),
-                "total_sinistres_proxy": _to_float(row["total_sinistres_proxy"]),
-                "taux_sinistres_proxy_sur_pnet_pct": _to_float(
-                    row["taux_sinistres_proxy_sur_pnet_pct"]
-                ),
+                "nb_sinistres": int(row["nb_sinistres"]),
+                "total_mt_paye": float(row["total_mt_paye"]),
+                "total_mt_evaluation": float(row["total_mt_evaluation"]),
             }
             for row in rows
-        ],
+        ]
     }
 
 
@@ -236,55 +200,58 @@ def get_top_zones_risque(
         """
         WITH emission AS (
             SELECT
-                COALESCE(a.localite_agent, 'N/A') AS gouvernorat,
-                COALESCE(SUM(e.mt_pnet), 0) AS total_pnet
+                TRIM(UPPER(c.ville))          AS gouvernorat,
+                COALESCE(SUM(e.mt_pnet), 0)   AS total_pnet
             FROM dwh_fact_emission e
-            LEFT JOIN dim_agent a ON a.id_agent = e.id_agent
+            JOIN dim_police p ON p.id_police = e.id_police        
+            JOIN dim_client c ON c.id_client = p.id_client        
             WHERE e.etat_quit IN ('E','P','A')
               AND e.mt_pnet >= 0
+              AND c.ville IS NOT NULL AND TRIM(c.ville) != ''
               AND (:branch IS NULL OR e.branche = :branch)
               AND (:year_from IS NULL OR e.annee_echeance >= :year_from)
-              AND (:year_to IS NULL OR e.annee_echeance <= :year_to)
-            GROUP BY COALESCE(a.localite_agent, 'N/A')
+              AND (:year_to   IS NULL OR e.annee_echeance <= :year_to)
+            GROUP BY TRIM(UPPER(c.ville))
         ),
-        sinistres_proxy AS (
+        sinistres AS (
             SELECT
-                COALESCE(a.localite_agent, 'N/A') AS gouvernorat,
-                COUNT(*) AS nb_sinistres_proxy,
-                COALESCE(SUM(i.mt_acp), 0) AS total_sinistres_proxy
-            FROM dwh_fact_impaye i
-            LEFT JOIN dim_agent a ON a.id_agent = i.id_agent
-            WHERE (:branch IS NULL OR i.branche = :branch)
-              AND (:year_from IS NULL OR i.annee_echeance >= :year_from)
-              AND (:year_to IS NULL OR i.annee_echeance <= :year_to)
-            GROUP BY COALESCE(a.localite_agent, 'N/A')
+                TRIM(UPPER(c.ville))              AS gouvernorat,
+                COUNT(*)                           AS nb_sinistres,
+                COALESCE(SUM(s.mt_paye), 0)       AS total_mt_paye
+            FROM dwh_fact_sinistre s
+            JOIN dim_client c ON c.id_client = s.id_client
+            WHERE c.ville IS NOT NULL AND TRIM(c.ville) != ''
+              AND (:branch IS NULL OR s.branche = :branch)
+              AND (:year_from IS NULL OR s.annee_survenance >= :year_from)
+              AND (:year_to   IS NULL OR s.annee_survenance <= :year_to)
+            GROUP BY TRIM(UPPER(c.ville))
         ),
         merged AS (
             SELECT
                 COALESCE(e.gouvernorat, s.gouvernorat) AS gouvernorat,
-                COALESCE(e.total_pnet, 0) AS total_pnet,
-                COALESCE(s.nb_sinistres_proxy, 0) AS nb_sinistres_proxy,
-                COALESCE(s.total_sinistres_proxy, 0) AS total_sinistres_proxy,
+                COALESCE(e.total_pnet, 0)              AS total_pnet,
+                COALESCE(s.nb_sinistres, 0)            AS nb_sinistres,
+                COALESCE(s.total_mt_paye, 0)           AS total_mt_paye,
                 ROUND(
-                    100.0 * COALESCE(s.total_sinistres_proxy, 0) / NULLIF(COALESCE(e.total_pnet, 0), 0),
+                    100.0 * COALESCE(s.total_mt_paye, 0) / NULLIF(COALESCE(e.total_pnet, 0), 0),
                     2
-                ) AS taux_sinistres_proxy_sur_pnet_pct
+                ) AS taux_sinistres_sur_pnet_pct
             FROM emission e
-            FULL OUTER JOIN sinistres_proxy s ON s.gouvernorat = e.gouvernorat
+            FULL OUTER JOIN sinistres s ON s.gouvernorat = e.gouvernorat
         )
         SELECT
             gouvernorat,
             total_pnet,
-            nb_sinistres_proxy,
-            total_sinistres_proxy,
-            COALESCE(taux_sinistres_proxy_sur_pnet_pct, 0) AS taux_sinistres_proxy_sur_pnet_pct,
+            nb_sinistres,
+            total_mt_paye,
+            COALESCE(taux_sinistres_sur_pnet_pct, 0) AS taux_sinistres_sur_pnet_pct,
             ROUND(
-                0.70 * COALESCE(taux_sinistres_proxy_sur_pnet_pct, 0)
-                + 30.0 * COALESCE(nb_sinistres_proxy, 0) / NULLIF(MAX(nb_sinistres_proxy) OVER (), 0),
+                0.70 * COALESCE(taux_sinistres_sur_pnet_pct, 0)
+                + 30.0 * COALESCE(nb_sinistres, 0) / NULLIF(MAX(nb_sinistres) OVER (), 0),
                 2
             ) AS score_risque
         FROM merged
-        WHERE COALESCE(total_pnet, 0) > 0 OR COALESCE(nb_sinistres_proxy, 0) > 0
+        WHERE COALESCE(total_pnet, 0) > 0 OR COALESCE(nb_sinistres, 0) > 0
         ORDER BY score_risque DESC NULLS LAST
         LIMIT :limit
         """
@@ -292,32 +259,19 @@ def get_top_zones_risque(
 
     rows = db.execute(
         sql,
-        {
-            "branch": normalized_branch,
-            "year_from": year_from,
-            "year_to": year_to,
-            "limit": limit,
-        },
+        {"branch": normalized_branch, "year_from": year_from, "year_to": year_to, "limit": limit},
     ).mappings().all()
 
     return {
-        "filters": {
-            "branch": normalized_branch,
-            "year_from": year_from,
-            "year_to": year_to,
-            "limit": limit,
-        },
-        "signal_source": "impayes_proxy_for_risk_ranking",
+        "filters": {"branch": normalized_branch, "year_from": year_from, "year_to": year_to, "limit": limit},
         "items": [
             {
                 "rang": idx + 1,
                 "gouvernorat": row["gouvernorat"],
                 "total_pnet": _to_float(row["total_pnet"]),
-                "nb_sinistres_proxy": _to_int(row["nb_sinistres_proxy"]),
-                "total_sinistres_proxy": _to_float(row["total_sinistres_proxy"]),
-                "taux_sinistres_proxy_sur_pnet_pct": _to_float(
-                    row["taux_sinistres_proxy_sur_pnet_pct"]
-                ),
+                "nb_sinistres": _to_int(row["nb_sinistres"]),
+                "total_mt_paye": _to_float(row["total_mt_paye"]),
+                "taux_sinistres_sur_pnet_pct": _to_float(row["taux_sinistres_sur_pnet_pct"]),
                 "score_risque": _to_float(row["score_risque"]),
             }
             for idx, row in enumerate(rows)

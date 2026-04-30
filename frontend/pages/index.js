@@ -145,7 +145,8 @@ export default function DashboardPage() {
       setDimLoading(true);
       setDimError("");
       try {
-        const payload = await fetchJson("/api/dims");
+        const query = buildCommonQuery(filters);            
+        const payload = await fetchJson(`/api/dims?${query}`);
         if (active) setDimData(payload);
       } catch (err) {
         if (active) setDimError(String(err.message || err));
@@ -156,7 +157,7 @@ export default function DashboardPage() {
 
     loadDimData();
     return () => { active = false; };
-  }, []);
+  }, [filters.branch, filters.yearFrom, filters.yearTo]);
 
   // ── Agent status polling ─────────────────────────────────────
   useEffect(() => {
@@ -214,11 +215,15 @@ export default function DashboardPage() {
   };
 
   const governorates = useMemo(() => {
-    const set = new Set();
-    (sinistresByGov || []).forEach((item) => { if (item.gouvernorat) set.add(item.gouvernorat); });
-    (heatmapPoints  || []).forEach((item) => { if (item.gouvernorat) set.add(item.gouvernorat); });
-    (topZones       || []).forEach((item) => { if (item.gouvernorat) set.add(item.gouvernorat); });
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
+    const map = new Map(); 
+    const add = (val) => {
+      if (!val) return;
+      map.set(val.toUpperCase().trim(), val.toUpperCase().trim()); 
+    };
+    (sinistresByGov || []).forEach((item) => add(item.gouvernorat));
+    (heatmapPoints  || []).forEach((item) => add(item.gouvernorat));
+    (topZones       || []).forEach((item) => add(item.gouvernorat));
+    return Array.from(map.values()).sort((a, b) => a.localeCompare(b));
   }, [heatmapPoints, sinistresByGov, topZones]);
 
   const filteredHeatmap = useMemo(() => {
@@ -228,12 +233,16 @@ export default function DashboardPage() {
 
   const filteredSinistresByGov = useMemo(() => {
     if (filters.gouvernorat === "ALL") return sinistresByGov;
-    return (sinistresByGov || []).filter((item) => item.gouvernorat === filters.gouvernorat);
+    return (sinistresByGov || []).filter(
+      (item) => item.gouvernorat?.toUpperCase().trim() === filters.gouvernorat?.toUpperCase().trim()  // ← fix
+    );
   }, [filters.gouvernorat, sinistresByGov]);
 
   const filteredTopZones = useMemo(() => {
     if (filters.gouvernorat === "ALL") return topZones;
-    return (topZones || []).filter((item) => item.gouvernorat === filters.gouvernorat);
+    return (topZones || []).filter(
+      (item) => item.gouvernorat?.toUpperCase().trim() === filters.gouvernorat?.toUpperCase().trim()  // ← fix
+    );
   }, [filters.gouvernorat, topZones]);
 
   // ── Dimension content renderer ────────────────────────────────

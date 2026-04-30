@@ -7,6 +7,16 @@ import DimKpiRow from "./DimKpiRow";
 const fmt = new Intl.NumberFormat("fr-TN");
 const fmtTND = new Intl.NumberFormat("fr-TN", { style: "currency", currency: "TND", maximumFractionDigits: 0 });
 
+function formatShortCurrency(value) {
+  const num = Number(value || 0);
+  if (num >= 1_000_000) {
+    return `${(num / 1_000_000).toFixed(1)}M DT`;
+  } else if (num >= 1_000) {
+    return `${Math.round(num / 1_000)}K DT`;
+  }
+  return `${num} DT`;
+}
+
 const GROUPE_COLORS = {
   "Réseau Direct": "#004A8D",
   "Bancassurance": "#F38F1D",
@@ -32,7 +42,7 @@ export default function AgentDim({ data }) {
         { icon: "🔴", title: "Inactifs",          value: fmt.format(kpis.inactifs),         sub: "résiliés + suspendus" },
         { icon: "💼", title: "Groupes",           value: fmt.format(kpis.nb_groupes),       sub: "canaux distribution" },
         { icon: "📍", title: "Localités",         value: fmt.format(kpis.nb_localites),     sub: "couverture géo" },
-        { icon: "💰", title: "Prime nette moy.",  value: fmtTND.format(kpis.avg_pnet),      sub: "par agent actif" },
+        { icon: "💰", title: "Prime nette moy.",  value: formatShortCurrency(kpis.avg_pnet),      sub: "par agent actif" },
       ]} />
 
       <div className="dim-charts-grid">
@@ -44,7 +54,7 @@ export default function AgentDim({ data }) {
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
               <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v/1e6).toFixed(1)}M`} />
               <YAxis type="category" dataKey="nom" tick={{ fontSize: 11 }} width={110} />
-              <Tooltip formatter={(v) => fmtTND.format(v)} />
+              <Tooltip formatter={(v) => formatShortCurrency(v)} />
               <Bar dataKey="pnet" name="Prime nette" fill="#004A8D" radius={[0, 6, 6, 0]} />
             </BarChart>
           </ResponsiveContainer>

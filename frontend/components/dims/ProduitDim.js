@@ -7,6 +7,16 @@ import DimKpiRow from "./DimKpiRow";
 const fmt = new Intl.NumberFormat("fr-TN");
 const fmtTND = new Intl.NumberFormat("fr-TN", { style: "currency", currency: "TND", maximumFractionDigits: 0 });
 
+function formatShortCurrency(value) {
+  const num = Number(value || 0);
+  if (num >= 1_000_000) {
+    return `${(num / 1_000_000).toFixed(1)}M DT`;
+  } else if (num >= 1_000) {
+    return `${Math.round(num / 1_000)}K DT`;
+  }
+  return `${num} DT`;
+}
+
 const BRANCHE_COLORS = { AUTO: "#004A8D", IRDS: "#F38F1D", SANTE: "#2E7D32" };
 const FAMILLE_COLORS = [
   "#004A8D", "#F38F1D", "#2E7D32", "#C62828",
@@ -24,9 +34,9 @@ export default function ProduitDim({ data }) {
         { icon: "📦", title: "Produits distincts",  value: fmt.format(kpis.nb_produits),    sub: "catalogue actif" },
         { icon: "🔖", title: "Familles de risque",  value: fmt.format(kpis.nb_familles),    sub: "catégories" },
         { icon: "🏦", title: "Branches couvertes",  value: fmt.format(kpis.nb_branches),    sub: "AUTO · IRDS · SANTE" },
-        { icon: "💰", title: "Prime nette totale",  value: fmtTND.format(kpis.total_pnet),  sub: "toutes périodes" },
+        { icon: "💰", title: "Prime nette totale",  value: formatShortCurrency(kpis.total_pnet),  sub: "toutes périodes" },
         { icon: "📄", title: "Quittances émises",   value: fmt.format(kpis.total_quitt),    sub: "toutes périodes" },
-        { icon: "🥇", title: "Produit top",         value: kpis.top_produit,                sub: fmtTND.format(kpis.top_pnet) },
+        { icon: "🥇", title: "Produit top",         value: kpis.top_produit,                sub: formatShortCurrency(kpis.top_pnet) },
       ]} />
 
       <div className="dim-charts-grid">
@@ -38,7 +48,7 @@ export default function ProduitDim({ data }) {
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
               <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v/1e6).toFixed(0)}M`} />
               <YAxis type="category" dataKey="label" tick={{ fontSize: 11 }} width={160} />
-              <Tooltip formatter={(v) => fmtTND.format(v)} />
+              <Tooltip formatter={(v) => formatShortCurrency(v)} />
               <Bar dataKey="pnet" name="Prime nette">
                 {topProduits.map((entry) => (
                   <Cell key={entry.label} fill={BRANCHE_COLORS[entry.branche] || "#94a3b8"} />
@@ -75,7 +85,7 @@ export default function ProduitDim({ data }) {
                   <Cell key={entry.label} fill={BRANCHE_COLORS[entry.label] || "#94a3b8"} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v) => fmtTND.format(v)} />
+              <Tooltip formatter={(v) => formatShortCurrency(v)} />
               <Legend />
             </PieChart>
           </ResponsiveContainer>
@@ -94,7 +104,7 @@ export default function ProduitDim({ data }) {
                   <Cell key={entry.label} fill={FAMILLE_COLORS[i % FAMILLE_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v) => fmtTND.format(v)} />
+              <Tooltip formatter={(v) => formatShortCurrency(v)} />
               <Legend />
             </PieChart>
           </ResponsiveContainer>

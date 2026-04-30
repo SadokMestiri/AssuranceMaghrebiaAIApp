@@ -10,7 +10,7 @@ router = APIRouter(prefix="/kpis", tags=["kpis"])
 
 VALID_BRANCHES = {"AUTO", "IRDS", "SANTE"}
 YEAR_MIN = 2019
-YEAR_MAX = 2026
+YEAR_MAX = 2025
 SITUATION_LABELS = {
     "V": "Valide",
     "R": "Resiliee",
@@ -58,8 +58,8 @@ def _validate_year_range(year_from: int | None, year_to: int | None) -> None:
 @router.get("/overview")
 def get_overview(
     branch: str | None = Query(default=None, description="AUTO | IRDS | SANTE"),
-    year_from: int | None = Query(default=None, ge=2019, le=2026),
-    year_to: int | None = Query(default=None, ge=2019, le=2026),
+    year_from: int | None = Query(default=None, ge=2019, le=2025),
+    year_to: int | None = Query(default=None, ge=2019, le=2025),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     normalized_branch = _normalize_branch(branch)
@@ -111,9 +111,31 @@ def get_overview(
         """
     )
 
+    sinistre_sql = text(
+    """
+    SELECT
+        COUNT(*) AS nb_sinistres,
+        COALESCE(SUM(mt_evaluation), 0) AS total_evaluation,
+        COALESCE(SUM(mt_paye), 0) AS total_paye
+    FROM dwh_fact_sinistre
+    WHERE (:branch IS NULL OR branche = :branch)
+      AND (:year_from IS NULL OR annee_survenance >= :year_from)
+      AND (:year_to IS NULL OR annee_survenance <= :year_to)
+    """
+    )
+    sinistre = db.execute(sinistre_sql, params).mappings().first()
     emission = db.execute(emission_sql, params).mappings().first()
     churn = db.execute(churn_sql, params).mappings().first()
     impaye = db.execute(impaye_sql, params).mappings().first()
+
+    total_pnet       = _to_float(emission["total_pnet"])
+    total_paye       = _to_float(sinistre["total_paye"])
+    total_commission = _to_float(emission["total_commission"])
+
+    ratio_combine = round(
+        100.0 * (total_paye + total_commission) / total_pnet, 2
+    ) if total_pnet > 0 else 0.0
+    
 
     return {
         "filters": {
@@ -121,6 +143,8 @@ def get_overview(
             "year_from": year_from,
             "year_to": year_to,
         },
+        "nb_sinistres": _to_int(sinistre["nb_sinistres"]),
+        "ratio_combine": ratio_combine,
         "production": {
             "nb_quittances": _to_int(emission["nb_quittances"]),
             "total_pnet": _to_float(emission["total_pnet"]),
@@ -138,14 +162,14 @@ def get_overview(
             "nb_impayes": _to_int(impaye["nb_impayes"]),
             "total_mt_acp": _to_float(impaye["total_mt_acp"]),
             "avg_mt_acp": _to_float(impaye["avg_mt_acp"]),
-        },
+        }
     }
 
 
 @router.get("/primes/by-branch")
 def get_primes_by_branch(
-    year_from: int | None = Query(default=None, ge=2019, le=2026),
-    year_to: int | None = Query(default=None, ge=2019, le=2026),
+    year_from: int | None = Query(default=None, ge=2019, le=2025),
+    year_to: int | None = Query(default=None, ge=2019, le=2025),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     _validate_year_range(year_from, year_to)

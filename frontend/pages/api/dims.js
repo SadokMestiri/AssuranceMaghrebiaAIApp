@@ -398,6 +398,11 @@ function buildSinistreData(sinistres) {
 // ── HANDLER ──────────────────────────────────────────────────────
 export default function handler(req, res) {
   try {
+    const { branch, year_from, year_to } = req.query;
+    const filterBranch  = branch && branch !== "ALL" ? branch.toUpperCase() : null;
+    const filterYearFrom = year_from ? parseInt(year_from, 10) : null;
+    const filterYearTo   = year_to   ? parseInt(year_to,   10) : null;
+
     const clients   = readCsv("DIM_CLIENT.csv");
     const agents    = readCsv("DIM_AGENT.csv");
     const polices   = readCsv("DIM_POLICE.csv");
@@ -406,13 +411,68 @@ export default function handler(req, res) {
     const emissions = readCsv("DWH_FACT_EMISSION.csv");
     const sinistres = readCsv("DWH_FACT_SINISTRE.csv");
 
+    // Filter facts by branch + year
+    const filteredEmissions = emissions.filter((e) => {
+      const yr = parseInt(e.ANNEE_ECHEANCE, 10);
+      if (filterBranch  && e.BRANCHE !== filterBranch)   return false;
+      if (filterYearFrom && yr < filterYearFrom)          return false;
+      if (filterYearTo   && yr > filterYearTo)            return false;
+      return true;
+    });
+
+    const filteredSinistres = sinistres.filter((s) => {
+      const yr = parseInt(s.ANNEE_SURVENANCE, 10);
+      if (filterBranch  && s.BRANCHE !== filterBranch)   return false;
+      if (filterYearFrom && yr < filterYearFrom)          return false;
+      if (filterYearTo   && yr > filterYearTo)            return false;
+      return true;
+    });
+
+    // Filter polices by branch only (no year column on dim_police)
+    const filteredPolices = polices.filter((p) => {
+      if (filterBranch && p.BRANCHE !== filterBranch) return false;
+      return true;
+    });
+
+    // Derive filtered client IDs and agent IDs from filtered facts
+    const filteredClientIds = new Set([
+      ...filteredEmissions.map((e) => e.ID_CLIENT),  // via police join not needed — use police
+    ]);
+    // Actually join through polices for client IDs
+    const policeClientMap = {};
+    for (const p of polices) policeClientMap[p.ID_POLICE] = p.ID_CLIENT;
+    const clientIdsFromEmissions = new Set(
+      filteredEmissions.map((e) => policeClientMap[e.ID_POLICE]).filter(Boolean)
+    );
+    const clientIdsFromSinistres = new Set(
+      filteredSinistres.map((s) => s.ID_CLIENT).filter(Boolean)
+    );
+    const filteredClientIds2 = new Set([...clientIdsFromEmissions, ...clientIdsFromSinistres]);
+
+    const filteredClients = filterBranch || filterYearFrom || filterYearTo
+      ? clients.filter((c) => filteredClientIds2.has(c.ID_CLIENT))
+      : clients;
+
+    const filteredAgentIds = new Set(filteredEmissions.map((e) => e.ID_AGENT).filter(Boolean));
+    const filteredAgents = filterBranch || filterYearFrom || filterYearTo
+      ? agents.filter((a) => filteredAgentIds.has(a.ID_AGENT))
+      : agents;
+
+    // Véhicules: only filterable via sinistres (AUTO branch)
+    const filteredVehiculeIds = new Set(
+      filteredSinistres.map((s) => s.ID_VEHICULE).filter(Boolean)
+    );
+    const filteredVehicules = filterBranch === "AUTO"
+      ? vehicules.filter((v) => filteredVehiculeIds.has(v.ID_VEHICULE))
+      : vehicules;
+
     res.status(200).json({
-      clients:   buildClientData(clients, polices),
-      agents:    buildAgentData(agents, polices, emissions),
-      produits:  buildProduitData(produits, emissions),
-      vehicules: buildVehiculeData(vehicules),
-      polices:   buildPoliceData(polices),
-      sinistres: buildSinistreData(sinistres),
+      clients:   buildClientData(filteredClients, filteredPolices),
+      agents:    buildAgentData(filteredAgents, filteredPolices, filteredEmissions),
+      produits:  buildProduitData(produits, filteredEmissions),
+      vehicules: buildVehiculeData(filteredVehicules),
+      polices:   buildPoliceData(filteredPolices),
+      sinistres: buildSinistreData(filteredSinistres),
     });
   } catch (err) {
     res.status(500).json({ error: String(err.message || err) });

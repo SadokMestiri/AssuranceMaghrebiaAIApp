@@ -7,6 +7,16 @@ import DimKpiRow from "./DimKpiRow";
 const fmt = new Intl.NumberFormat("fr-TN");
 const fmtTND = new Intl.NumberFormat("fr-TN", { style: "currency", currency: "TND", maximumFractionDigits: 0 });
 
+function formatShortCurrency(value) {
+  const num = Number(value || 0);
+  if (num >= 1_000_000) {
+    return `${(num / 1_000_000).toFixed(1)}M DT`;
+  } else if (num >= 1_000) {
+    return `${Math.round(num / 1_000)}K DT`;
+  }
+  return `${num} DT`;
+}
+
 const ETAT_COLORS  = { Clos: "#2E7D32", Ouvert: "#C62828", "Refusé": "#F38F1D" };
 const RESP_COLORS  = { "0": "#2E7D32", "50": "#F38F1D", "100": "#C62828" };
 const RESP_LABELS  = { "0": "0 % (Tiers resp.)", "50": "50 % (Partage)", "100": "100 % (Assuré)" };
@@ -30,8 +40,8 @@ export default function SinistreDim({ data }) {
         { icon: "⚠️", title: "Total sinistres",    value: fmt.format(kpis.total),           sub: "toutes périodes" },
         { icon: "🔴", title: "Ouverts",             value: fmt.format(kpis.ouverts),         sub: `${kpis.pct_ouverts.toFixed(1)} %` },
         { icon: "✅", title: "Clos",                value: fmt.format(kpis.clos),            sub: `${kpis.pct_clos.toFixed(1)} %` },
-        { icon: "💰", title: "Montant évalué",      value: fmtTND.format(kpis.total_eval),   sub: "provisions ouvertes" },
-        { icon: "💸", title: "Montant payé",        value: fmtTND.format(kpis.total_paye),   sub: `${kpis.taux_paiement.toFixed(1)} % du provisonné` },
+        { icon: "💰", title: "Montant évalué",      value: formatShortCurrency(kpis.total_eval),   sub: "provisions ouvertes" },
+        { icon: "💸", title: "Montant payé",        value: formatShortCurrency(kpis.total_paye),   sub: `${kpis.taux_paiement.toFixed(1)} % du provisonné` },
         { icon: "🧾", title: "Sinistres matériels", value: fmt.format(kpis.nb_materiel),     sub: "1er sinistre par nature" },
       ]} />
 

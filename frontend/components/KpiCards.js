@@ -1,16 +1,16 @@
-const currencyFormatter = new Intl.NumberFormat("fr-TN", {
-  style: "currency",
-  currency: "TND",
-  maximumFractionDigits: 0,
-});
+function formatShortCurrency(value) {
+  const num = Number(value || 0);
+  if (num >= 1_000_000) {
+    return `${(num / 1_000_000).toFixed(1)}M DT`;
+  } else if (num >= 1_000) {
+    return `${Math.round(num / 1_000)}K DT`;
+  }
+  return `${num} DT`;
+}
 
 const numberFormatter = new Intl.NumberFormat("fr-TN", {
   maximumFractionDigits: 2,
 });
-
-function asCurrency(value) {
-  return currencyFormatter.format(Number(value || 0));
-}
 
 function asNumber(value, suffix = "") {
   return `${numberFormatter.format(Number(value || 0))}${suffix}`;
@@ -28,13 +28,13 @@ export default function KpiCards({ dashboard }) {
   const cards = [
     {
       title: "Prime nette",
-      value: asCurrency(production.total_pnet),
+      value: formatShortCurrency(production.total_pnet),
       helper: `${asNumber(production.nb_quittances)} quittances`,
     },
     {
       title: "Ratio Combiné",
       value: asNumber(overview.ratio_combine, "%"),
-      helper: `Selon filtre branche`,
+      
     },
     {
       title: "Taux resiliation",
@@ -44,7 +44,7 @@ export default function KpiCards({ dashboard }) {
     {
       title: "Nombre de Sinistres",
       value: asNumber(overview.nb_sinistres),
-      helper: `Selon filtre branche`,
+      
     },
   ];
 
