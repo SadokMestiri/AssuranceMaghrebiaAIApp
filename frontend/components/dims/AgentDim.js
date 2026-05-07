@@ -27,22 +27,23 @@ const GROUPE_COLORS = {
 const ETAT_COLORS = { A: "#2E7D32", R: "#C62828", S: "#F38F1D" };
 const ETAT_LABELS = { A: "Actif", R: "Résilié", S: "Suspendu" };
 
-export default function AgentDim({ data }) {
+export default function AgentDim({ data, dataPrev }) {
   if (!data) return <p className="dim-loading">Chargement agents…</p>;
 
-  const { kpis, groupes, typeAgent, etat, topAgentsPnet, topAgentsPolices, localites } = data;
+  const { kpis = {}, groupes = [], typeAgent = [], etat = [], topAgentsPnet = [], topAgentsPolices = [], localites = [] } = data;
+  const prev = dataPrev?.kpis || {};
 
   const etatChart = etat.map((e) => ({ ...e, label: ETAT_LABELS[e.label] || e.label }));
 
   return (
     <div className="dim-panel">
       <DimKpiRow cards={[
-        { icon: "🏢", title: "Total agents",     value: fmt.format(kpis.total),            sub: "réseau distribution" },
-        { icon: "✅", title: "Actifs",            value: fmt.format(kpis.actifs),           sub: `${kpis.pct_actifs.toFixed(1)} %` },
-        { icon: "🔴", title: "Inactifs",          value: fmt.format(kpis.inactifs),         sub: "résiliés + suspendus" },
-        { icon: "💼", title: "Groupes",           value: fmt.format(kpis.nb_groupes),       sub: "canaux distribution" },
-        { icon: "📍", title: "Localités",         value: fmt.format(kpis.nb_localites),     sub: "couverture géo" },
-        { icon: "💰", title: "Prime nette moy.",  value: formatShortCurrency(kpis.avg_pnet),      sub: "par agent actif" },
+        { icon: "🏢", title: "Total agents",     value: fmt.format(kpis.total),           sub: "réseau distribution",  current: kpis.total,     previous: prev.total },
+        { icon: "✅", title: "Actifs",            value: fmt.format(kpis.actifs),          sub: `${Number(kpis.pct_actifs || 0).toFixed(1)} %`,               current: kpis.actifs,    previous: prev.actifs },
+        { icon: "🔴", title: "Inactifs",          value: fmt.format(kpis.inactifs),        sub: "résiliés + suspendus", current: kpis.inactifs,  previous: prev.inactifs,  invertColor: true },
+        { icon: "💼", title: "Groupes",           value: fmt.format(kpis.nb_groupes),      sub: "canaux distribution",  current: kpis.nb_groupes, previous: prev.nb_groupes },
+        { icon: "📍", title: "Localités",         value: fmt.format(kpis.nb_localites),    sub: "couverture géo",       current: kpis.nb_localites, previous: prev.nb_localites },
+        { icon: "💰", title: "Prime nette moy.",  value: formatShortCurrency(kpis.avg_pnet), sub: "par agent actif",    current: kpis.avg_pnet,  previous: prev.avg_pnet },
       ]} />
 
       <div className="dim-charts-grid">
@@ -77,10 +78,10 @@ export default function AgentDim({ data }) {
         {/* Répartition par groupe */}
         <article className="panel chart-panel">
           <h3>Répartition par groupe</h3>
-          <ResponsiveContainer width="100%" height={240}>
-            <PieChart>
+          <ResponsiveContainer width="100%" height={280}>
+            <PieChart margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
               <Pie data={groupes} dataKey="count" nameKey="label"
-                outerRadius={85} innerRadius={40} paddingAngle={3}
+                outerRadius={68} innerRadius={32} paddingAngle={3}
                 label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
               >
                 {groupes.map((entry) => (
@@ -96,10 +97,10 @@ export default function AgentDim({ data }) {
         {/* État agents */}
         <article className="panel chart-panel">
           <h3>État des agents</h3>
-          <ResponsiveContainer width="100%" height={240}>
-            <PieChart>
+          <ResponsiveContainer width="100%" height={280}>
+            <PieChart margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
               <Pie data={etatChart} dataKey="count" nameKey="label"
-                outerRadius={85} innerRadius={40} paddingAngle={3}
+                outerRadius={68} innerRadius={32} paddingAngle={3}
                 label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
               >
                 {etat.map((entry) => (
@@ -115,7 +116,7 @@ export default function AgentDim({ data }) {
         {/* Type agent */}
         <article className="panel chart-panel">
           <h3>Type d'agent</h3>
-          <ResponsiveContainer width="100%" height={240}>
+          <ResponsiveContainer width="100%" height={280}>
             <BarChart data={typeAgent}>
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
               <XAxis dataKey="label" tick={{ fontSize: 13 }} />
@@ -129,7 +130,7 @@ export default function AgentDim({ data }) {
         {/* Top localités */}
         <article className="panel chart-panel">
           <h3>Top localités agents</h3>
-          <ResponsiveContainer width="100%" height={240}>
+          <ResponsiveContainer width="100%" height={280}>
             <BarChart data={localites.slice(0, 10)}>
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
               <XAxis dataKey="label" tick={{ fontSize: 10 }} angle={-20} textAnchor="end" height={55} />

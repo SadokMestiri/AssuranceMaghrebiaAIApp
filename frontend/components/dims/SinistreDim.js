@@ -25,10 +25,11 @@ const NATURE_COLORS = [
   "#6A1B9A","#00838F","#5D4037","#3949AB","#E91E8C","#00ACC1",
 ];
 
-export default function SinistreDim({ data }) {
+export default function SinistreDim({ data, dataPrev }) {
   if (!data) return <p className="dim-loading">Chargement sinistres…</p>;
 
-  const { kpis, byNature, byEtat, byResponsabilite, byBranche, monthly } = data;
+  const { kpis = {}, byNature = [], byEtat = [], byResponsabilite = [], byBranche = [], monthly = [] } = data;
+  const prev = dataPrev?.kpis || {};
 
   const respChart = byResponsabilite.map((e) => ({
     ...e, label: RESP_LABELS[e.label] || e.label,
@@ -37,12 +38,12 @@ export default function SinistreDim({ data }) {
   return (
     <div className="dim-panel">
       <DimKpiRow cards={[
-        { icon: "⚠️", title: "Total sinistres",    value: fmt.format(kpis.total),           sub: "toutes périodes" },
-        { icon: "🔴", title: "Ouverts",             value: fmt.format(kpis.ouverts),         sub: `${kpis.pct_ouverts.toFixed(1)} %` },
-        { icon: "✅", title: "Clos",                value: fmt.format(kpis.clos),            sub: `${kpis.pct_clos.toFixed(1)} %` },
-        { icon: "💰", title: "Montant évalué",      value: formatShortCurrency(kpis.total_eval),   sub: "provisions ouvertes" },
-        { icon: "💸", title: "Montant payé",        value: formatShortCurrency(kpis.total_paye),   sub: `${kpis.taux_paiement.toFixed(1)} % du provisonné` },
-        { icon: "🧾", title: "Sinistres matériels", value: fmt.format(kpis.nb_materiel),     sub: "1er sinistre par nature" },
+        { icon: "⚠️", title: "Total sinistres",    value: fmt.format(kpis.total),                sub: "toutes périodes",                      current: kpis.total,       previous: prev.total,       invertColor: true },
+        { icon: "🔴", title: "Ouverts",             value: fmt.format(kpis.ouverts),              sub: `${Number(kpis.pct_ouverts || 0).toFixed(1)} %`,     current: kpis.ouverts,     previous: prev.ouverts,     invertColor: true },
+        { icon: "✅", title: "Clos",                value: fmt.format(kpis.clos),                 sub: `${Number(kpis.pct_clos || 0).toFixed(1)} %`,        current: kpis.clos,        previous: prev.clos },
+        { icon: "💰", title: "Montant évalué",      value: formatShortCurrency(kpis.total_eval),  sub: "provisions ouvertes",                  current: kpis.total_eval,  previous: prev.total_eval,  invertColor: true },
+        { icon: "💸", title: "Montant payé",        value: formatShortCurrency(kpis.total_paye),  sub: `${Number(kpis.taux_paiement || 0).toFixed(1)} % du provisonné`, current: kpis.total_paye, previous: prev.total_paye, invertColor: true },
+        { icon: "🧾", title: "Sinistres matériels", value: fmt.format(kpis.nb_materiel),          sub: "1er sinistre par nature",              current: kpis.nb_materiel, previous: prev.nb_materiel, invertColor: true },
       ]} />
 
       <div className="dim-charts-grid">
@@ -67,10 +68,10 @@ export default function SinistreDim({ data }) {
         {/* État sinistre */}
         <article className="panel chart-panel">
           <h3>État des sinistres</h3>
-          <ResponsiveContainer width="100%" height={240}>
-            <PieChart>
+          <ResponsiveContainer width="100%" height={280}>
+            <PieChart margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
               <Pie data={byEtat} dataKey="count" nameKey="label"
-                outerRadius={85} innerRadius={40} paddingAngle={3}
+                outerRadius={68} innerRadius={32} paddingAngle={3}
                 label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
               >
                 {byEtat.map((entry) => (
@@ -86,10 +87,10 @@ export default function SinistreDim({ data }) {
         {/* Responsabilité */}
         <article className="panel chart-panel">
           <h3>Responsabilité engagée</h3>
-          <ResponsiveContainer width="100%" height={240}>
-            <PieChart>
+          <ResponsiveContainer width="100%" height={280}>
+            <PieChart margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
               <Pie data={respChart} dataKey="count" nameKey="label"
-                outerRadius={85} innerRadius={40} paddingAngle={3}
+                outerRadius={68} innerRadius={32} paddingAngle={3}
                 label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
               >
                 {byResponsabilite.map((entry) => (
@@ -105,7 +106,7 @@ export default function SinistreDim({ data }) {
         {/* Par branche */}
         <article className="panel chart-panel">
           <h3>Sinistres par branche</h3>
-          <ResponsiveContainer width="100%" height={240}>
+          <ResponsiveContainer width="100%" height={280}>
             <BarChart data={byBranche}>
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
               <XAxis dataKey="label" tick={{ fontSize: 13 }} />

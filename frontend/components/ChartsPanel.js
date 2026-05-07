@@ -27,8 +27,8 @@ function getBranchColor(branch, index) {
   return BRANCH_COLORS[normalized] || FALLBACK_PIE_COLORS[index % FALLBACK_PIE_COLORS.length];
 }
 
-function pieLabelRenderer({ name, percent }) {
-  return `${String(name || "Branche")} ${(Number(percent || 0) * 100).toFixed(1)}%`;
+function pieLabelRenderer({ percent }) {
+  return `${(Number(percent || 0) * 100).toFixed(1)}%`;
 }
 
 function aggregateMonthlyTrend(items, monthFilter) {
@@ -75,15 +75,14 @@ export default function ChartsPanel({ dashboard, monthFilter }) {
       <article className="panel chart-panel">
         <h3>Part de production par branche</h3>
         <ResponsiveContainer width="100%" height={280}>
-          <PieChart>
+          <PieChart margin={{ top: 10, right: 40, bottom: 10, left: 40 }}>
             <Pie
               data={branchShare}
               dataKey="total_pnet"
               nameKey="branche"
-              outerRadius={95}
-              innerRadius={45}
+              outerRadius={72}
+              innerRadius={34}
               paddingAngle={3}
-              labelLine
               label={pieLabelRenderer}
             >
               {branchShare.map((entry, index) => (

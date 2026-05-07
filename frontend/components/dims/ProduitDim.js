@@ -23,20 +23,21 @@ const FAMILLE_COLORS = [
   "#6A1B9A", "#00838F", "#5D4037", "#3949AB",
 ];
 
-export default function ProduitDim({ data }) {
+export default function ProduitDim({ data, dataPrev }) {
   if (!data) return <p className="dim-loading">Chargement produits…</p>;
 
-  const { kpis, byBranche, byFamille, topProduits, topProduitsQuittances } = data;
+  const { kpis = {}, byBranche = [], byFamille = [], topProduits = [], topProduitsQuittances = [] } = data;
+  const prev = dataPrev?.kpis || {};
 
   return (
     <div className="dim-panel">
       <DimKpiRow cards={[
-        { icon: "📦", title: "Produits distincts",  value: fmt.format(kpis.nb_produits),    sub: "catalogue actif" },
-        { icon: "🔖", title: "Familles de risque",  value: fmt.format(kpis.nb_familles),    sub: "catégories" },
-        { icon: "🏦", title: "Branches couvertes",  value: fmt.format(kpis.nb_branches),    sub: "AUTO · IRDS · SANTE" },
-        { icon: "💰", title: "Prime nette totale",  value: formatShortCurrency(kpis.total_pnet),  sub: "toutes périodes" },
-        { icon: "📄", title: "Quittances émises",   value: fmt.format(kpis.total_quitt),    sub: "toutes périodes" },
-        { icon: "🥇", title: "Produit top",         value: kpis.top_produit,                sub: formatShortCurrency(kpis.top_pnet) },
+        { icon: "📦", title: "Produits distincts", value: fmt.format(kpis.nb_produits),         sub: "catalogue actif",    current: kpis.nb_produits,  previous: prev.nb_produits },
+        { icon: "🔖", title: "Familles de risque", value: fmt.format(kpis.nb_familles),         sub: "catégories",         current: kpis.nb_familles,  previous: prev.nb_familles },
+        { icon: "🏦", title: "Branches couvertes", value: fmt.format(kpis.nb_branches),         sub: "AUTO · IRDS · SANTE",current: kpis.nb_branches,  previous: prev.nb_branches },
+        { icon: "💰", title: "Prime nette totale", value: formatShortCurrency(kpis.total_pnet), sub: "toutes périodes",    current: kpis.total_pnet,   previous: prev.total_pnet },
+        { icon: "📄", title: "Quittances émises",  value: fmt.format(kpis.total_quitt),         sub: "toutes périodes",    current: kpis.total_quitt,  previous: prev.total_quitt },
+        { icon: "🥇", title: "Produit top",        value: kpis.top_produit,                     sub: formatShortCurrency(kpis.top_pnet), current: kpis.top_pnet, previous: prev.top_pnet },
       ]} />
 
       <div className="dim-charts-grid">
@@ -75,11 +76,11 @@ export default function ProduitDim({ data }) {
         {/* Part par branche */}
         <article className="panel chart-panel">
           <h3>Part de prime par branche</h3>
-          <ResponsiveContainer width="100%" height={240}>
-            <PieChart>
+          <ResponsiveContainer width="100%" height={280}>
+            <PieChart margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
               <Pie data={byBranche} dataKey="pnet" nameKey="label"
-                outerRadius={85} innerRadius={40} paddingAngle={3}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
+                outerRadius={68} innerRadius={32} paddingAngle={3}
+                label={({ percent }) => `${(percent * 100).toFixed(1)}%`}
               >
                 {byBranche.map((entry) => (
                   <Cell key={entry.label} fill={BRANCHE_COLORS[entry.label] || "#94a3b8"} />
@@ -94,10 +95,10 @@ export default function ProduitDim({ data }) {
         {/* Famille de risque */}
         <article className="panel chart-panel">
           <h3>Prime nette par famille de risque</h3>
-          <ResponsiveContainer width="100%" height={240}>
-            <PieChart>
+          <ResponsiveContainer width="100%" height={280}>
+            <PieChart margin={{ top: 10, right: 20, bottom: 10, left: 20 }}>
               <Pie data={byFamille} dataKey="pnet" nameKey="label"
-                outerRadius={85} innerRadius={40} paddingAngle={3}
+                outerRadius={68} innerRadius={32} paddingAngle={3}
                 label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
               >
                 {byFamille.map((entry, i) => (

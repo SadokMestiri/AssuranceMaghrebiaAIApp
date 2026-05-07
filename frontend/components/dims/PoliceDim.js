@@ -20,10 +20,11 @@ const PERIODICITE_LABELS = {
 };
 const BM_COLORS = ["#2E7D32", "#004A8D", "#F38F1D", "#C62828"];
 
-export default function PoliceDim({ data }) {
+export default function PoliceDim({ data, dataPrev }) {
   if (!data) return <p className="dim-loading">Chargement polices…</p>;
 
-  const { kpis, byType, bySituation, byPeriodicite, byDuree, bonusMalus } = data;
+  const { kpis = {}, byType = [], bySituation = [], byPeriodicite = [], byDuree = [], bonusMalus = [] } = data;
+  const prev = dataPrev?.kpis || {};
 
   const situationChart = bySituation.map((e) => ({
     ...e,
@@ -39,22 +40,22 @@ export default function PoliceDim({ data }) {
   return (
     <div className="dim-panel">
       <DimKpiRow cards={[
-        { icon: "📋", title: "Total polices",      value: fmt.format(kpis.total),          sub: "portefeuille" },
-        { icon: "✅", title: "En vigueur",          value: fmt.format(kpis.en_vigueur),     sub: `${kpis.pct_vigueur.toFixed(1)} %` },
-        { icon: "🔴", title: "Résiliées",           value: fmt.format(kpis.resiliees),      sub: `${kpis.pct_resiliees.toFixed(1)} %` },
-        { icon: "👤", title: "Polices individuelles",value: fmt.format(kpis.individuelles), sub: `${kpis.pct_indiv.toFixed(1)} %` },
-        { icon: "🚌", title: "Polices flotte",      value: fmt.format(kpis.flottes),        sub: `${kpis.pct_flotte.toFixed(1)} %` },
-        { icon: "🎯", title: "BM moyen",            value: kpis.avg_bm.toFixed(2),          sub: "bonus-malus moyen" },
+        { icon: "📋", title: "Total polices",       value: fmt.format(kpis.total),           sub: "portefeuille",              current: kpis.total,         previous: prev.total },
+        { icon: "✅", title: "En vigueur",           value: fmt.format(kpis.en_vigueur),      sub: `${Number(kpis.pct_vigueur || 0).toFixed(1)} %`,   current: kpis.en_vigueur,    previous: prev.en_vigueur },
+        { icon: "🔴", title: "Résiliées",            value: fmt.format(kpis.resiliees),       sub: `${Number(kpis.pct_resiliees || 0).toFixed(1)} %`, current: kpis.resiliees,     previous: prev.resiliees,     invertColor: true },
+        { icon: "👤", title: "Polices individuelles",value: fmt.format(kpis.individuelles),   sub: `${Number(kpis.pct_indiv || 0).toFixed(1)} %`,     current: kpis.individuelles, previous: prev.individuelles },
+        { icon: "🚌", title: "Polices flotte",       value: fmt.format(kpis.flottes),         sub: `${Number(kpis.pct_flotte || 0).toFixed(1)} %`,    current: kpis.flottes,       previous: prev.flottes },
+        { icon: "🎯", title: "BM moyen",             value: Number(kpis.avg_bm || 0).toFixed(2),           sub: "bonus-malus moyen",         current: kpis.avg_bm,        previous: prev.avg_bm,        invertColor: true },
       ]} />
 
       <div className="dim-charts-grid">
         {/* Situation portefeuille */}
         <article className="panel chart-panel">
           <h3>Situation du portefeuille</h3>
-          <ResponsiveContainer width="100%" height={240}>
-            <PieChart>
+          <ResponsiveContainer width="100%" height={280}>
+            <PieChart margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
               <Pie data={situationChart} dataKey="count" nameKey="label"
-                outerRadius={85} innerRadius={40} paddingAngle={3}
+                outerRadius={68} innerRadius={32} paddingAngle={3}
                 label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
               >
                 {bySituation.map((entry) => (
@@ -70,11 +71,11 @@ export default function PoliceDim({ data }) {
         {/* Type de police */}
         <article className="panel chart-panel">
           <h3>Type de police</h3>
-          <ResponsiveContainer width="100%" height={240}>
-            <PieChart>
+          <ResponsiveContainer width="100%" height={280}>
+            <PieChart margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
               <Pie data={byType} dataKey="count" nameKey="label"
-                outerRadius={85} innerRadius={40} paddingAngle={3}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
+                outerRadius={68} innerRadius={32} paddingAngle={3}
+                label={({ percent }) => `${(percent * 100).toFixed(1)}%`}
               >
                 <Cell fill="#004A8D" />
                 <Cell fill="#F38F1D" />
@@ -88,7 +89,7 @@ export default function PoliceDim({ data }) {
         {/* Périodicité */}
         <article className="panel chart-panel">
           <h3>Périodicité de règlement</h3>
-          <ResponsiveContainer width="100%" height={240}>
+          <ResponsiveContainer width="100%" height={280}>
             <BarChart data={periodiciteChart}>
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
@@ -106,7 +107,7 @@ export default function PoliceDim({ data }) {
         {/* Durée de police */}
         <article className="panel chart-panel">
           <h3>Durée de police</h3>
-          <ResponsiveContainer width="100%" height={240}>
+          <ResponsiveContainer width="100%" height={280}>
             <BarChart data={byDuree}>
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
               <XAxis dataKey="label" tick={{ fontSize: 13 }} />

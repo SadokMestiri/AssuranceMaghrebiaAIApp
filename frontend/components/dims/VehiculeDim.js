@@ -16,20 +16,21 @@ const MARQUE_COLORS = [
   "#6A1B9A","#00838F","#5D4037","#3949AB","#E91E8C","#00ACC1",
 ];
 
-export default function VehiculeDim({ data }) {
+export default function VehiculeDim({ data, dataPrev }) {
   if (!data) return <p className="dim-loading">Chargement véhicules…</p>;
 
-  const { kpis, byGenre, byPuissance, topMarques, byType } = data;
+  const { kpis = {}, byGenre = [], byPuissance = [], topMarques = [], byType = [] } = data;
+  const prev = dataPrev?.kpis || {};
 
   return (
     <div className="dim-panel">
       <DimKpiRow cards={[
-        { icon: "🚗", title: "Total véhicules",    value: fmt.format(kpis.total),           sub: "assurés" },
-        { icon: "🏎", title: "Voitures part.",     value: fmt.format(kpis.nb_vp),           sub: `${kpis.pct_vp.toFixed(1)} % du parc` },
-        { icon: "🚚", title: "Véh. utilitaires",  value: fmt.format(kpis.nb_vu),           sub: "VU + PL + TC" },
-        { icon: "🔧", title: "Marques distinctes", value: fmt.format(kpis.nb_marques),      sub: "constructeurs" },
-        { icon: "⚡", title: "Puissance moy.",     value: kpis.avg_puissance + " CV",       sub: "moyenne parc" },
-        { icon: "📅", title: "Ancienneté moy.",    value: kpis.avg_age + " ans",            sub: "âge moyen véhicule" },
+        { icon: "🚗", title: "Total véhicules",    value: fmt.format(kpis.total),              sub: "assurés",            current: kpis.total,          previous: prev.total },
+        { icon: "🏎", title: "Voitures part.",     value: fmt.format(kpis.nb_vp),              sub: `${Number(kpis.pct_vp || 0).toFixed(1)} % du parc`, current: kpis.nb_vp, previous: prev.nb_vp },
+        { icon: "🚚", title: "Véh. utilitaires",  value: fmt.format(kpis.nb_vu),              sub: "VU + PL + TC",       current: kpis.nb_vu,          previous: prev.nb_vu },
+        { icon: "🔧", title: "Marques distinctes", value: fmt.format(kpis.nb_marques),         sub: "constructeurs",      current: kpis.nb_marques,     previous: prev.nb_marques },
+        { icon: "⚡", title: "Puissance moy.",     value: kpis.avg_puissance + " CV",          sub: "moyenne parc",       current: kpis.avg_puissance,  previous: prev.avg_puissance },
+        { icon: "📅", title: "Ancienneté moy.",    value: kpis.avg_age + " ans",               sub: "âge moyen véhicule", current: kpis.avg_age,        previous: prev.avg_age,       invertColor: true },
       ]} />
 
       <div className="dim-charts-grid">
@@ -54,10 +55,10 @@ export default function VehiculeDim({ data }) {
         {/* Genre véhicule */}
         <article className="panel chart-panel">
           <h3>Genre de véhicule</h3>
-          <ResponsiveContainer width="100%" height={240}>
-            <PieChart>
+          <ResponsiveContainer width="100%" height={280}>
+            <PieChart margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
               <Pie data={byGenre} dataKey="count" nameKey="label"
-                outerRadius={85} innerRadius={40} paddingAngle={3}
+                outerRadius={68} innerRadius={32} paddingAngle={3}
                 label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
               >
                 {byGenre.map((entry) => (
@@ -73,7 +74,7 @@ export default function VehiculeDim({ data }) {
         {/* Tranche de puissance */}
         <article className="panel chart-panel">
           <h3>Tranche de puissance fiscale</h3>
-          <ResponsiveContainer width="100%" height={240}>
+          <ResponsiveContainer width="100%" height={280}>
             <BarChart data={byPuissance}>
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
               <XAxis dataKey="label" tick={{ fontSize: 13 }} />
@@ -91,7 +92,7 @@ export default function VehiculeDim({ data }) {
         {/* Type véhicule */}
         <article className="panel chart-panel">
           <h3>Type de véhicule</h3>
-          <ResponsiveContainer width="100%" height={240}>
+          <ResponsiveContainer width="100%" height={280}>
             <BarChart data={byType} layout="vertical">
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
               <XAxis type="number" tick={{ fontSize: 11 }} />

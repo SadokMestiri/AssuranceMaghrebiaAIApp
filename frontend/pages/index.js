@@ -80,6 +80,7 @@ export default function DashboardPage() {
   const [loading, setLoading]               = useState(true);
   const [error, setError]                   = useState("");
   const [dashboard, setDashboard]           = useState(null);
+  const [dashboardPrev, setDashboardPrev]   = useState(null);
   const [heatmapPoints, setHeatmapPoints]   = useState([]);
   const [sinistresByGov, setSinistresByGov] = useState([]);
   const [topZones, setTopZones]             = useState([]);
@@ -92,8 +93,25 @@ export default function DashboardPage() {
 
   // Dimension data state
   const [dimData, setDimData]         = useState(null);
+  const [dimDataPrev, setDimDataPrev] = useState(null);
   const [dimLoading, setDimLoading]   = useState(false);
   const [dimError, setDimError]       = useState("");
+
+  function buildPrevQuery(filters) {
+    const rawYearFrom = Number(filters.yearFrom);
+    const rawYearTo   = Number(filters.yearTo);
+    const yFrom = Number.isFinite(rawYearFrom) ? Math.min(YEAR_MAX, Math.max(YEAR_MIN, Math.trunc(rawYearFrom))) : YEAR_MIN;
+    const yTo   = Number.isFinite(rawYearTo)   ? Math.min(YEAR_MAX, Math.max(YEAR_MIN, Math.trunc(rawYearTo)))   : YEAR_MAX;
+    const prevFrom = Math.min(yFrom, yTo) - 1;
+    const prevTo   = Math.max(yFrom, yTo) - 1;
+    // Don't fetch if the entire prev range would be outside valid data bounds
+    if (prevTo < YEAR_MIN) return null;
+    const params = new URLSearchParams();
+    if (filters.branch !== "ALL") params.set("branch", filters.branch);
+    params.set("year_from", String(Math.max(YEAR_MIN, prevFrom)));
+    params.set("year_to",   String(Math.max(YEAR_MIN, prevTo)));
+    return params.toString();
+  }
 
   // ── Load main dashboard data ─────────────────────────────────
   useEffect(() => {
@@ -104,9 +122,10 @@ export default function DashboardPage() {
       setError("");
 
       try {
-        const query = buildCommonQuery(filters);
+        const query     = buildCommonQuery(filters);
+        const prevQuery = buildPrevQuery(filters);
 
-        const [dashboardPayload, heatmapPayload, sinistresPayload, zonesPayload, ltvPayload, churnPayload] =
+        const [dashboardPayload, heatmapPayload, sinistresPayload, zonesPayload, ltvPayload, churnPayload, prevPayload] =
           await Promise.all([
             fetchJson(`${API_BASE}/api/v1/kpis/dashboard/ceo?${query}`),
             fetchJson(`${API_BASE}/api/v1/geo/heatmap-polices?${query}&limit=300`),
@@ -114,6 +133,7 @@ export default function DashboardPage() {
             fetchJson(`${API_BASE}/api/v1/geo/top-zones-risque?${query}&limit=10`),
             fetchJson(`${API_BASE}/api/v1/kpis/ml/client-ltv`),
             fetchJson(`${API_BASE}/api/v1/kpis/ml/churn-risk`),
+            prevQuery ? fetchJson(`${API_BASE}/api/v1/kpis/dashboard/ceo?${prevQuery}`).catch(() => null) : Promise.resolve(null),
           ]);
 
         if (!active) return;
@@ -121,6 +141,7 @@ export default function DashboardPage() {
         dashboardPayload.ml_ltv   = ltvPayload;
         dashboardPayload.ml_churn = churnPayload;
         setDashboard(dashboardPayload);
+        setDashboardPrev(prevPayload);
         setHeatmapPoints(heatmapPayload.items || []);
         setSinistresByGov(sinistresPayload.items || []);
         setTopZones(zonesPayload.items || []);
@@ -145,9 +166,16 @@ export default function DashboardPage() {
       setDimLoading(true);
       setDimError("");
       try {
-        const query = buildCommonQuery(filters);            
-        const payload = await fetchJson(`/api/dims?${query}`);
-        if (active) setDimData(payload);
+        const query     = buildCommonQuery(filters);
+        const prevQuery = buildPrevQuery(filters);
+        const [payload, prevPayload] = await Promise.all([
+          fetchJson(`/api/dims?${query}`),
+          prevQuery ? fetchJson(`/api/dims?${prevQuery}`).catch(() => null) : Promise.resolve(null),
+        ]);
+        if (active) {
+          setDimData(payload);
+          setDimDataPrev(prevPayload);
+        }
       } catch (err) {
         if (active) setDimError(String(err.message || err));
       } finally {
@@ -250,7 +278,7 @@ export default function DashboardPage() {
     if (activeDim === "overview") {
       return (
         <>
-          <KpiCards dashboard={dashboard} />
+          <KpiCards dashboard={dashboard} dashboardPrev={dashboardPrev} />
           <ChartsPanel dashboard={dashboard} monthFilter={filters.month} />
           <section className="layout-geo">
             <article className="panel map-panel">
@@ -281,12 +309,12 @@ export default function DashboardPage() {
     }
 
     switch (activeDim) {
-      case "clients":   return <ClientDim   data={dimData?.clients}   />;
-      case "agents":    return <AgentDim    data={dimData?.agents}    />;
-      case "produits":  return <ProduitDim  data={dimData?.produits}  />;
-      case "vehicules": return <VehiculeDim data={dimData?.vehicules} />;
-      case "polices":   return <PoliceDim   data={dimData?.polices}   />;
-      case "sinistres": return <SinistreDim data={dimData?.sinistres} />;
+      case "clients":   return <ClientDim   data={dimData?.clients}   dataPrev={dimDataPrev?.clients}   />;
+      case "agents":    return <AgentDim    data={dimData?.agents}    dataPrev={dimDataPrev?.agents}    />;
+      case "produits":  return <ProduitDim  data={dimData?.produits}  dataPrev={dimDataPrev?.produits}  />;
+      case "vehicules": return <VehiculeDim data={dimData?.vehicules} dataPrev={dimDataPrev?.vehicules} />;
+      case "polices":   return <PoliceDim   data={dimData?.polices}   dataPrev={dimDataPrev?.polices}   />;
+      case "sinistres": return <SinistreDim data={dimData?.sinistres} dataPrev={dimDataPrev?.sinistres} />;
       default:          return null;
     }
   }
