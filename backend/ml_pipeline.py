@@ -584,7 +584,10 @@ def _evaluate_promotion(
     if not champion_exists:
         return True, "no_existing_champion", comparison
 
-    primary_delta = challenger_rank[0] - champion_rank[0]
+    primary_metric = "avg_precision"
+    primary_index = PROMOTION_METRICS.index(primary_metric) if primary_metric in PROMOTION_METRICS else 0
+    primary_delta = challenger_rank[primary_index] - champion_rank[primary_index]
+    comparison["primary_metric"] = primary_metric
     comparison["primary_metric_delta"] = float(primary_delta)
     if primary_delta < promotion_min_delta:
         return False, "below_min_delta", comparison

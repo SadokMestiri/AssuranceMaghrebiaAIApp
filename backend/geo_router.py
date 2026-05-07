@@ -143,6 +143,9 @@ def get_sinistres_by_gouvernorat(
     gouvernorat: str | None = Query(default=None),   # ← ajouter
     db: Session = Depends(get_db),
 ) -> dict:
+    normalized_branch = _normalize_branch(branch)
+    _validate_year_range(year_from, year_to)
+
     sql = text(
         """
         SELECT
@@ -165,7 +168,7 @@ def get_sinistres_by_gouvernorat(
     rows = db.execute(
         sql,
         {
-            "branch": branch,
+            "branch": normalized_branch,
             "year_from": year_from,
             "year_to": year_to,
             "gouvernorat": gouvernorat,
@@ -173,12 +176,24 @@ def get_sinistres_by_gouvernorat(
     ).mappings().all()
 
     return {
+        "filters": {
+            "branch": normalized_branch,
+            "year_from": year_from,
+            "year_to": year_to,
+            "gouvernorat": gouvernorat,
+        },
+        "signal_source": "impayes_proxy_for_sinistres",
         "items": [
             {
                 "gouvernorat": row["gouvernorat"],
-                "nb_sinistres": int(row["nb_sinistres"]),
-                "total_mt_paye": float(row["total_mt_paye"]),
-                "total_mt_evaluation": float(row["total_mt_evaluation"]),
+                "nb_sinistres_proxy": _to_int(row.get("nb_sinistres_proxy", row.get("nb_sinistres"))),
+                "total_sinistres_proxy": _to_float(row.get("total_sinistres_proxy", row.get("total_mt_paye"))),
+                "taux_sinistres_proxy_sur_pnet_pct": _to_float(
+                    row.get("taux_sinistres_proxy_sur_pnet_pct", row.get("taux_sinistres_sur_pnet_pct"))
+                ),
+                "nb_sinistres": _to_int(row.get("nb_sinistres", row.get("nb_sinistres_proxy"))),
+                "total_mt_paye": _to_float(row.get("total_mt_paye", row.get("total_sinistres_proxy"))),
+                "total_mt_evaluation": _to_float(row.get("total_mt_evaluation")),
             }
             for row in rows
         ]
@@ -264,14 +279,22 @@ def get_top_zones_risque(
 
     return {
         "filters": {"branch": normalized_branch, "year_from": year_from, "year_to": year_to, "limit": limit},
+        "signal_source": "impayes_proxy_for_geo_risk",
         "items": [
             {
                 "rang": idx + 1,
                 "gouvernorat": row["gouvernorat"],
                 "total_pnet": _to_float(row["total_pnet"]),
-                "nb_sinistres": _to_int(row["nb_sinistres"]),
-                "total_mt_paye": _to_float(row["total_mt_paye"]),
-                "taux_sinistres_sur_pnet_pct": _to_float(row["taux_sinistres_sur_pnet_pct"]),
+                "nb_sinistres_proxy": _to_int(row.get("nb_sinistres_proxy", row.get("nb_sinistres"))),
+                "total_sinistres_proxy": _to_float(row.get("total_sinistres_proxy", row.get("total_mt_paye"))),
+                "taux_sinistres_proxy_sur_pnet_pct": _to_float(
+                    row.get("taux_sinistres_proxy_sur_pnet_pct", row.get("taux_sinistres_sur_pnet_pct"))
+                ),
+                "nb_sinistres": _to_int(row.get("nb_sinistres", row.get("nb_sinistres_proxy"))),
+                "total_mt_paye": _to_float(row.get("total_mt_paye", row.get("total_sinistres_proxy"))),
+                "taux_sinistres_sur_pnet_pct": _to_float(
+                    row.get("taux_sinistres_sur_pnet_pct", row.get("taux_sinistres_proxy_sur_pnet_pct"))
+                ),
                 "score_risque": _to_float(row["score_risque"]),
             }
             for idx, row in enumerate(rows)
