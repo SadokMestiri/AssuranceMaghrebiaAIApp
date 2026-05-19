@@ -14,7 +14,7 @@ from indexer import run_indexing
 
 router = APIRouter(prefix="/agent", tags=["agent"])
 YEAR_MIN = 2019
-YEAR_MAX = 2026
+YEAR_MAX = 2025
 
 
 class AgentQueryRequest(BaseModel):

@@ -31,44 +31,67 @@ TECHNICAL_LIMIT_MESSAGE = (
 )
 
 DOMAIN_KEYWORDS = {
-    "assurance",
-    "police",
-    "prime",
-    "commission",
-    "impaye",
-    "resiliation",
-    "sinistre",
-    "agent",
-    "branche",
-    "auto",
-    "irds",
-    "sante",
-    "client",
-    "kpi",
-    "drift",
-    "anomal",
-    "forecast",
-    "prevision",
-    "risque",
-    "gouvernorat",
-    "sql",
-    "model",
-    "ml",
-    "rag",
-    "derive",
-    "stabilite",
-    "global",        # "vue globale"
-    "situation",     # "situation globale"
-    "synthese",
-    "tableau de bord",
-    "dashboard",
-    "bilan",
-    "rapport",
+    # Core insurance terms
+    "assurance", "assure", "assures", "assureur",
+    "police", "polices",
+    "prime", "primes", "pnet", "ptt",
+    "commission", "commissions",
+    "impaye", "impayes",
+    "resiliation", "resilie", "resiliee", "churn",
+    "sinistre", "sinistres",
+    "quittance", "quittances",
+    "cotisation", "couverture",
+    "garantie", "garanties",
+    "contrat", "contrats",
+    "souscription", "recouvrement", "annulation",
+    # Dimensions / entities
+    "agent", "agents",
+    "branche", "branches",
+    "auto", "irds", "sante",
+    "client", "clients",
+    "vehicule", "vehicules",
+    "voiture", "voitures",
+    "marque", "marques",
+    "produit", "produits",
+    "usage", "portefeuille",
+    "periode", "periodes",
+    "gouvernorat", "gouvernorats",
+    "localite", "ville", "villes", "region", "zone",
+    # KPI terms
+    "kpi", "kpis",
+    "ratio", "taux", "total", "montant", "nombre", "nb",
+    "moyenne", "somme", "volume",
+    # Analytics / ML
+    "drift", "derive", "anomal", "anomalie",
+    "forecast", "prevision", "previsionnel", "projection",
+    "risque", "fraude", "segment", "segmentation",
+    "model", "modele", "ml", "rag",
+    "stabilite", "degradation", "alerte",
+    # Reporting intent
+    "global", "situation", "synthese",
+    "tableau de bord", "dashboard",
+    "bilan", "rapport",
+    "analyse", "analyser", "comparaison",
+    "repartition", "distribution",
+    "evolution", "tendance", "trend",
+    "classement", "top",
+    "performance", "productivite",
+    "sql", "requete", "donnees",
+    # Tunisian insurance specifics
+    "maghrebia", "bonus", "malus",
+    "flotte", "individuel", "responsabilite",
+    "periodicite", "nature", "etat",
+    "emis", "emises", "emise",
+    "tranche", "tranches",
+    "provisions", "provision",
+    "responsabilite",
+    "sexe", "femme", "femmes", "homme", "hommes",
+    "produits distincts", "familles",
 }
 
-INTENT_MIN_CONFIDENCE = float(os.getenv("AGENT_INTENT_MIN_CONFIDENCE", "0.62"))
-LLM_MIN_CONFIDENCE = float(os.getenv("AGENT_LLM_MIN_CONFIDENCE", "0.62"))
-LOW_CONFIDENCE_POLICY = os.getenv("AGENT_LOW_CONFIDENCE_POLICY", "ask").strip().lower()
+INTENT_MIN_CONFIDENCE = float(os.getenv("AGENT_INTENT_MIN_CONFIDENCE", "0.45"))
+LLM_MIN_CONFIDENCE = float(os.getenv("AGENT_LLM_MIN_CONFIDENCE", "0.42"))
+LOW_CONFIDENCE_POLICY = os.getenv("AGENT_LOW_CONFIDENCE_POLICY", "proceed").strip().lower()
 FORCE_DETERMINISTIC = os.getenv("AGENT_FORCE_DETERMINISTIC", "false").strip().lower() in {
     "1",
     "true",
@@ -95,6 +118,7 @@ TOOL_FAMILY_TO_TOOL = {
     "client": "client_tool",
     "predict": "ml_predict_tool",
     "sql": "sql_tool",
+    "dimension": "dim_tool",
 }
 
 TOOL_SPECIALIST_AGENTS = {
@@ -110,6 +134,7 @@ TOOL_SPECIALIST_AGENTS = {
     "client_tool": "client_specialist",
     "ml_predict_tool": "ml_specialist",
     "sql_tool": "sql_specialist",
+    "dim_tool": "dim_specialist",
 }
 
 INTENT_RULES: list[dict[str, Any]] = [
@@ -122,13 +147,50 @@ INTENT_RULES: list[dict[str, Any]] = [
     },
     {
         "intent": "predict",
-        # Removed "risque" and "resilie" — too generic; they match KPI/SQL questions.
-        # Removed "predi" — too broad; "prediction" without "fraude"/"ml" should go to forecast.
-        # Only trigger predict when the user explicitly asks for ML model execution.
         "keywords": ["fraude", "modele ml", "ml predict", "random forest", "gradient boosting", "ml model", "machine learning", "fais tourner le modele", "lancer le modele", "modelisation", "modele de prediction"],
         "tool_families": ["predict", "kpi"],
         "required": ["predict"],
         "skip_llm": False,
+    },
+    # ═══════════════════════════════════════════════════════════════════════
+    # DIMENSION 
+    # ═══════════════════════════════════════════════════════════════════════
+    {
+        "intent": "dimension",
+        "keywords": [
+            # Clients
+            "client", "clients", "assure", "assures",
+            "sexe", "femme", "femmes", "homme", "hommes",
+            "age moyen", "âge moyen", "tranche d'age", "tranche âge",
+            "type personne", "personne physique", "personne morale",
+            "natp", "nationalite",
+            "ville client", "top villes",
+            # Agents
+            "agent", "agents", "reseau",
+            "etat agent", "type agent", "groupe agent",
+            "localite agent", "top localites",
+            # Produits
+            "produit", "produits", "catalogue",
+            "famille de risque",
+            "familles de risque", 
+            "nombre de familles",
+            "prime nette par famille",
+            "par famille de risque",
+            "nombre de produits", "produits distincts", "produit distinct", "nombre de produit"
+            "top produit", "top 10 produits", "prime nette par famille",
+            # Véhicules
+            "vehicule", "vehicules", "voiture", "voitures",
+            "marque", "marques", "genre vehicule", "puissance",
+            # Polices
+            "police", "polices", "portefeuille",
+            "situation police", "periodicite", "bonus malus",
+            # Sinistres
+            "sinistre", "sinistres",
+            "nature sinistre", "etat sinistre", "responsabilite"
+        ],
+        "tool_families": ["dimension"],
+        "required": ["dimension"],
+        "skip_llm": True,
     },
     {
         "intent": "overview",
@@ -162,10 +224,6 @@ INTENT_RULES: list[dict[str, Any]] = [
             "horizon",
             "prochain mois",
             "next month",
-            # Note: "sinistre" and "sinistres" removed — routing to sql_tool is more accurate
-            # since there is no dedicated sinistres table (proxy via dwh_fact_impaye).
-            # Note: "prediction"/"predic" removed — too close to ml_predict intent.
-            # Note: "tendance" removed — "tendance" alone should go to sql (evolution query).
         ],
         "tool_families": ["forecast"],
         "required": ["forecast"],
@@ -200,33 +258,6 @@ INTENT_RULES: list[dict[str, Any]] = [
         "skip_llm": False,
     },
     {
-        "intent": "sql",
-        "keywords": [
-            "sql",
-            "requete",
-            "query",
-            "table",
-            "tableau",
-            "lignes",
-            "dataset",
-            "base de donnees",
-            "bdd",
-            "gouvernorat",
-            "graphique",
-            "graphe",
-            "chart",
-            "visualisation",
-            "dataviz",
-            "top",
-            "classement",
-            "evolution",
-            "trend",
-        ],
-        "tool_families": ["sql"],
-        "required": ["sql"],
-        "skip_llm": True,
-    },
-    {
         "intent": "alerte",
         "keywords": ["alerte", "seuil", "incident", "surveillance", "monitoring"],
         "tool_families": ["alerte", "kpi"],
@@ -242,10 +273,44 @@ INTENT_RULES: list[dict[str, Any]] = [
     },
     {
         "intent": "kpi",
-        # Added "sinistre"/"risque" — when used without forecast/predictive verbs, they are KPI queries.
-        "keywords": ["kpi", "prime", "commission", "resiliation", "performance", "sinistre", "sinistres", "risque", "taux"],
+        "keywords": ["kpi", "prime", "commission", "resiliation", "performance", "sinistre", "sinistres", "risque", "taux", "ratio combine", "ratio_combine", "ratio combin", "combined ratio", "combine"],
         "tool_families": ["kpi"],
         "required": ["kpi"],
+        "skip_llm": False,
+    },
+    # ═══════════════════════════════════════════════════════════════════════
+    # SQL 
+    # ═══════════════════════════════════════════════════════════════════════
+    {
+        "intent": "sql",
+        "keywords": [
+            "sql", "requete", "query", "table", "tableau", "lignes",
+            "dataset", "base de donnees", "bdd",
+            "graphique", "graphe", "chart", "visualisation", "dataviz",
+            "top", "classement", "evolution", "trend", "tendance",
+            "repartition", "distribution", "historique",
+            "nombre de", "combien de", "compter", "lister", "liste",
+            "gouvernorat", "gouvernorats",
+            "marque", "marques",
+            "genre", "genres",
+            "puissance",
+            "famille",
+            "nature",
+            "vehicule", "vehicules", "voiture", "voitures", "parc",
+            "sinistre", "sinistres",
+            "police", "polices",
+            "quittance", "quittances",
+            "periodicite", "bonus malus",
+            "situation", "en vigueur",
+            "age client", "tranche",
+            "assure", "assures",
+            "emis", "emises",
+            "tranche", "tranches",
+            "provisions", "provision",
+            "sexe", "femme", "femmes",
+        ],
+        "tool_families": ["sql"],
+        "required": ["sql"],
         "skip_llm": False,
     },
 ]
@@ -307,6 +372,8 @@ def _is_predictive_question(normalized_question: str) -> bool:
 
 
 def _is_sql_retrieval_question(normalized_question: str) -> bool:
+    if "famille de risque" in normalized_question or "familles de risque" in normalized_question:
+        return False
     if _is_predictive_question(normalized_question):
         return False
 
@@ -360,29 +427,37 @@ def _is_sql_retrieval_question(normalized_question: str) -> bool:
         "classement",
     ]
     metric_terms = [
-        "prime",
-        "pnet",
-        "commission",
-        "impaye",
-        "resiliation",
-        "annulation",
-        "sinistre",
-        "client",
-        "police",
-        "quittance",
-        "montant",
+        "prime", "pnet", "commission",
+        "impaye", "impayes",
+        "resiliation", "annulation",
+        "sinistre", "sinistres",
+        "client", "clients",
+        "police", "polices",
+        "quittance", "quittances",
+        "montant", "montants",
+        "vehicule", "vehicules", "voiture", "voitures",
+        "marque", "marques",
+        "produit", "produits",
+        "agent", "agents",
+        "assure", "assures",
+        "emis", "emises",
     ]
     dimension_terms = [
-        "branche",
-        "gouvernorat",
-        "mois",
-        "mensuel",
-        "annee",
-        "periode",
-        "agent",
-        "ville",
-        "zone",
-        "segment",
+        "branche", "branches",
+        "gouvernorat", "gouvernorats",
+        "mois", "mensuel", "annee", "periode",
+        "agent", "ville", "zone", "segment",
+        "marque", "marques",
+        "genre", "genres", "puissance",
+        "vehicule", "vehicules", "voiture",
+        "produit", "produits", "famille",
+        "usage", "type", "nature",
+        "police", "polices", "client", "clients",
+        "localite", "localites",
+        "sinistre", "sinistres",
+        "assure", "assures",
+        "periodicite", "situation", "etat", "tranche",
+        "quittance", "quittances",
     ]
 
     has_sql_term = any(token in normalized_question for token in sql_terms)
@@ -420,12 +495,37 @@ def _is_sql_retrieval_question(normalized_question: str) -> bool:
     if has_retrieval_verb and has_aggregation and has_dimension and (has_metric or "branche" in normalized_question):
         return True
 
+    # Any question with a metric term + aggregation term is a SQL retrieval
+    if has_metric and has_aggregation:
+        return True
+
+    # "nombre de X" where X is a known table entity
+    if "nombre de" in normalized_question and has_metric:
+        return True
+
+    # "top N X par Y" pattern
+    if has_ranking := any(t in normalized_question for t in ["top", "classement"]):
+        if has_metric or has_dimension:
+            return True
+
     return False
 
 
 def is_domain_question(question: str) -> bool:
     normalized = _normalize_text(question)
-    return any(keyword in normalized for keyword in DOMAIN_KEYWORDS)
+    # Fast path: any domain keyword present
+    if any(keyword in normalized for keyword in DOMAIN_KEYWORDS):
+        return True
+    # Analytical verbs with counting/listing intent are always domain questions
+    # for an insurance analytics platform
+    analytical_count_verbs = [
+        "nombre de", "combien de", "donne moi", "donne-moi",
+        "top ", "liste des", "lister", "affiche", "montre",
+        "quel est le", "quelle est la",
+    ]
+    if any(verb in normalized for verb in analytical_count_verbs):
+        return True
+    return False
 
 
 def classify_question(question: str) -> tuple[str, float, list[str], list[str], bool]:
@@ -759,35 +859,79 @@ def _compose_decision_answer(state: AgentState) -> str | None:
         if tool_name == "kpi_tool":
             period_label = _format_period_label(payload)
             branch_label = _format_branch_label(payload.get("branch"))
-            total_pnet = _as_float(payload.get("total_pnet"), 0.0)
-            total_commission = _as_float(payload.get("total_commission"), 0.0)
-            sp_ratio = _as_float(payload.get("sp_ratio_proxy_pct"), 0.0)
-            taux_resiliation = _as_float(payload.get("taux_resiliation_pct"), 0.0)
+            focus = str(payload.get("focus", "overview"))
+            kpis = payload.get("kpis") if isinstance(payload.get("kpis"), list) else []
 
-            _append_unique(
-                synthese_items,
-                (
-                    f"KPI sur {period_label} ({branch_label}): prime nette {_format_amount_tnd(total_pnet)}, "
-                    f"S/P proxy {_format_percent(sp_ratio)}, resiliation {_format_percent(taux_resiliation)}."
-                ),
-            )
-            _append_unique(chiffres_cles, f"- Prime nette: {_format_amount_tnd(total_pnet)}")
-            _append_unique(chiffres_cles, f"- Commission: {_format_amount_tnd(total_commission)}")
-            _append_unique(chiffres_cles, f"- Ratio S/P proxy: {_format_percent(sp_ratio)}")
-            _append_unique(chiffres_cles, f"- Taux de resiliation: {_format_percent(taux_resiliation)}")
+            # Build synthese line based on what was asked (focus)
+            if focus == "ratio_combine":
+                ratio_combine = _as_float(payload.get("ratio_combine_pct"), 0.0)
+                sp_reel = _as_float(payload.get("sp_ratio_reel_pct"), 0.0)
+                total_pnet = _as_float(payload.get("total_pnet"), 0.0)
+                total_commission = _as_float(payload.get("total_commission"), 0.0)
+                expense = (100.0 * total_commission / total_pnet) if total_pnet > 0 else 0.0
+                _append_unique(synthese_items,
+                    f"Ratio Combine sur {period_label} ({branch_label}): {_format_percent(ratio_combine)} "
+                    f"(S/P pur {_format_percent(sp_reel)} + expense {_format_percent(expense)}).")
+                _append_unique(chiffres_cles, f"- Ratio Combine: {_format_percent(ratio_combine)}")
+                _append_unique(chiffres_cles, f"- S/P pur (sinistres/pnet): {_format_percent(sp_reel)}")
+                _append_unique(chiffres_cles, f"- Expense ratio (commission/pnet): {_format_percent(expense)}")
+                if ratio_combine >= 100.0:
+                    _append_unique(decision_items, "Ratio combine au-dessus de 100%: activite deficitaire.")
+                    _append_unique(actions, "Revoir la politique tarifaire et les reserves sinistres.")
+                elif ratio_combine >= 80.0:
+                    _append_unique(decision_items, "Ratio combine eleve: marge technique sous pression.")
+                    _append_unique(actions, "Analyser les branches les plus sinistrees et ajuster les tarifs.")
+                else:
+                    _append_unique(decision_items, "Ratio combine sain: activite rentable techniquement.")
 
-            if taux_resiliation >= 8.0:
-                _append_unique(decision_items, "Risque de retention eleve: la resiliation est au-dessus de 8%.")
-                _append_unique(actions, "Lancer un plan anti-churn cible sur les segments a forte resiliation.")
-            elif taux_resiliation >= 4.0:
-                _append_unique(decision_items, "Risque de retention modere: la resiliation doit etre surveillee.")
-                _append_unique(actions, "Mettre en place un suivi hebdomadaire des motifs d annulation par branche.")
+            elif focus == "resiliation":
+                taux_resiliation = _as_float(payload.get("taux_resiliation_pct"), 0.0)
+                _append_unique(synthese_items,
+                    f"Taux resiliation sur {period_label} ({branch_label}): {_format_percent(taux_resiliation)}.")
+                _append_unique(chiffres_cles, f"- Taux de resiliation: {_format_percent(taux_resiliation)}")
+                _append_unique(chiffres_cles, f"- Polices resiliees: {_as_float(payload.get('polices_resiliees'),0.0):,.0f}")
+                if taux_resiliation >= 8.0:
+                    _append_unique(decision_items, "Risque retention eleve: resiliation depasse 8%.")
+                    _append_unique(actions, "Lancer un plan anti-churn cible sur les segments a forte resiliation.")
+                elif taux_resiliation >= 4.0:
+                    _append_unique(decision_items, "Risque retention modere: surveillance requise.")
+                else:
+                    _append_unique(decision_items, "Retention maitrisee sur la periode analysee.")
+
+            elif focus in {"sinistre", "impaye", "prime"}:
+                # Surface the focused KPI cards directly
+                for kpi in kpis[:4]:
+                    if not isinstance(kpi, dict):
+                        continue
+                    label = str(kpi.get("label", "KPI"))
+                    value = _as_float(kpi.get("value"), 0.0)
+                    unit = str(kpi.get("unit", "")).upper()
+                    _append_unique(chiffres_cles, f"- {label}: {_format_metric_value(value, unit)}")
+                if kpis:
+                    first = kpis[0]
+                    _append_unique(synthese_items,
+                        f"{first.get('label','KPI')} sur {period_label} ({branch_label}): "
+                        f"{_format_metric_value(_as_float(first.get('value'),0.0), str(first.get('unit','')).upper())}.")
+
             else:
-                _append_unique(decision_items, "Retention globalement maitrisee sur la periode analysee.")
-
-            if sp_ratio >= 2.0:
-                _append_unique(decision_items, "Pression risque elevee: le S/P proxy depasse 2%." )
-                _append_unique(actions, "Prioriser les actions de recouvrement sur les portefeuilles les plus exposes.")
+                # Full overview
+                total_pnet = _as_float(payload.get("total_pnet"), 0.0)
+                total_commission = _as_float(payload.get("total_commission"), 0.0)
+                ratio_combine = _as_float(payload.get("ratio_combine_pct"), 0.0)
+                taux_resiliation = _as_float(payload.get("taux_resiliation_pct"), 0.0)
+                _append_unique(synthese_items,
+                    f"Vue globale KPI {period_label} ({branch_label}): "
+                    f"prime nette {_format_amount_tnd(total_pnet)}, "
+                    f"ratio combine {_format_percent(ratio_combine)}, "
+                    f"resiliation {_format_percent(taux_resiliation)}.")
+                _append_unique(chiffres_cles, f"- Prime nette: {_format_amount_tnd(total_pnet)}")
+                _append_unique(chiffres_cles, f"- Commission: {_format_amount_tnd(total_commission)}")
+                _append_unique(chiffres_cles, f"- Ratio Combine: {_format_percent(ratio_combine)}")
+                _append_unique(chiffres_cles, f"- Taux de resiliation: {_format_percent(taux_resiliation)}")
+                if taux_resiliation >= 4.0:
+                    _append_unique(decision_items, "Risque retention a surveiller.")
+                if ratio_combine >= 80.0:
+                    _append_unique(decision_items, "Ratio combine eleve: marge technique sous pression.")
 
         elif tool_name == "forecast_tool":
             predictions = payload.get("predictions") if isinstance(payload.get("predictions"), list) else []
@@ -997,41 +1141,104 @@ def _compose_deterministic_answer(state: AgentState) -> str:
 
 
 def _compose_precise_metric_answer(state: AgentState) -> str | None:
-    question = _normalize_text(str(state.get("question", "")))
-    if not ("taux" in question and "resiliation" in question):
-        return None
+    """Return a direct precise answer for single-KPI questions using the kpi_tool focus."""
+    tool_results = state.get("tool_results", [])
 
+    # ── 1. kpi_tool with focus ─────────────────────────────────────────────
     kpi_result = next(
-        (
-            result
-            for result in state.get("tool_results", [])
-            if isinstance(result, dict) and result.get("tool") == "kpi_tool" and "error" not in result
-        ),
+        (r for r in tool_results if isinstance(r, dict)
+         and r.get("tool") == "kpi_tool" and "error" not in r),
         None,
     )
-    if not kpi_result:
-        return None
+    if kpi_result:
+        payload = kpi_result.get("payload", {}) if isinstance(kpi_result, dict) else {}
+        if isinstance(payload, dict):
+            focus = str(payload.get("focus", "overview"))
+            kpis = payload.get("kpis") if isinstance(payload.get("kpis"), list) else []
+            period_label = _format_period_label(payload)
+            branch_label = _format_branch_label(payload.get("branch"))
 
-    payload = kpi_result.get("payload", {}) if isinstance(kpi_result, dict) else {}
-    if not isinstance(payload, dict):
-        return None
+            if focus == "ratio_combine" and kpis:
+                ratio = _as_float(payload.get("ratio_combine_pct"), 0.0)
+                sp = _as_float(payload.get("sp_ratio_reel_pct"), 0.0)
+                total_pnet = _as_float(payload.get("total_pnet"), 0.0)
+                total_commission = _as_float(payload.get("total_commission"), 0.0)
+                expense = (100.0 * total_commission / total_pnet) if total_pnet > 0 else 0.0
+                lines = [
+                    f"**Ratio Combiné** — {branch_label}, {period_label}",
+                    f"",
+                    f"**{ratio:.1f}%**",
+                    f"",
+                    f"Détail:",
+                    f"- S/P pur (sinistres payés / prime nette) : {sp:.2f}%",
+                    f"- Expense ratio (commission / prime nette) : {expense:.2f}%",
+                    f"- Sinistres payés : {_format_amount_tnd(_as_float(payload.get('total_mt_paye_sinistres'),0.0))}",
+                    f"- Commission : {_format_amount_tnd(total_commission)}",
+                    f"- Prime nette : {_format_amount_tnd(total_pnet)}",
+                ]
+                return "\n".join(lines)
 
-    taux_resiliation = _as_float(payload.get("taux_resiliation_pct"), 0.0)
-    year_from = payload.get("year_from")
-    year_to = payload.get("year_to")
-    if isinstance(year_from, int) and isinstance(year_to, int):
-        period_label = str(year_from) if year_from == year_to else f"{year_from}-{year_to}"
-    else:
-        period_label = "la periode demandee"
+            if focus == "resiliation" and kpis:
+                taux = _as_float(payload.get("taux_resiliation_pct"), 0.0)
+                resiliees = _as_float(payload.get("polices_resiliees"), 0.0)
+                total = _as_float(payload.get("total_polices_churn"), 0.0)
+                return (
+                    f"**Taux de résiliation** — {branch_label}, {period_label}\n\n"
+                    f"**{taux:.2f}%** ({int(resiliees):,} polices résiliées / {int(total):,} totales)"
+                )
 
-    branch = str(payload.get("branch", "ALL")).upper()
-    branch_label = "toutes les branches" if branch == "ALL" else f"la branche {branch}"
-    source = str(payload.get("source", "postgres"))
+            # Generic focus with kpi cards
+            if kpis and focus != "overview":
+                lines = [f"**{kpis[0].get('label','KPI')}** — {branch_label}, {period_label}", ""]
+                for kpi in kpis:
+                    if not isinstance(kpi, dict):
+                        continue
+                    label = str(kpi.get("label", "KPI"))
+                    value = _as_float(kpi.get("value"), 0.0)
+                    unit = str(kpi.get("unit", "")).upper()
+                    lines.append(f"- **{label}** : {_format_metric_value(value, unit)}")
+                return "\n".join(lines)
 
-    return (
-        f"Le taux de resiliation pour {period_label} sur {branch_label} est de {taux_resiliation:.2f}%.\n"
-        f"Source: {source}."
+    # ── 2. sql_tool scalar result ──────────────────────────────────────────
+    sql_result = next(
+        (r for r in tool_results if isinstance(r, dict)
+         and r.get("tool") == "sql_tool" and "error" not in r),
+        None,
     )
+    if sql_result:
+        payload = sql_result.get("payload", {})
+        if isinstance(payload, dict):
+            result_kind = str(payload.get("result_kind", "")).lower()
+            kpis = payload.get("kpis") if isinstance(payload.get("kpis"), list) else []
+            rows = payload.get("rows") if isinstance(payload.get("rows"), list) else []
+            analysis = str(payload.get("analysis", "")).strip()
+            context_text = str(payload.get("context", "")).strip()
+
+            if result_kind == "scalar" and kpis:
+                lines = []
+                if context_text:
+                    lines.append(context_text)
+                for kpi in kpis[:6]:
+                    if not isinstance(kpi, dict):
+                        continue
+                    label = str(kpi.get("label", "Valeur")).strip()
+                    value = _as_float(kpi.get("value"), 0.0)
+                    unit = str(kpi.get("unit", "")).strip().upper()
+                    formatted = _format_metric_value(value, unit) if unit else f"{int(round(value)):,}".replace(",", " ")
+                    lines.append(f"**{label}**: {formatted}")
+                if analysis:
+                    lines.append(f"\n{analysis}")
+                return "\n".join(lines)
+
+            if result_kind in {"breakdown", "timeseries"} and rows:
+                lines = []
+                if context_text:
+                    lines.append(context_text)
+                if analysis:
+                    lines.append(analysis)
+                return "\n".join(lines) if lines else None
+
+    return None
 
 
 def _call_ollama_chat(system_prompt: str, user_prompt: str) -> str:

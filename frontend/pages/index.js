@@ -323,7 +323,7 @@ export default function DashboardPage() {
     <main className="app-shell">
       <aside className="app-nav-sidebar">
         <div className="app-brand-block">
-          <p className="app-brand-kicker">Maghrebia</p>
+          <img src="/images/keyrus-logo.png" alt="Keyrus" className="app-brand-logo" />
           <h2>Control Center</h2>
         </div>
 
@@ -347,7 +347,7 @@ export default function DashboardPage() {
             className={`app-nav-item ${activeSection === "mlops" ? "active" : ""}`}
             onClick={() => setActiveSection("mlops")}
           >
-            MLOps
+            Insurance Intelligence
           </button>
         </nav>
 
@@ -356,19 +356,19 @@ export default function DashboardPage() {
 
       <section className="page-shell">
         <header className="hero">
-          <p className="hero-kicker">Maghrebia Assurance</p>
+          <p className="hero-kicker">Keyrus - Make data matter.</p>
           <h1>
             {activeSection === "dashboard"
               ? "Dashboard KPI & Geo Risk"
               : activeSection === "mlops"
-              ? "Machine Learning Operations"
+              ? "Insurance Intelligence"
               : "AI Agent Workspace"}
           </h1>
           <p>
             {activeSection === "dashboard"
               ? "Vue metier pour primes, retention, commissions et zones a risque avec une carte Tunisie orientee pilotage CEO et recouvrement."
               : activeSection === "mlops"
-              ? "Surveillance et inférence des modèles de ML (Impayés, Prophet, Drift, Isolation Forest)."
+              ? "Surveillance et inférence des modèles de ML."
               : "Section dediee au chat metier avec orchestration intent, outils specialises et synthese LLM (filtres analytiques desactives)."}
           </p>
           {updatedAt ? (
