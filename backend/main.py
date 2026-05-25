@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 import logging
 import os
 from typing import Any
-
+from prometheus_fastapi_instrumentator import Instrumentator
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -22,7 +22,7 @@ app = FastAPI(
     description="Phase 3a KPI backend aligned with TDSP roadmap.",
     version="0.1.0",
 )
-
+Instrumentator().instrument(app).expose(app)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

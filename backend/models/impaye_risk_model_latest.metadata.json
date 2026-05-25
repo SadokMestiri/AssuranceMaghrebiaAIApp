@@ -3,8 +3,8 @@
   "model_role": "latest",
   "tracking_uri": "http://mlflow:5000",
   "experiment_name": "maghrebia_impaye_risk",
-  "run_id": "c51c3247eeef40d7b4bedaaedced7562",
-  "trained_at": "2026-04-23T09:15:35.594792+00:00",
+  "run_id": "efbf97456a1f44dca253974cbc978681",
+  "trained_at": "2026-05-25T09:45:07.576923+00:00",
   "training_rows": 62961,
   "positive_rate": 0.013055701148329919,
   "split_strategy_requested": "temporal",
@@ -661,7 +661,7 @@
               "predicted_positive_rate": 0.13906111603188662,
               "roc_auc": 0.5334476502895201,
               "avg_precision": 0.011300115909235674,
-              "threshold_opt_f1": 0.3144778672213705,
+              "threshold_opt_f1": 0.31447786722137056,
               "raw_roc_auc_before_inversion": 0.5334476502895201
             },
             "threshold_metrics": {
@@ -693,7 +693,7 @@
               "predicted_positive_rate": 0.042624414193260435,
               "roc_auc": 0.5799946547994927,
               "avg_precision": 0.024560668029271253,
-              "threshold_opt_f1": 0.37219524213314764,
+              "threshold_opt_f1": 0.3721952421331477,
               "raw_roc_auc_before_inversion": 0.5799946547994927
             },
             "threshold_metrics": {
@@ -959,11 +959,12 @@
       0.003118533059085715,
       0.0286218873566515
     ],
-    "primary_metric_delta": -0.0013954288417295582
+    "primary_metric": "avg_precision",
+    "primary_metric_delta": 0.003118533059085715
   },
   "promote_to_champion": true,
   "promotion_decision": false,
-  "promotion_reason": "below_min_delta",
+  "promotion_reason": "not_better_than_champion",
   "previous_champion_run_id": "186006471b584e26a5e539a87c18e793",
   "promoted_to_champion": false,
   "active_champion_run_id": "186006471b584e26a5e539a87c18e793",
