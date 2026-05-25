@@ -3,8 +3,8 @@
   "model_role": "latest",
   "tracking_uri": "http://mlflow:5000",
   "experiment_name": "maghrebia_impaye_risk",
-  "run_id": "efbf97456a1f44dca253974cbc978681",
-  "trained_at": "2026-05-25T09:45:07.576923+00:00",
+  "run_id": "b903e3a5eafb43c590aaf2410552e41b",
+  "trained_at": "2026-05-25T11:05:34.255392+00:00",
   "training_rows": 62961,
   "positive_rate": 0.013055701148329919,
   "split_strategy_requested": "temporal",
@@ -572,7 +572,7 @@
         "predicted_positive_rate": 0.227512394743055,
         "roc_auc": 0.5671581681011286,
         "avg_precision": 0.01772404937493366,
-        "threshold_opt_f1": 0.28228618959706586,
+        "threshold_opt_f1": 0.2822861895970659,
         "raw_roc_auc_before_inversion": 0.5671581681011286
       },
       "threshold_metrics": {
@@ -629,7 +629,7 @@
               "predicted_positive_rate": 0.30412712425513133,
               "roc_auc": 0.5241512363833141,
               "avg_precision": 0.013032504568420455,
-              "threshold_opt_f1": 0.24395816961567396,
+              "threshold_opt_f1": 0.24395816961567401,
               "raw_roc_auc_before_inversion": 0.5241512363833141
             },
             "threshold_metrics": {
@@ -661,7 +661,7 @@
               "predicted_positive_rate": 0.13906111603188662,
               "roc_auc": 0.5334476502895201,
               "avg_precision": 0.011300115909235674,
-              "threshold_opt_f1": 0.31447786722137056,
+              "threshold_opt_f1": 0.3144778672213705,
               "raw_roc_auc_before_inversion": 0.5334476502895201
             },
             "threshold_metrics": {

@@ -109,7 +109,7 @@ def test_classify_question_graph_request_routes_to_sql() -> None:
     assert confidence >= 0.62
     assert tools == ["sql"]
     assert required == ["sql"]
-    assert skip_llm is True
+    assert skip_llm is False
 
 
 def test_classify_question_sql_prime_chart_stays_sql_only() -> None:
@@ -121,7 +121,7 @@ def test_classify_question_sql_prime_chart_stays_sql_only() -> None:
     assert confidence >= 0.62
     assert tools == ["sql"]
     assert required == ["sql"]
-    assert skip_llm is True
+    assert skip_llm is False
 
 
 def test_classify_question_ratio_impaye_par_branche_routes_to_sql() -> None:
@@ -133,7 +133,7 @@ def test_classify_question_ratio_impaye_par_branche_routes_to_sql() -> None:
     assert confidence >= 0.62
     assert tools == ["sql"]
     assert required == ["sql"]
-    assert skip_llm is True
+    assert skip_llm is False
 
 
 def test_run_agent_query_sync_blocked_for_out_of_scope() -> None:
