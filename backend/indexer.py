@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
@@ -11,21 +10,14 @@ from uuid import NAMESPACE_DNS, uuid4, uuid5
 import numpy as np
 import pandas as pd
 import requests
-from sqlalchemy import text
 
-from db import engine as db_engine
+from db import query_dataframe as _query_dataframe
+from config import QDRANT_URL, OLLAMA_HOST, OLLAMA_EMBED_MODEL
 
 
 BASE_DIR = Path(__file__).resolve().parent
 RAG_DOCUMENTS_PATH = BASE_DIR / "rag_documents.json"
 
-QDRANT_URL = os.getenv("QDRANT_URL", "http://qdrant:6333").rstrip("/")
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://host.docker.internal:11434").rstrip("/")
-OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
-
-
-def _query_dataframe(sql_query: str, params: dict[str, Any] | None = None) -> pd.DataFrame:
-    return pd.read_sql(text(sql_query), db_engine, params=params or {})
 
 
 def _sanitize_for_json(value: Any) -> Any:

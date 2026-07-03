@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-import os
 from typing import Any
 
 import requests
@@ -10,11 +9,12 @@ from pydantic import BaseModel, Field
 
 from agent_graph import get_agent_capabilities, run_agent_query_sync
 from indexer import run_indexing
+from config import OLLAMA_HOST, QDRANT_URL, DATA_YEAR_FROM, DATA_YEAR_TO
 
 
 router = APIRouter(prefix="/agent", tags=["agent"])
-YEAR_MIN = 2019
-YEAR_MAX = 2025
+YEAR_MIN = DATA_YEAR_FROM
+YEAR_MAX = DATA_YEAR_TO
 
 
 class AgentQueryRequest(BaseModel):
@@ -123,8 +123,8 @@ def get_capabilities() -> dict[str, Any]:
 
 @router.get("/status")
 def get_agent_status() -> dict[str, Any]:
-    ollama_host = os.getenv("OLLAMA_HOST", "http://host.docker.internal:11434").rstrip("/")
-    qdrant_url = os.getenv("QDRANT_URL", "http://qdrant:6333").rstrip("/")
+    ollama_host = OLLAMA_HOST
+    qdrant_url  = QDRANT_URL
 
     ollama = _check_http_endpoint(f"{ollama_host}/api/tags")
     qdrant = _check_http_endpoint(f"{qdrant_url}/collections")

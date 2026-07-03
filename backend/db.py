@@ -1,7 +1,8 @@
 import os
-from typing import Generator
+from typing import Any, Generator
 
-from sqlalchemy import create_engine
+import pandas as pd
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
 
@@ -31,3 +32,8 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
+
+
+def query_dataframe(sql_query: str, params: dict[str, Any] | None = None) -> pd.DataFrame:
+    """Execute a read-only SQL query and return the result as a DataFrame."""
+    return pd.read_sql(text(sql_query), engine, params=params or {})

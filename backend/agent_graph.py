@@ -4,13 +4,25 @@ import asyncio
 import json
 import os
 import re
-import unicodedata
 from typing import Any, TypedDict
 
 import requests
 from langgraph.graph import END, StateGraph
 
 from agent_tools import run_tool
+from config import (
+    OLLAMA_HOST, OLLAMA_CHAT_MODEL, OLLAMA_TIMEOUT_SECONDS,
+    AGENT_INTENT_MIN_CONFIDENCE, AGENT_LLM_MIN_CONFIDENCE,
+    AGENT_LOW_CONFIDENCE_POLICY, AGENT_FORCE_DETERMINISTIC,
+)
+from utils import (
+    safe_float as _as_float,
+    normalize_text as _normalize_text,
+    format_amount_tnd as _format_amount_tnd,
+    format_percent as _format_percent,
+    format_metric_value as _format_metric_value,
+    format_branch_label as _format_branch_label,
+)
 
 
 def _env_int(name: str, default: int) -> int:
@@ -89,15 +101,10 @@ DOMAIN_KEYWORDS = {
     "produits distincts", "familles",
 }
 
-INTENT_MIN_CONFIDENCE = float(os.getenv("AGENT_INTENT_MIN_CONFIDENCE", "0.45"))
-LLM_MIN_CONFIDENCE = float(os.getenv("AGENT_LLM_MIN_CONFIDENCE", "0.42"))
-LOW_CONFIDENCE_POLICY = os.getenv("AGENT_LOW_CONFIDENCE_POLICY", "proceed").strip().lower()
-FORCE_DETERMINISTIC = os.getenv("AGENT_FORCE_DETERMINISTIC", "false").strip().lower() in {
-    "1",
-    "true",
-    "yes",
-    "on",
-}
+INTENT_MIN_CONFIDENCE = AGENT_INTENT_MIN_CONFIDENCE
+LLM_MIN_CONFIDENCE    = AGENT_LLM_MIN_CONFIDENCE
+LOW_CONFIDENCE_POLICY = AGENT_LOW_CONFIDENCE_POLICY
+FORCE_DETERMINISTIC   = AGENT_FORCE_DETERMINISTIC
 DETERMINISTIC_INTENTS = {
     item.strip().lower()
     for item in os.getenv("AGENT_DETERMINISTIC_INTENTS", "").split(",")
@@ -336,16 +343,6 @@ class AgentState(TypedDict, total=False):
     tables: list[dict[str, Any]]
     steps: list[dict[str, Any]]
     errors: list[str]
-
-
-def _normalize_text(text_value: str) -> str:
-    text_value = text_value.replace("\u2019", "'")
-    ascii_normalized = "".join(
-        char
-        for char in unicodedata.normalize("NFKD", text_value)
-        if not unicodedata.combining(char)
-    )
-    return re.sub(r"\s+", " ", ascii_normalized.strip().lower())
 
 
 def _keyword_score(normalized_question: str, keywords: list[str]) -> int:
@@ -669,15 +666,6 @@ def _infer_horizon_months_from_question(question: str) -> int | None:
     return None
 
 
-def _as_float(value: Any, default: float = 0.0) -> float:
-    try:
-        if value is None:
-            return float(default)
-        return float(value)
-    except (TypeError, ValueError):
-        return float(default)
-
-
 def _as_bool(value: Any, default: bool = False) -> bool:
     if isinstance(value, bool):
         return value
@@ -795,30 +783,6 @@ def _append_unique(items: list[str], value: str) -> None:
     normalized = value.strip()
     if normalized and normalized not in items:
         items.append(normalized)
-
-
-def _format_amount_tnd(value: float) -> str:
-    return f"{value:,.0f} TND"
-
-
-def _format_percent(value: float) -> str:
-    return f"{value:.2f}%"
-
-
-def _format_metric_value(value: float, unit: str) -> str:
-    normalized_unit = unit.strip().upper()
-    if normalized_unit == "TND":
-        return _format_amount_tnd(value)
-    if normalized_unit == "%":
-        return _format_percent(value)
-    if normalized_unit == "COUNT":
-        return f"{int(round(value)):,.0f}"
-    return f"{value:,.2f}"
-
-
-def _format_branch_label(branch_value: Any) -> str:
-    branch = str(branch_value or "ALL").upper()
-    return "toutes les branches" if branch == "ALL" else f"la branche {branch}"
 
 
 def _format_period_label(payload: dict[str, Any]) -> str:
@@ -1242,9 +1206,9 @@ def _compose_precise_metric_answer(state: AgentState) -> str | None:
 
 
 def _call_ollama_chat(system_prompt: str, user_prompt: str) -> str:
-    host = os.getenv("OLLAMA_HOST", "http://host.docker.internal:11434").rstrip("/")
-    model = os.getenv("OLLAMA_CHAT_MODEL", "llama3")
-    timeout_seconds = float(os.getenv("OLLAMA_TIMEOUT_SECONDS", "35"))
+    host    = OLLAMA_HOST
+    model   = OLLAMA_CHAT_MODEL
+    timeout_seconds = OLLAMA_TIMEOUT_SECONDS
 
     response = requests.post(
         f"{host}/api/chat",
@@ -1732,8 +1696,8 @@ def get_agent_capabilities() -> dict[str, Any]:
         },
         "llm": {
             "provider": "ollama",
-            "model": os.getenv("OLLAMA_CHAT_MODEL", "llama3"),
-            "host": os.getenv("OLLAMA_HOST", "http://host.docker.internal:11434"),
+            "model": OLLAMA_CHAT_MODEL,
+            "host": OLLAMA_HOST,
         },
         "intents": [rule["intent"] for rule in INTENT_RULES],
         "tools": sorted(set(TOOL_FAMILY_TO_TOOL.values())),

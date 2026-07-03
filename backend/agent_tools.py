@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import json
 import importlib
-import os
 import re
-import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -15,25 +13,26 @@ import requests
 from scipy.stats import ks_2samp
 from sklearn.cluster import KMeans
 from sklearn.ensemble import IsolationForest
-from sqlalchemy import text
-
-from db import engine as db_engine
+from db import query_dataframe as _query_dataframe
 from ml_pipeline import FEATURE_COLUMNS, get_impaye_operations_readiness, load_model_metadata, load_training_dataset
-
+from utils import (
+    safe_float as _safe_float,
+    safe_int as _safe_int,
+    normalize_text as _normalize_text,
+    format_metric_value as _format_metric_value,
+    format_branch_label as _format_scope_label,
+)
+from config import (
+    QDRANT_URL, QDRANT_COLLECTIONS,
+    OLLAMA_HOST, OLLAMA_EMBED_MODEL,
+    DATA_YEAR_FROM, DATA_YEAR_TO,
+    ALERTE_IMPAYE_RATE_PCT, ALERTE_PRODUCTION_DROP_PCT,
+    NEXTJS_API_URL,
+)
 
 VALID_BRANCHES = {"AUTO", "IRDS", "SANTE"}
 RAG_DOCUMENTS_PATH = Path(__file__).resolve().parent / "rag_documents.json"
 WORD_PATTERN = re.compile(r"[a-zA-Z0-9_]+")
-
-DENODO_KPI_API_URL = os.getenv("DENODO_KPI_API_URL", "").strip()
-QDRANT_URL = os.getenv("QDRANT_URL", "http://qdrant:6333").rstrip("/")
-QDRANT_COLLECTIONS = [
-    item.strip()
-    for item in os.getenv("QDRANT_COLLECTIONS", "business_rules,kpi_history,alert_history").split(",")
-    if item.strip()
-]
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://host.docker.internal:11434").rstrip("/")
-OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 
 
 def _normalize_branch(branch: str | None) -> str | None:
@@ -45,57 +44,23 @@ def _normalize_branch(branch: str | None) -> str | None:
     return normalized
 
 
-def _safe_float(value: Any, default: float = 0.0) -> float:
-    try:
-        if value is None:
-            return float(default)
-        return float(value)
-    except (TypeError, ValueError):
-        return float(default)
-
-
-def _safe_int(value: Any, default: int = 0) -> int:
-    try:
-        if value is None:
-            return int(default)
-        return int(value)
-    except (TypeError, ValueError):
-        return int(default)
-
-
 def _resolve_period_context(context: dict[str, Any]) -> tuple[int, int]:
-    # Default to full dataset range 2019-2025.
-    # The frontend sends year_from/year_to explicitly; when absent (e.g. direct
-    # API call without filters) we use the complete history, not just last year.
-    DEFAULT_YEAR_FROM = int(os.getenv("DATA_YEAR_FROM", "2019"))
-    DEFAULT_YEAR_TO   = int(os.getenv("DATA_YEAR_TO",   "2025"))
-    year_from = _safe_int(context.get("year_from"), DEFAULT_YEAR_FROM)
-    year_to   = _safe_int(context.get("year_to"),   DEFAULT_YEAR_TO)
-    # If caller passed 0 or None-coerced-to-0, fall back to defaults
+    # The frontend sends year_from/year_to explicitly; when absent fall back
+    # to the full dataset range defined in config.
+    year_from = _safe_int(context.get("year_from"), DATA_YEAR_FROM)
+    year_to   = _safe_int(context.get("year_to"),   DATA_YEAR_TO)
     if year_from == 0:
-        year_from = DEFAULT_YEAR_FROM
+        year_from = DATA_YEAR_FROM
     if year_to == 0:
-        year_to = DEFAULT_YEAR_TO
+        year_to = DATA_YEAR_TO
     if year_from > year_to:
         year_from, year_to = year_to, year_from
     return year_from, year_to
 
 
-def _query_dataframe(sql_query: str, params: dict[str, Any] | None = None) -> pd.DataFrame:
-    return pd.read_sql(text(sql_query), db_engine, params=params or {})
-
 
 def _tokenize(text_value: str) -> set[str]:
     return {token.lower() for token in WORD_PATTERN.findall(text_value) if len(token) > 2}
-
-
-def _normalize_text(text_value: str) -> str:
-    ascii_normalized = "".join(
-        char
-        for char in unicodedata.normalize("NFKD", text_value)
-        if not unicodedata.combining(char)
-    )
-    return re.sub(r"\s+", " ", ascii_normalized.strip().lower())
 
 
 def _load_rag_documents() -> list[dict[str, Any]]:
@@ -461,51 +426,6 @@ def _fetch_kpi_context_postgres(context: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _fetch_kpi_context_denodo(context: dict[str, Any]) -> dict[str, Any] | None:
-    if not DENODO_KPI_API_URL:
-        return None
-
-    branch = _normalize_branch(context.get("branch"))
-    year_from, year_to = _resolve_period_context(context)
-
-    params = {
-        "branch": branch,
-        "year_from": year_from,
-        "year_to": year_to,
-    }
-
-    try:
-        response = requests.get(DENODO_KPI_API_URL, params=params, timeout=8)
-        response.raise_for_status()
-        payload = response.json()
-        data = payload.get("data") if isinstance(payload, dict) else None
-        if not isinstance(data, dict):
-            data = payload if isinstance(payload, dict) else None
-        if not isinstance(data, dict):
-            return None
-
-        total_pnet = _safe_float(data.get("total_pnet"))
-        total_mt_acp = _safe_float(data.get("total_mt_acp"))
-        denodo_payload = {
-            "source": "denodo",
-            "branch": branch or "ALL",
-            "year_from": year_from,
-            "year_to": year_to,
-            "total_pnet": total_pnet,
-            "total_commission": _safe_float(data.get("total_commission")),
-            "nb_quittances": _safe_int(data.get("nb_quittances")),
-            "total_mt_acp": total_mt_acp,
-            "nb_impayes": _safe_int(data.get("nb_impayes")),
-            "sp_ratio_proxy_pct": _safe_float(data.get("sp_ratio_proxy_pct"), (100.0 * total_mt_acp / total_pnet) if total_pnet > 0 else 0.0),
-            "taux_resiliation_pct": _safe_float(data.get("taux_resiliation_pct")),
-            "top_branches": data.get("top_branches", []),
-            "top_resiliation_branches": data.get("top_resiliation_branches", []),
-        }
-        return denodo_payload
-    except Exception:
-        return None
-
-
 def _detect_kpi_focus(question: str) -> str:
     """Detect which single KPI the user is asking about. Returns focus key."""
     q = _normalize_text(question)
@@ -525,7 +445,6 @@ def _detect_kpi_focus(question: str) -> str:
 
 
 def kpi_tool(question: str, context: dict[str, Any]) -> dict[str, Any]:
-    # Always use Postgres directly — Denodo not in use
     payload = _fetch_kpi_context_postgres(context)
     payload["source"] = "postgres"
 
@@ -722,8 +641,8 @@ def rag_tool(question: str, context: dict[str, Any]) -> dict[str, Any]:
 
 def alerte_tool(question: str, context: dict[str, Any]) -> dict[str, Any]:
     branch = _normalize_branch(context.get("branch"))
-    threshold_impaye_rate = _safe_float(os.getenv("ALERTE_IMPAYE_RATE_PCT"), 2.0)
-    threshold_drop_pct = _safe_float(os.getenv("ALERTE_PRODUCTION_DROP_PCT"), 15.0)
+    threshold_impaye_rate = ALERTE_IMPAYE_RATE_PCT
+    threshold_drop_pct    = ALERTE_PRODUCTION_DROP_PCT
 
     sql_query = """
         WITH monthly_emission AS (
@@ -856,17 +775,6 @@ def alerte_tool(question: str, context: dict[str, Any]) -> dict[str, Any]:
             }
         ],
     }
-
-
-def _format_metric_value(value: float, unit: str) -> str:
-    normalized_unit = unit.strip().upper()
-    if normalized_unit == "TND":
-        return f"{value:,.0f} TND"
-    if normalized_unit == "%":
-        return f"{value:.2f}%"
-    if normalized_unit == "COUNT":
-        return f"{int(round(value)):,.0f}"
-    return f"{value:,.2f}"
 
 
 def _infer_forecast_report_mode(question: str) -> str:
@@ -2256,75 +2164,6 @@ def _analyze_sql_request(normalized_question: str) -> dict[str, Any]:
         "is_ranking": is_ranking,
         "top_n": top_n,
         "normalized_question": normalized_question,
-    }
-
-
-def _metric_descriptor(metric: str, aggregation: str, column_prefix: str = "") -> dict[str, str]:
-    prefix = f"{column_prefix}." if column_prefix else ""
-
-    if metric == "impaye":
-        if aggregation == "count":
-            return {
-                "expression": "COUNT(*)",
-                "alias": "nb_impayes",
-                "label": "Nombre d impayes",
-                "unit": "count",
-            }
-        if aggregation == "avg":
-            return {
-                "expression": f"COALESCE(AVG({prefix}mt_acp), 0)",
-                "alias": "avg_impaye",
-                "label": "Moyenne impaye",
-                "unit": "TND",
-            }
-        if aggregation == "count_distinct":
-            return {
-                "expression": f"COUNT(DISTINCT {prefix}id_police)",
-                "alias": "nb_polices_impactees",
-                "label": "Polices impactees",
-                "unit": "count",
-            }
-        return {
-            "expression": f"COALESCE(SUM({prefix}mt_acp), 0)",
-            "alias": "total_impaye",
-            "label": "Montant impaye total",
-            "unit": "TND",
-        }
-
-    if metric == "prime":
-        if aggregation == "count":
-            return {
-                "expression": "COUNT(*)",
-                "alias": "nb_quittances",
-                "label": "Nombre de quittances",
-                "unit": "count",
-            }
-        if aggregation == "avg":
-            return {
-                "expression": f"COALESCE(AVG({prefix}mt_pnet), 0)",
-                "alias": "avg_pnet",
-                "label": "Prime nette moyenne",
-                "unit": "TND",
-            }
-        if aggregation == "count_distinct":
-            return {
-                "expression": f"COUNT(DISTINCT {prefix}id_police)",
-                "alias": "nb_polices",
-                "label": "Polices distinctes",
-                "unit": "count",
-            }
-        return {
-            "expression": f"COALESCE(SUM({prefix}mt_pnet), 0)",
-            "alias": "total_pnet",
-            "label": "Prime nette totale",
-            "unit": "TND",
-        }
-
-    return {
-        "expression": "COUNT(*)",
-        "alias": "metric_value",
-        "label": "Valeur",
-        "unit": "count",
     }
 
 
@@ -4147,10 +3986,6 @@ def _first_dimension_value(row: dict[str, Any]) -> str:
     return "N/A"
 
 
-def _format_scope_label(branch: str | None) -> str:
-    return "toutes les branches" if not branch else f"la branche {branch}"
-
-
 def _format_period_label(year_from: int, year_to: int) -> str:
     if year_from == year_to:
         return f"{year_from}"
@@ -4494,35 +4329,6 @@ def data_query_tool(question: str, context: dict[str, Any]) -> dict[str, Any]:
     return kpi_tool(question=question, context=context)
 
 
-# Backward-compatible aliases
-def tool_kpi(question: str, context: dict[str, Any]) -> dict[str, Any]:
-    return kpi_tool(question=question, context=context)
-
-
-def tool_rag(question: str, context: dict[str, Any]) -> dict[str, Any]:
-    return rag_tool(question=question, context=context)
-
-
-def tool_forecast(question: str, context: dict[str, Any]) -> dict[str, Any]:
-    return forecast_tool(question=question, context=context)
-
-
-def tool_anomaly(question: str, context: dict[str, Any]) -> dict[str, Any]:
-    return anomaly_tool(question=question, context=context)
-
-
-def tool_drift(question: str, context: dict[str, Any]) -> dict[str, Any]:
-    return drift_tool(question=question, context=context)
-
-
-def tool_explain(question: str, context: dict[str, Any]) -> dict[str, Any]:
-    return explain_tool(question=question, context=context)
-
-
-def tool_segment(question: str, context: dict[str, Any]) -> dict[str, Any]:
-    return segmentation_tool(question=question, context=context)
-
-
 def ml_predict_tool(question: str, context: dict[str, Any]) -> dict[str, Any]:
     import joblib
     import pathlib
@@ -4676,7 +4482,7 @@ def dim_tool(question: str, context: dict[str, Any]) -> dict[str, Any]:
     import requests
     
     # URL de l'API Next.js
-    nextjs_api = os.getenv("NEXTJS_API_URL", "http://host.docker.internal:3000")
+    nextjs_api = NEXTJS_API_URL
     
     # Construire les paramètres
     branch = _normalize_branch(context.get("branch"))
