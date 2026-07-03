@@ -501,7 +501,7 @@ def _is_sql_retrieval_question(normalized_question: str) -> bool:
         return True
 
     # "top N X par Y" pattern
-    if has_ranking := any(t in normalized_question for t in ["top", "classement"]):
+    if any(t in normalized_question for t in ["top", "classement"]):
         if has_metric or has_dimension:
             return True
 
@@ -1056,14 +1056,24 @@ def _compose_decision_answer(state: AgentState) -> str | None:
 
     if not synthese_items:
         synthese_items = ["Analyse terminee sur la base des donnees disponibles."]
-    if not decision_items:
-        decision_items = ["Situation globalement stable sur les indicateurs disponibles."]
-    if not actions:
-        actions = ["Maintenir un suivi mensuel des KPI critiques et des ecarts vs objectifs."]
 
     lines: list[str] = []
     lines.append("**Synthese decisionnelle**")
     lines.append(" ".join(synthese_items[:3]))
+
+    if chiffres_cles:
+        lines.append("\n**Chiffres cles**")
+        lines.extend(chiffres_cles[:8])
+
+    if decision_items:
+        lines.append("\n**Points de decision**")
+        for item in decision_items[:4]:
+            lines.append(f"- {item}")
+
+    if actions:
+        lines.append("\n**Actions recommandees**")
+        for action in actions[:3]:
+            lines.append(f"- {action}")
 
     return "\n".join(lines)
 

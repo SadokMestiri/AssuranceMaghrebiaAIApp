@@ -21,6 +21,7 @@ from utils import (
     normalize_text as _normalize_text,
     format_metric_value as _format_metric_value,
     format_branch_label as _format_scope_label,
+    infer_report_mode as _infer_report_mode,
 )
 from config import (
     QDRANT_URL, QDRANT_COLLECTIONS,
@@ -778,47 +779,7 @@ def alerte_tool(question: str, context: dict[str, Any]) -> dict[str, Any]:
 
 
 def _infer_forecast_report_mode(question: str) -> str:
-    lowered = _normalize_text(question)
-
-    graph_only_markers = [
-        "graphique uniquement",
-        "graphe uniquement",
-        "uniquement un graphique",
-        "uniquement un graphe",
-        "juste un graphe",
-        "seulement un graphe",
-        "seulement un graphique",
-        "only graph",
-        "graph only",
-        "sans table",
-        "without table",
-    ]
-    table_only_markers = [
-        "table uniquement",
-        "tableau uniquement",
-        "juste la table",
-        "only table",
-        "table only",
-        "sans graphique",
-        "without graph",
-        "without chart",
-    ]
-    graph_markers = ["graph", "graphe", "graphique", "chart", "plot", "courbe", "diagramme"]
-    table_markers = ["table", "tableau", "tabulaire", "lignes", "rows"]
-
-    if _contains_any(lowered, graph_only_markers):
-        return "graph_only"
-    if _contains_any(lowered, table_only_markers):
-        return "table_only"
-
-    graph_requested = _contains_any(lowered, graph_markers)
-    table_requested = _contains_any(lowered, table_markers)
-
-    if graph_requested and not table_requested:
-        return "graph_pref"
-    if table_requested and not graph_requested:
-        return "table_pref"
-    return "report"
+    return _infer_report_mode(question)
 
 
 def _detect_forecast_target(normalized_question: str) -> dict[str, Any]:
@@ -3889,48 +3850,7 @@ def _build_semantic_sql_query_spec(semantic: dict[str, Any], params: dict[str, A
 
 
 def _infer_sql_report_mode(question: str) -> str:
-    lowered = _normalize_text(question)
-
-    graph_only_markers = [
-        "graphique uniquement",
-        "graphe uniquement",
-        "uniquement un graphique",
-        "uniquement un graphe",
-        "juste un graphe",
-        "seulement un graphe",
-        "seulement un graphique",
-        "only graph",
-        "graph only",
-        "sans table",
-        "without table",
-        "data viz only",
-    ]
-    table_only_markers = [
-        "table uniquement",
-        "tableau uniquement",
-        "juste la table",
-        "only table",
-        "table only",
-        "sans graphique",
-        "without graph",
-        "without chart",
-    ]
-    graph_markers = ["graph", "graphe", "graphique", "chart", "plot", "visual", "courbe", "diagramme"]
-    table_markers = ["table", "tableau", "tabulaire", "lignes", "rows"]
-
-    if _contains_any(lowered, graph_only_markers):
-        return "graph_only"
-    if _contains_any(lowered, table_only_markers):
-        return "table_only"
-
-    graph_requested = _contains_any(lowered, graph_markers)
-    table_requested = _contains_any(lowered, table_markers)
-
-    if graph_requested and not table_requested:
-        return "graph_pref"
-    if table_requested and not graph_requested:
-        return "table_pref"
-    return "report"
+    return _infer_report_mode(question)
 
 
 def _build_sql_query_spec(question: str, context: dict[str, Any]) -> dict[str, Any]:
