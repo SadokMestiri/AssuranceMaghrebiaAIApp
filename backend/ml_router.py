@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import re
 from typing import Any, Optional
@@ -16,11 +16,11 @@ from ml_pipeline import (
     predict_impaye_probability,
     train_and_persist_model,
 )
-from ml_services.churn_service        import get_churn_summary, predict_churn
+from ml_services.churn_service        import get_churn_model_info, get_churn_summary, predict_churn
 from ml_services.fraud_service        import get_fraud_summary
 from ml_services.segmentation_service import get_segmentation_summary
-from ml_services.risk_service         import score_risk, get_risk_table
-from ml_services.claim_service        import predict_claim_severity
+from ml_services.risk_service         import score_risk, get_risk_table, get_risk_model_info
+from ml_services.claim_service        import predict_claim_severity, get_claim_model_info
 from ml_services.prophet_service      import get_forecast, get_all_forecasts
 from ml_services.anomaly_service      import detect_anomalies
 from ml_services.drift_service        import detect_drift
@@ -61,6 +61,20 @@ class PredictRequest(BaseModel):
     mt_commission:    float = Field(ge=0)
     bonus_malus:      float = Field(ge=0)
     threshold:        float | None = Field(default=None, ge=0, le=1)
+    type_police:      str | None = None
+    client_nb_impayes:       float | None = Field(default=None, ge=0)
+    client_mt_impaye_tot:    float | None = Field(default=None, ge=0)
+    police_nb_impayes_hist:  float | None = Field(default=None, ge=0)
+    police_taux_impaye_hist: float | None = Field(default=None, ge=0)
+    police_nb_annulations:   float | None = Field(default=None, ge=0)
+    police_nb_sinistres:     float | None = Field(default=None, ge=0)
+    police_sp_ratio:         float | None = Field(default=None, ge=0)
+    age_client:              float | None = Field(default=None, ge=0)
+    type_personne:           str | None = None
+    sexe:                    str | None = None
+    puissance:               float | None = Field(default=None, ge=0)
+    valeur_vehicule:         float | None = Field(default=None, ge=0)
+    code_usage:              float | None = Field(default=None, ge=0)
 
 
 class PromoteRequest(BaseModel):
@@ -79,20 +93,23 @@ class ChurnPredictRequest(BaseModel):
 
 class RiskScoreRequest(BaseModel):
     branche:           str   = "AUTO"
-    bonus_malus:       float = Field(default=1.0, ge=0)
-    puissance:         int   = Field(default=6,   ge=1)
-    age_vehicule:      int   = Field(default=5,   ge=0)
-    age_client:        int   = Field(default=40,  ge=18)
-    nb_sinistres_hist: int   = Field(default=0,   ge=0)
-    mt_pnet:           float = Field(default=1200, ge=0)
+    bonus_malus:       float = Field(default=1.0,   ge=0)
+    puissance:         int   = Field(default=6,     ge=1)
+    age_vehicule:      int   = Field(default=5,     ge=0)
+    age_client:        int   = Field(default=40,    ge=18)
+    taux_impaye:       float = Field(default=0.0,   ge=0, le=1)
+    mt_pnet:           float = Field(default=1200,  ge=0)
+    valeur_vehicule:   float = Field(default=0.0,   ge=0)
 
 
 class ClaimPredictRequest(BaseModel):
-    branche:          str   = "AUTO"
-    nature_sinistre:  str   = "MATERIEL"
-    mt_evaluation:    float = Field(default=5000, ge=0)
-    age_client:       int   = Field(default=40,   ge=18)
-    bonus_malus:      float = Field(default=1.0,  ge=0)
+    branche:            str   = "AUTO"
+    nature_sinistre:    str   = "MATERIEL"
+    valeur_vehicule:    float = Field(default=0.0,  ge=0)
+    age_client:         int   = Field(default=40,   ge=18)
+    bonus_malus:        float = Field(default=1.0,  ge=0)
+    delai_declaration:  int   = Field(default=9,    ge=0, le=365)
+    prime_contrat:      float = Field(default=0.0,  ge=0)
 
 
 # ── Prometheus helpers ─────────────────────────────────────────────────────
@@ -242,13 +259,27 @@ def _normalize_prediction_payload(payload: PredictRequest) -> dict[str, Any]:
         "annee_echeance":   payload.annee_echeance,
         "mois_echeance":    payload.mois_echeance,
         "mt_pnet":          payload.mt_pnet,
+        "mt_ptt":           payload.mt_ptt if payload.mt_ptt is not None else payload.mt_pnet,
         "mt_rc":            payload.mt_rc,
         "mt_fga":           payload.mt_fga,
         "mt_timbre":        payload.mt_timbre,
         "mt_taxe":          payload.mt_taxe,
-        "mt_ptt":           payload.mt_ptt,
         "mt_commission":    payload.mt_commission,
         "bonus_malus":      payload.bonus_malus,
+        "type_police":      payload.type_police,
+        "client_nb_impayes":       payload.client_nb_impayes,
+        "client_mt_impaye_tot":    payload.client_mt_impaye_tot,
+        "police_nb_impayes_hist":  payload.police_nb_impayes_hist,
+        "police_taux_impaye_hist": payload.police_taux_impaye_hist,
+        "police_nb_annulations":   payload.police_nb_annulations,
+        "police_nb_sinistres":     payload.police_nb_sinistres,
+        "police_sp_ratio":         payload.police_sp_ratio,
+        "age_client":              payload.age_client,
+        "type_personne":           payload.type_personne,
+        "sexe":                    payload.sexe,
+        "puissance":               payload.puissance,
+        "valeur_vehicule":         payload.valeur_vehicule,
+        "code_usage":              payload.code_usage,
     }
 
 
@@ -276,6 +307,20 @@ def get_latest_model_info() -> dict[str, Any]:
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Cannot read latest model metadata: {exc}")
     return {"status": "ready", "model": metadata}
+
+
+@router.get("/notebook-model-info")
+def get_notebook_model_info() -> dict[str, Any]:
+    try:
+        from ml_services.impaye_notebook_service import get_artifact_info
+
+        info = get_artifact_info()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Cannot read notebook model artifact: {exc}")
+
+    if info.get("status") != "ready":
+        raise HTTPException(status_code=404, detail=info.get("error", "Notebook model artifact unavailable."))
+    return {"status": "ready", "model": info}
 
 
 @router.get("/governance")
@@ -371,16 +416,33 @@ def predict_impaye(request: PredictRequest) -> dict[str, Any]:
     return {"status": "ok", "input": payload, **result}
 
 
+@router.post("/predict-notebook")
+def predict_impaye_notebook_endpoint(request: PredictRequest) -> dict[str, Any]:
+    """Predict impayé using the LightGBM model saved from the notebook.
+
+    The payload is normalised exactly like the classic `/predict` endpoint, then
+    delegated to `ml_services.impaye_notebook_service.predict_impaye_notebook`.
+    """
+    payload = _normalize_prediction_payload(request)
+    try:
+        from ml_services.impaye_notebook_service import predict_impaye_notebook as notebook_predict
+        result = notebook_predict(payload)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Notebook prediction failed: {exc}")
+    return {"status": "ok", "input": payload, **result}
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # FORECAST  (forecast_model.ipynb — Prophet / SARIMA / XGBoost / LSTM)
 # ══════════════════════════════════════════════════════════════════════════════
 
 @router.get("/forecast")
 def api_get_forecast(
-    departement: str = Query("AUTO",                  description="Branche"),
-    indicateur:  str = Query("primes_acquises_tnd",   description="Indicateur"),
-    nb_mois:     int = Query(6, ge=1, le=24,          description="Horizon (mois)"),
-    model:       str = Query("prophet",               description="Modèle : prophet | sarima | xgboost | lstm"),
+    departement: str = Query("AUTO",                description="Branche"),
+    indicateur:  str = Query("primes_acquises_tnd", description="Indicateur"),
+    nb_mois:     int = Query(6, ge=1, le=24,        description="Horizon (mois)"),
 ) -> dict[str, Any]:
     try:
         return get_forecast(departement, indicateur, nb_mois)
@@ -407,9 +469,10 @@ def api_detect_anomalies(
     departement:    str | None = Query(None,  description="Branche (Optionnel)"),
     contamination:  float      = Query(0.05,  ge=0.01, le=0.5, description="Taux d'anomalies attendu"),
     nb_mois_recent: int        = Query(24,    ge=6,    le=60,   description="Fenêtre historique (mois)"),
+    min_score:      int        = Query(1,     ge=1,    le=4,    description="Score consensus minimum (1–4)"),
 ) -> dict[str, Any]:
     try:
-        return detect_anomalies(departement, contamination, nb_mois_recent)
+        return detect_anomalies(departement, contamination, nb_mois_recent, min_score)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -433,6 +496,17 @@ def api_detect_drift(
 # ══════════════════════════════════════════════════════════════════════════════
 # CHURN PREDICTION  (churn_prediction_v3.ipynb — LightGBM calibré + SMOTE)
 # ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/churn/model-info")
+def api_churn_model_info() -> dict[str, Any]:
+    """
+    Informations du modele churn exporte depuis churn_prediction_v3.ipynb.
+    """
+    try:
+        return get_churn_model_info()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
 
 @router.get("/churn/summary")
 def api_churn_summary() -> dict[str, Any]:
@@ -465,14 +539,15 @@ def api_churn_predict(request: ChurnPredictRequest) -> dict[str, Any]:
 
 @router.get("/fraud/summary")
 def api_fraud_summary(
-    top_n: int = Query(default=10, ge=1, le=50, description="Nombre de cas suspects à retourner"),
+    top_n:      int        = Query(default=10, ge=1, le=100, description="Nombre de cas à retourner"),
+    risk_level: str | None = Query(default=None, description="critique | eleve | modere | normal"),
 ) -> dict[str, Any]:
     """
     Scoring fraude ensemble.
     Niveaux : Normal < p90 | Modéré p90–p95 | Élevé p95–p99 | Critique > p99.
     """
     try:
-        return get_fraud_summary(top_n=top_n)
+        return get_fraud_summary(top_n=top_n, risk_level=risk_level)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -509,6 +584,14 @@ def api_risk_score(request: RiskScoreRequest) -> dict[str, Any]:
         raise HTTPException(status_code=500, detail=str(exc))
 
 
+@router.get("/risk/model-info")
+def api_risk_model_info() -> dict[str, Any]:
+    try:
+        return get_risk_model_info()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 @router.get("/risk/table")
 def api_risk_table() -> dict[str, Any]:
     """
@@ -524,6 +607,14 @@ def api_risk_table() -> dict[str, Any]:
 # ══════════════════════════════════════════════════════════════════════════════
 # CLAIM SEVERITY  (claim_severity.ipynb — XGBoost + LightGBM ensemble)
 # ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/claim/model-info")
+def api_claim_model_info() -> dict[str, Any]:
+    try:
+        return get_claim_model_info()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
 
 @router.post("/claim/predict")
 def api_claim_predict(request: ClaimPredictRequest) -> dict[str, Any]:

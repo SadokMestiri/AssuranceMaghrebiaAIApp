@@ -26,7 +26,7 @@ from sklearn.preprocessing import StandardScaler
 
 from ._base import (
     load_artifact, load_client, load_emission, load_impaye,
-    load_police, load_sinistre, save_artifact, safe_float,
+    load_police, load_sinistre, load_table, save_artifact, safe_float,
 )
 
 logger = logging.getLogger("maghrebia.ml_services.fraud")
@@ -152,6 +152,19 @@ def _build_fraud_features() -> pd.DataFrame:
 
     valid_cols = [c for c in FEATURE_COLS if c in df.columns]
     df[valid_cols] = df[valid_cols].fillna(0)
+
+    # ── Client info (nom, prenom, ville, type_personne) ──
+    try:
+        clients = load_table(
+            "SELECT id_client, nom, prenom, type_personne, ville FROM dim_client",
+            "DIM_CLIENT",
+        )
+        if not clients.empty:
+            clients.columns = [c.upper() for c in clients.columns]
+            df = df.merge(clients, on="ID_CLIENT", how="left")
+    except Exception:
+        pass
+
     return df
 
 
@@ -205,11 +218,14 @@ def _build_artifact() -> dict:
     p95 = float(np.percentile(fraud_score, 95))
     p99 = float(np.percentile(fraud_score, 99))
 
+    score_cache = dict(zip(df["NUM_SINISTRE"].astype(str), fraud_score.tolist()))
     art = {
-        "scaler":   scaler,
-        "features": [c for c in FEATURE_COLS if c in df.columns],
+        "scaler":     scaler,
+        "features":   [c for c in FEATURE_COLS if c in df.columns],
         "p90": p90, "p95": p95, "p99": p99,
-        "source": "proxy",
+        "source":     "proxy",
+        "score_cache": score_cache,
+        "cache_size":  len(df),
     }
     save_artifact(_ARTIFACT_NAME, art)
     return art, df
@@ -224,8 +240,18 @@ def _get_artifact_and_df() -> tuple[dict, pd.DataFrame]:
         art, df = _build_artifact()
         return art, df
 
-    fraud_score, _ = _compute_ensemble_scores(df, art["scaler"])
-    df["FRAUD_SCORE"] = fraud_score
+    cached      = art.get("score_cache", {})
+    cache_size  = art.get("cache_size", 0)
+    data_stable = cached and abs(len(df) - cache_size) <= max(50, cache_size * 0.02)
+
+    if data_stable:
+        df["FRAUD_SCORE"] = df["NUM_SINISTRE"].astype(str).map(cached).fillna(0.0)
+    else:
+        fraud_score, _ = _compute_ensemble_scores(df, art["scaler"])
+        df["FRAUD_SCORE"] = fraud_score
+        art["score_cache"] = dict(zip(df["NUM_SINISTRE"].astype(str), fraud_score.tolist()))
+        art["cache_size"]  = len(df)
+        save_artifact(_ARTIFACT_NAME, art)
     return art, df
 
 
@@ -241,7 +267,7 @@ def _risk_label(score: float, p90: float, p95: float, p99: float) -> str:
 
 # ── Public API ──────────────────────────────────────────────────────────────
 
-def get_fraud_summary(top_n: int = 10) -> dict[str, Any]:
+def get_fraud_summary(top_n: int = 10, risk_level: str | None = None) -> dict[str, Any]:
     art, df = _get_artifact_and_df()
     p90, p95, p99 = art["p90"], art["p95"], art["p99"]
 
@@ -256,18 +282,36 @@ def get_fraud_summary(top_n: int = 10) -> dict[str, Any]:
         for i in range(len(hist))
     ]
 
-    # Top suspects
-    top_df = df[df["RISK_LEVEL"].isin(["Critique", "Risque Élevé"])].copy()
-    top_df = top_df.sort_values("FRAUD_SCORE", ascending=False).head(top_n)
+    # Filter by requested risk level
+    LEVEL_MAP = {
+        "critique":   ["Critique"],
+        "eleve":      ["Risque Élevé"],
+        "modere":     ["Risque Modéré"],
+        "normal":     ["Normal"],
+    }
+    levels = LEVEL_MAP.get((risk_level or "").lower(), ["Critique", "Risque Élevé", "Risque Modéré"])
+    top_df = df[df["RISK_LEVEL"].isin(levels)].sort_values("FRAUD_SCORE", ascending=False).head(top_n)
+
+    def _client_name(row) -> str:
+        nom    = str(row.get("NOM",    "") or "").strip()
+        prenom = str(row.get("PRENOM", "") or "").strip()
+        if nom and prenom:
+            return f"{prenom} {nom}"
+        return nom or prenom or "—"
+
     top_records = []
     for _, row in top_df.iterrows():
         top_records.append({
-            "num_sinistre":  str(row.get("NUM_SINISTRE", "—")),
-            "branche":       str(row.get("BRANCHE", "—")),
+            "num_sinistre":    str(row.get("NUM_SINISTRE",    "—")),
+            "branche":         str(row.get("BRANCHE",         "—")),
             "nature_sinistre": str(row.get("NATURE_SINISTRE", "—")),
-            "mt_evaluation": float(row.get("MT_EVALUATION", 0)),
-            "fraud_score":   round(float(row["FRAUD_SCORE"]), 4),
-            "risk_level":    str(row["RISK_LEVEL"]),
+            "mt_evaluation":   float(row.get("MT_EVALUATION", 0)),
+            "fraud_score":     round(float(row["FRAUD_SCORE"]), 4),
+            "risk_level":      str(row["RISK_LEVEL"]),
+            "client_nom":      _client_name(row),
+            "client_ville":    str(row.get("VILLE",        "") or "—"),
+            "type_personne":   str(row.get("TYPE_PERSONNE","") or "—"),
+            "id_client":       str(row.get("ID_CLIENT",   "—")),
         })
 
     return {
@@ -276,7 +320,12 @@ def get_fraud_summary(top_n: int = 10) -> dict[str, Any]:
         "nb_modere":   counts.get("Risque Modéré", 0),
         "nb_normal":   counts.get("Normal",        0),
         "thresholds":  {"p90": round(p90, 4), "p95": round(p95, 4), "p99": round(p99, 4)},
-        "top_fraud":         top_records,
+        "top_fraud":          top_records,
         "score_distribution": score_dist,
         "model_source":       art.get("source", "artifact"),
+        "model_info": {
+            "nb_sinistres_analysed": len(df),
+            "features_count":        len(art.get("features", FEATURE_COLS)),
+            "ensemble_weights":      {"IF": 0.40, "AE": 0.40, "LOF": 0.20},
+        },
     }

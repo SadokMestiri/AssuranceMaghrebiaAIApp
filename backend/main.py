@@ -9,10 +9,18 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from db import get_db
-from agent_router import perform_agent_warmup, router as agent_router
 from geo_router import router as geo_router
 from kpi_router import router as kpi_router
 from ml_router import router as ml_router
+
+try:
+    from agent_router import perform_agent_warmup, router as agent_router
+except ImportError as exc:
+    agent_router = None
+    agent_import_error = str(exc)
+
+    def perform_agent_warmup(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        return {"status": "unavailable", "error": agent_import_error}
 
 
 logger = logging.getLogger("maghrebia.backend")
@@ -34,7 +42,10 @@ app.add_middleware(
 app.include_router(kpi_router, prefix="/api/v1")
 app.include_router(geo_router, prefix="/api/v1")
 app.include_router(ml_router, prefix="/api/v1")
-app.include_router(agent_router, prefix="/api/v1")
+if agent_router is not None:
+    app.include_router(agent_router, prefix="/api/v1")
+else:
+    logger.warning("Agent router disabled because optional dependencies are unavailable.")
 
 
 @app.on_event("startup")

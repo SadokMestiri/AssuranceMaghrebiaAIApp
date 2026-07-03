@@ -152,7 +152,7 @@ FROM   dim_client c
 _VEHICULE_SQL = """
 SELECT v.id_vehicule, v.puissance, v.genre_vehicule, v.type_vehicule,
        v.marque, v.nb_place, v.charge_utile, v.poids_total,
-       v.valeur_vehicule, v.valeur_neuf, v.date_mise_circulation
+       v.valeur_actuelle, v.valeur_a_neuf, v.date_mec, v.code_usage
 FROM   dim_vehicule v
 """
 

@@ -8,8 +8,11 @@ from pathlib import Path
 from typing import Any
 
 import joblib
-import mlflow
-import mlflow.sklearn
+try:
+    import mlflow
+    import mlflow.sklearn
+except ImportError:
+    mlflow = None
 import numpy as np
 import pandas as pd
 from sklearn.base import clone
@@ -1449,6 +1452,9 @@ def _compute_metrics(y_true: pd.Series, y_pred: pd.Series, y_prob: pd.Series) ->
 
 
 def _setup_mlflow() -> tuple[str, str]:
+    if mlflow is None:
+        raise ImportError("mlflow is unavailable in the current Python environment")
+
     if not os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("MINIO_ACCESS_KEY"):
         os.environ["AWS_ACCESS_KEY_ID"] = os.getenv("MINIO_ACCESS_KEY", "")
     if not os.getenv("AWS_SECRET_ACCESS_KEY") and os.getenv("MINIO_SECRET_KEY"):
@@ -1672,9 +1678,11 @@ def train_and_persist_model(
     run_id: str | None = None
     mlflow_error: str | None = None
 
-    tracking_uri, experiment_name = _setup_mlflow()
+    tracking_uri = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow:5000")
+    experiment_name = os.getenv("MLFLOW_EXPERIMENT_NAME", "maghrebia_impaye_risk")
     run_name = f"impaye-risk-{datetime.now(timezone.utc):%Y%m%d-%H%M%S}"
     try:
+        tracking_uri, experiment_name = _setup_mlflow()
         with mlflow.start_run(run_name=run_name) as run:
             run_id = run.info.run_id
             mlflow.log_params(

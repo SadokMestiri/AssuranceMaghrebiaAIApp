@@ -31,6 +31,7 @@ from ._base import (
 logger = logging.getLogger("maghrebia.ml_services.churn")
 
 _ARTIFACT_NAME = "churn_model"
+_NOTEBOOK_ARTIFACT_NAME = "churn_notebook_model"
 _THRESHOLD = 0.40
 
 # ── Feature list (matches churn_prediction_v3.ipynb) ──────────────────────
@@ -74,10 +75,12 @@ def _build_portfolio_features() -> pd.DataFrame:
             mt_pnet_total   =("mt_pnet",        "sum"),
             mt_commission_moy=("mt_commission", "mean"),
             bonus_malus_moy =("bonus_malus",    "mean"),
+            bonus_malus_max =("bonus_malus",    "max"),
+            bonus_malus_min =("bonus_malus",    "min"),
         ).reset_index()
         feats = feats.merge(em_agg, on="id_police", how="left")
     else:
-        for c in ["nb_quittances","mt_pnet_moy","mt_pnet_total","mt_commission_moy","bonus_malus_moy"]:
+        for c in ["nb_quittances","mt_pnet_moy","mt_pnet_total","mt_commission_moy","bonus_malus_moy","bonus_malus_max","bonus_malus_min"]:
             feats[c] = 0.0
 
     # ── Sinistre aggregation ──
@@ -148,8 +151,15 @@ def _train_proxy_model(df: pd.DataFrame) -> dict:
     return art
 
 
+def _load_primary_artifact() -> dict | None:
+    art = load_artifact(_NOTEBOOK_ARTIFACT_NAME)
+    if art:
+        return art
+    return load_artifact(_ARTIFACT_NAME)
+
+
 def _get_artifact() -> dict:
-    art = load_artifact(_ARTIFACT_NAME)
+    art = _load_primary_artifact()
     if art:
         return art
     logger.info("Churn artifact not found — training proxy model.")
@@ -157,6 +167,44 @@ def _get_artifact() -> dict:
     if df.empty or df["CHURN"].nunique() < 2:
         raise RuntimeError("Not enough data to train churn model.")
     return _train_proxy_model(df)
+
+
+def _artifact_feature_frame(df: pd.DataFrame, art: dict) -> pd.DataFrame:
+    feat_cols = list(art.get("features", _NUMERIC_FEATURES))
+    defaults = art.get("feature_defaults") or {c: 0.0 for c in feat_cols}
+
+    aligned = pd.DataFrame(index=df.index)
+    for col in feat_cols:
+        if col in df.columns:
+            aligned[col] = pd.to_numeric(df[col], errors="coerce")
+        else:
+            aligned[col] = defaults.get(col, 0.0)
+        aligned[col] = aligned[col].fillna(defaults.get(col, 0.0))
+
+    return aligned[feat_cols]
+
+
+def _predict_artifact_proba(df: pd.DataFrame, art: dict) -> np.ndarray:
+    values = _artifact_feature_frame(df, art)
+    imputer = art.get("imputer")
+    scaler = art.get("scaler")
+    if imputer is not None:
+        values = imputer.transform(values)
+    if scaler is not None:
+        values = scaler.transform(values)
+    return art["model"].predict_proba(values)[:, 1]
+
+
+def get_churn_model_info() -> dict[str, Any]:
+    art = _get_artifact()
+    return {
+        "status": "ready",
+        "source": art.get("source", "artifact"),
+        "notebook": art.get("notebook", "churn_prediction_v3.ipynb"),
+        "threshold": float(art.get("threshold", _THRESHOLD)),
+        "features_count": len(art.get("features", _NUMERIC_FEATURES)),
+        "metrics": art.get("metrics", {}),
+    }
 
 
 # ── Public API ──────────────────────────────────────────────────────────────
@@ -196,20 +244,19 @@ def get_churn_summary() -> dict[str, Any]:
     # ── ML probabilities (used only for risk-segment breakdown) ────────────
     art = _get_artifact()
     feat_cols = art.get("features", _NUMERIC_FEATURES)
-    X = art["imputer"].transform(df[feat_cols].fillna(0).values)
-    X = art["scaler"].transform(X)
-    df["PROB_CHURN"] = art["model"].predict_proba(X)[:, 1]
+    df["PROB_CHURN"] = _predict_artifact_proba(df, art)
 
     threshold = art.get("threshold", _THRESHOLD)
 
-    # Feature importances from model
+    # Feature importances from model — normalize raw split counts to [0, 1]
     top_features = []
     try:
         inner = art["model"].calibrated_classifiers_[0].estimator
         if hasattr(inner, "feature_importances_"):
             imp = inner.feature_importances_
+            total = float(sum(imp)) or 1.0
             top_features = [
-                {"feature": f, "importance": round(float(v), 4)}
+                {"feature": f, "importance": round(float(v) / total, 4)}
                 for f, v in sorted(zip(feat_cols, imp), key=lambda x: -x[1])[:8]
             ]
     except Exception:
@@ -236,38 +283,62 @@ def get_churn_summary() -> dict[str, Any]:
         "risk_segments":  segments,              # ML-based, active policies only
         "threshold":      threshold,
         "model_source":   art.get("source", "artifact"),
+        "model_metrics":  art.get("metrics", {}),
     }
 
 
 def predict_churn(payload: dict[str, Any]) -> dict[str, Any]:
     """
     Predict churn probability for a single policy.
-    Input keys (all optional, defaults to portfolio median):
+    Input keys (all optional, defaults to notebook training medians):
       branche, nb_quittances, mt_pnet, bonus_malus, taux_impaye, nb_sinistres
     """
     art = _get_artifact()
-    feat_cols = art.get("features", _NUMERIC_FEATURES)
+    feat_cols = list(art.get("features", _NUMERIC_FEATURES))
+    defaults = art.get("feature_defaults") or {c: 0.0 for c in feat_cols}
 
-    # Build feature vector from portfolio medians
-    df_med = _build_portfolio_features()
-    medians = df_med[feat_cols].median() if not df_med.empty else pd.Series(0, index=feat_cols)
+    # Start from the notebook's own training medians (covers all 100+ features)
+    row = {c: defaults.get(c, 0.0) for c in feat_cols}
 
-    row = medians.copy()
-    # Map incoming payload keys → internal feature names
-    mapping = {
-        "nb_quittances": "nb_quittances",
-        "mt_pnet":       "mt_pnet_moy",
-        "bonus_malus":   "bonus_malus_moy",
-        "taux_impaye":   "taux_impaye",
-        "nb_sinistres":  "nb_sinistres",
-    }
-    for src, dst in mapping.items():
-        if src in payload and dst in row.index:
-            row[dst] = safe_float(payload[src])
+    # Extract simulator inputs with fallback to defaults
+    bm       = safe_float(payload.get("bonus_malus",   defaults.get("BONUS_MALUS",   1.0)))
+    prime    = safe_float(payload.get("mt_pnet",        defaults.get("prime_net_moy", 0.0)))
+    nb_quit  = safe_float(payload.get("nb_quittances",  defaults.get("nb_quittances", 4.0)))
+    taux_imp = safe_float(payload.get("taux_impaye",    defaults.get("taux_impaye",   0.0)))
+    nb_sin   = safe_float(payload.get("nb_sinistres",   defaults.get("nb_sinistres",  0.0)))
+    anciennete = float(defaults.get("anciennete_pol", 1097.0))
 
-    X = art["imputer"].transform(row.values.reshape(1, -1))
-    X = art["scaler"].transform(X)
-    prob      = float(art["model"].predict_proba(X)[0, 1])
+    # Map to all notebook feature names that correspond to each input
+    row["BONUS_MALUS"]     = bm
+    row["bonus_malus_moy"] = bm
+    row["bonus_malus_max"] = bm
+    row["bonus_malus_min"] = bm
+
+    row["prime_net_moy"] = prime
+    row["prime_net_min"] = prime
+    row["prime_net_max"] = prime
+    row["prime_net_sum"] = prime * nb_quit
+    row["prime_ptt_moy"] = prime
+
+    row["nb_quittances"]     = nb_quit
+    row["nb_annees_emission"] = max(1.0, nb_quit / 12.0)
+    row["prime_par_quit"]    = prime
+
+    row["taux_impaye"]   = taux_imp
+    row["taux_paiement"] = max(0.0, 1.0 - taux_imp)
+
+    row["nb_sinistres"] = nb_sin
+
+    # Recompute derived/interaction features that depend on changed inputs
+    row["bm_x_anciennete"]  = bm * anciennete
+    row["prime_x_anciennete"] = prime * anciennete
+    row["impaye_x_prime"]   = taux_imp * prime
+    row["sin_x_prime"]      = nb_sin * prime
+    row["quit_x_impaye"]    = nb_quit * taux_imp
+    row["sin_par_prime"]    = (nb_sin / prime) if prime > 0 else 0.0
+
+    row_df = pd.DataFrame([row], columns=feat_cols)
+    prob      = float(_predict_artifact_proba(row_df, art)[0])
     threshold = art.get("threshold", _THRESHOLD)
     predicted = prob >= threshold
 
@@ -289,4 +360,5 @@ def predict_churn(payload: dict[str, Any]) -> dict[str, Any]:
         "threshold":         threshold,
         "action":            action,
         "model":             art.get("source", "LightGBM calibrated"),
+        "metrics":           art.get("metrics", {}),
     }
