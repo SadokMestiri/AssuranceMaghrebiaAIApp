@@ -1935,10 +1935,8 @@ def _detect_sql_metric(normalized_question: str) -> str:
     
     # ── Impayé ──
     if any(term in normalized_question for term in ["impaye", "impayes", "acp", "recouvrement"]):
-        if "taux" in normalized_question and "branche" in normalized_question:
-            return "impaye_rate_by_branch"
         if "branche" in normalized_question:
-            return "impaye_by_branch"
+            return "impaye_rate_by_branch"
         if "gouvernorat" in normalized_question or "region" in normalized_question:
             return "impaye_by_gouvernorat"
         if "evolution" in normalized_question or "mensuel" in normalized_question:
@@ -1946,7 +1944,7 @@ def _detect_sql_metric(normalized_question: str) -> str:
         if "client" in normalized_question or "top" in normalized_question:
             return "impaye_top_clients"
         return "impaye_overview"
-    
+
     # ── Résiliation / Churn ──
     if any(term in normalized_question for term in ["resiliation", "annulation", "resilie", "resiliee", "churn"]):
         if "branche" in normalized_question:
@@ -2019,7 +2017,19 @@ def _detect_sql_metric(normalized_question: str) -> str:
         "prime nette par famille",
         "nombre de produits", "produits distincts"
     ]):
-        return "dimension"
+        if "famille" in normalized_question:
+            return "produit_familles"
+        if "top" in normalized_question and "prime" in normalized_question:
+            return "produit_top_prime"
+        if "top" in normalized_question and "quittance" in normalized_question:
+            return "produit_top_quittances"
+        if "branche" in normalized_question:
+            return "produit_by_branche"
+        if "total" in normalized_question and "prime" in normalized_question:
+            return "produit_total_pnet"
+        if "top" in normalized_question:
+            return "produit_top_prime"
+        return "produit_count"
     
     # ── Véhicule dimensions ──
     vehicule_terms = ["vehicule", "vehicules", "voiture", "voitures", "parc auto"]
@@ -2076,24 +2086,22 @@ def _detect_sql_metric(normalized_question: str) -> str:
     if any(term in normalized_question for term in ["prime", "pnet", "production", "commission"]):
         if "evolution" in normalized_question or "mensuel" in normalized_question or "tendance" in normalized_question:
             return "prime_monthly_trend"
-        if "branche" in normalized_question and "part" in normalized_question:
-            return "prime_branch_share"
         if "branche" in normalized_question:
             return "prime_by_branch"
         if "annee" in normalized_question or "annuel" in normalized_question:
             return "prime_yearly"
         return "prime_overview"
-    
+
     if any(term in normalized_question for term in ["ratio combine", "ratio combin", "combined ratio"]):
         return "ratio_combine"
-    
+
     # ── Géographique ──
     if "gouvernorat" in normalized_question or "region" in normalized_question:
         if "sinistre" in normalized_question:
             return "sinistre_by_gouvernorat"
         if "impaye" in normalized_question:
             return "impaye_by_gouvernorat"
-        return "generic_by_gouvernorat"
+        return "top_zones_risque"
     if ("ville" in normalized_question and "couvert" in normalized_question) or "nombre de villes" in normalized_question:
         return "client_top_villes"
     if ("zone" in normalized_question and "risque" in normalized_question) or "top zones" in normalized_question:
@@ -3336,34 +3344,6 @@ def _build_semantic_sql_query_spec(semantic: dict[str, Any], params: dict[str, A
             "chart": {"type": "line", "title": "Évolution mensuelle sinistres", "x_key": "period", "y_key": "nb_sinistres"},
         }
     
-    if metric == "sinistre_by_gouvernorat":
-        return {
-            "sql_id": "sinistre_by_gouvernorat",
-            "sql_query": f"""
-                SELECT 
-                    TRIM(UPPER(c.ville)) AS gouvernorat,
-                    COUNT(*) AS nb_sinistres,
-                    COALESCE(SUM(s.mt_paye), 0) AS total_mt_paye
-                FROM dwh_fact_sinistre s
-                JOIN dim_client c ON c.id_client = s.id_client
-                WHERE c.ville IS NOT NULL
-                  AND TRIM(c.ville) != ''
-                  AND (:branch IS NULL OR s.branche = :branch)
-                  AND (:year_from IS NULL OR s.annee_survenance >= :year_from)
-                  AND (:year_to IS NULL OR s.annee_survenance <= :year_to)
-                GROUP BY TRIM(UPPER(c.ville))
-                ORDER BY nb_sinistres DESC
-                LIMIT {limit_value}
-            """,
-            "params": params,
-            "result_kind": "breakdown",
-            "kpi_fields": [
-                {"key": "gouvernorat", "label": "Gouvernorat", "unit": ""},
-                {"key": "nb_sinistres", "label": "Nombre de sinistres", "unit": "count"},
-                {"key": "total_mt_paye", "label": "Montant payé", "unit": "TND"},
-            ],
-            "chart": {"type": "bar", "title": "Sinistres par gouvernorat", "x_key": "gouvernorat", "y_key": "nb_sinistres"},
-        }
     if metric == "sinistre_materiel":
         return {
             "sql_id": "sinistre_materiel",
@@ -3771,7 +3751,140 @@ def _build_semantic_sql_query_spec(semantic: dict[str, Any], params: dict[str, A
                 {"key": "total_pnet", "label": "Prime nette totale", "unit": "TND"},
             ],
         }
-    # Si aucune requête n'est trouvée, retourner None pour que _build_sql_query_spec utilise le fallback
+    # ── Handlers for metrics detected above that had no spec ──────────────────
+
+    if metric == "impaye_by_gouvernorat":
+        return {
+            "sql_id": "impaye_by_gouvernorat",
+            "sql_query": f"""
+                SELECT
+                    TRIM(UPPER(c.ville)) AS gouvernorat,
+                    COUNT(i.num_quittance) AS nb_impayes,
+                    COALESCE(SUM(i.mt_acp), 0) AS total_impaye
+                FROM dwh_fact_impaye i
+                JOIN dim_police p ON p.id_police = i.id_police
+                JOIN dim_client c ON c.id_client = p.id_client
+                WHERE c.ville IS NOT NULL AND TRIM(c.ville) != ''
+                  AND (:branch IS NULL OR i.branche = :branch)
+                  AND (:year_from IS NULL OR i.annee_echeance >= :year_from)
+                  AND (:year_to IS NULL OR i.annee_echeance <= :year_to)
+                GROUP BY TRIM(UPPER(c.ville))
+                ORDER BY total_impaye DESC
+                LIMIT {limit_value}
+            """,
+            "params": params,
+            "result_kind": "breakdown",
+            "kpi_fields": [
+                {"key": "gouvernorat", "label": "Gouvernorat", "unit": ""},
+                {"key": "nb_impayes", "label": "Nombre d'impayés", "unit": "count"},
+                {"key": "total_impaye", "label": "Montant impayé", "unit": "TND"},
+            ],
+            "chart": {"type": "bar", "title": "Impayés par gouvernorat", "x_key": "gouvernorat", "y_key": "total_impaye"},
+        }
+
+    if metric == "impaye_monthly_trend":
+        return {
+            "sql_id": "impaye_monthly_trend",
+            "sql_query": """
+                SELECT
+                    make_date(annee_echeance, mois_echeance, 1) AS period,
+                    COUNT(*) AS nb_impayes,
+                    COALESCE(SUM(mt_acp), 0) AS total_impaye
+                FROM dwh_fact_impaye
+                WHERE (:branch IS NULL OR branche = :branch)
+                  AND (:year_from IS NULL OR annee_echeance >= :year_from)
+                  AND (:year_to IS NULL OR annee_echeance <= :year_to)
+                  AND annee_echeance BETWEEN 1900 AND 2100
+                  AND mois_echeance BETWEEN 1 AND 12
+                GROUP BY make_date(annee_echeance, mois_echeance, 1)
+                ORDER BY period
+            """,
+            "params": params,
+            "result_kind": "timeseries",
+            "chart": {"type": "line", "title": "Évolution mensuelle des impayés", "x_key": "period", "y_key": "total_impaye"},
+        }
+
+    if metric == "impaye_top_clients":
+        return {
+            "sql_id": "impaye_top_clients",
+            "sql_query": f"""
+                SELECT
+                    COALESCE(c.prenom || ' ' || c.nom, c.nom, CAST(i.id_client AS VARCHAR)) AS client,
+                    COUNT(i.num_quittance) AS nb_impayes,
+                    COALESCE(SUM(i.mt_acp), 0) AS total_impaye
+                FROM dwh_fact_impaye i
+                JOIN dim_police p ON p.id_police = i.id_police
+                JOIN dim_client c ON c.id_client = p.id_client
+                WHERE (:branch IS NULL OR i.branche = :branch)
+                  AND (:year_from IS NULL OR i.annee_echeance >= :year_from)
+                  AND (:year_to IS NULL OR i.annee_echeance <= :year_to)
+                GROUP BY i.id_client, c.nom, c.prenom
+                ORDER BY total_impaye DESC
+                LIMIT {limit_value}
+            """,
+            "params": params,
+            "result_kind": "breakdown",
+            "kpi_fields": [
+                {"key": "client", "label": "Client", "unit": ""},
+                {"key": "nb_impayes", "label": "Impayés", "unit": "count"},
+                {"key": "total_impaye", "label": "Montant impayé", "unit": "TND"},
+            ],
+            "chart": {"type": "bar", "title": "Top clients par montant impayé", "x_key": "client", "y_key": "total_impaye"},
+        }
+
+    if metric == "resiliation_by_agent":
+        return {
+            "sql_id": "resiliation_by_agent",
+            "sql_query": f"""
+                SELECT
+                    COALESCE(a.nom_agent, CAST(p.id_agent AS VARCHAR)) AS agent,
+                    COUNT(p.id_police) AS total_polices,
+                    SUM(CASE WHEN p.situation = 'R' THEN 1 ELSE 0 END) AS nb_resiliees,
+                    ROUND(
+                        100.0 * SUM(CASE WHEN p.situation = 'R' THEN 1 ELSE 0 END) / COUNT(p.id_police), 2
+                    ) AS taux_resiliation_pct
+                FROM dim_police p
+                LEFT JOIN dim_agent a ON a.id_agent = p.id_agent
+                WHERE p.id_agent IS NOT NULL
+                  AND (:branch IS NULL OR p.branche = :branch)
+                GROUP BY p.id_agent, a.nom_agent
+                ORDER BY nb_resiliees DESC
+                LIMIT {limit_value}
+            """,
+            "params": params,
+            "result_kind": "breakdown",
+            "kpi_fields": [
+                {"key": "agent", "label": "Agent", "unit": ""},
+                {"key": "total_polices", "label": "Total polices", "unit": "count"},
+                {"key": "nb_resiliees", "label": "Résiliées", "unit": "count"},
+                {"key": "taux_resiliation_pct", "label": "Taux résiliation", "unit": "%"},
+            ],
+            "chart": {"type": "bar", "title": "Résiliation par agent", "x_key": "agent", "y_key": "nb_resiliees"},
+        }
+
+    if metric == "prime_yearly":
+        return {
+            "sql_id": "prime_yearly",
+            "sql_query": """
+                SELECT
+                    annee_echeance AS annee,
+                    COALESCE(SUM(mt_pnet), 0) AS total_pnet,
+                    COUNT(DISTINCT id_police) AS nb_polices,
+                    COUNT(*) AS nb_quittances
+                FROM dwh_fact_emission
+                WHERE etat_quit IN ('E', 'P', 'A')
+                  AND (:branch IS NULL OR branche = :branch)
+                  AND (:year_from IS NULL OR annee_echeance >= :year_from)
+                  AND (:year_to IS NULL OR annee_echeance <= :year_to)
+                  AND annee_echeance BETWEEN 1900 AND 2100
+                GROUP BY annee_echeance
+                ORDER BY annee_echeance
+            """,
+            "params": params,
+            "result_kind": "timeseries",
+            "chart": {"type": "bar", "title": "Prime nette par année", "x_key": "annee", "y_key": "total_pnet"},
+        }
+
     return None
 
 
