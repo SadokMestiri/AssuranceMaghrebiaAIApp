@@ -227,6 +227,7 @@ def get_heatmap_polices(
     branch: str | None = Query(default=None, description="AUTO | IRDS | SANTE"),
     year_from: int | None = Query(default=2019, ge=2019, le=2026),
     year_to: int | None = Query(default=2026, ge=2019, le=2026),
+    limit: int | None = Query(default=None, ge=1),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     normalized_branch = _normalize_branch(branch)

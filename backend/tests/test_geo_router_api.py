@@ -36,15 +36,13 @@ def test_get_heatmap_polices_returns_items() -> None:
     db = _FakeDB(
         [
             {
-                "id_agent": 10,
-                "gouvernorat": "Tunis",
-                "latitude_agent": 36.8,
-                "longitude_agent": 10.2,
+                "gouvernorat": "TUNIS",
                 "nb_polices": 120,
                 "total_pnet": 400000.0,
-                "nb_impayes": 12,
-                "total_mt_acp": 30000.0,
-                "taux_impaye_pct": 10.0,
+                "nb_sinistres": 12,
+                "total_mt_paye": 30000.0,
+                "taux_sinistres_pct": 7.5,
+                "score_risque": 15.3,
             }
         ]
     )
@@ -58,8 +56,7 @@ def test_get_heatmap_polices_returns_items() -> None:
     )
 
     assert payload["filters"]["branch"] == "AUTO"
-    assert payload["signal_source"] == "impayes_proxy_for_geo_risk"
-    assert payload["items"][0]["gouvernorat"] == "Tunis"
+    assert payload["items"][0]["ville"] == "TUNIS"
     assert payload["items"][0]["nb_polices"] == 120
 
 
