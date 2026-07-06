@@ -398,10 +398,11 @@ function buildSinistreData(sinistres) {
 // ── HANDLER ──────────────────────────────────────────────────────
 export default function handler(req, res) {
   try {
-    const { branch, year_from, year_to } = req.query;
-    const filterBranch  = branch && branch !== "ALL" ? branch.toUpperCase() : null;
+    const { branch, year_from, year_to, month } = req.query;
+    const filterBranch   = branch && branch !== "ALL" ? branch.toUpperCase() : null;
     const filterYearFrom = year_from ? parseInt(year_from, 10) : null;
     const filterYearTo   = year_to   ? parseInt(year_to,   10) : null;
+    const filterMonth    = month && month !== "ALL" ? parseInt(month, 10) : null;
 
     const clients   = readCsv("DIM_CLIENT.csv");
     const agents    = readCsv("DIM_AGENT.csv");
@@ -411,20 +412,24 @@ export default function handler(req, res) {
     const emissions = readCsv("DWH_FACT_EMISSION.csv");
     const sinistres = readCsv("DWH_FACT_SINISTRE.csv");
 
-    // Filter facts by branch + year
+    // Filter facts by branch + year + month
     const filteredEmissions = emissions.filter((e) => {
       const yr = parseInt(e.ANNEE_ECHEANCE, 10);
-      if (filterBranch  && e.BRANCHE !== filterBranch)   return false;
-      if (filterYearFrom && yr < filterYearFrom)          return false;
-      if (filterYearTo   && yr > filterYearTo)            return false;
+      const mo = parseInt(e.MOIS_ECHEANCE, 10);
+      if (filterBranch   && e.BRANCHE !== filterBranch) return false;
+      if (filterYearFrom && yr < filterYearFrom)         return false;
+      if (filterYearTo   && yr > filterYearTo)           return false;
+      if (filterMonth    && mo !== filterMonth)           return false;
       return true;
     });
 
     const filteredSinistres = sinistres.filter((s) => {
       const yr = parseInt(s.ANNEE_SURVENANCE, 10);
-      if (filterBranch  && s.BRANCHE !== filterBranch)   return false;
-      if (filterYearFrom && yr < filterYearFrom)          return false;
-      if (filterYearTo   && yr > filterYearTo)            return false;
+      const mo = parseInt(s.MOIS_SURVENANCE, 10);
+      if (filterBranch   && s.BRANCHE !== filterBranch) return false;
+      if (filterYearFrom && yr < filterYearFrom)         return false;
+      if (filterYearTo   && yr > filterYearTo)           return false;
+      if (filterMonth    && mo !== filterMonth)           return false;
       return true;
     });
 

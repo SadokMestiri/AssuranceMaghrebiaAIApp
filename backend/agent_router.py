@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+import asyncio
+import json
 from datetime import datetime, timezone
 from typing import Any
 
 import requests
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from agent_graph import get_agent_capabilities, run_agent_query_sync
+from agent_graph import get_agent_capabilities, run_agent_query_sync, _progress_cb
 from indexer import run_indexing
+from session_store import append_turn, get_history
 from config import OLLAMA_HOST, QDRANT_URL, DATA_YEAR_FROM, DATA_YEAR_TO
 
 
@@ -19,6 +23,7 @@ YEAR_MAX = DATA_YEAR_TO
 
 class AgentQueryRequest(BaseModel):
     question: str = Field(min_length=3, max_length=1500)
+    session_id: str | None = Field(default=None, max_length=128)
     branch: str | None = None
     year_from: int | None = Field(default=None, ge=YEAR_MIN, le=YEAR_MAX)
     year_to: int | None = Field(default=None, ge=YEAR_MIN, le=YEAR_MAX)
@@ -230,10 +235,24 @@ def warmup_agent(payload: AgentWarmupRequest) -> dict[str, Any]:
     }
 
 
+@router.get("/session/{session_id}")
+def get_session_history(session_id: str) -> dict[str, Any]:
+    """Return stored turns for a session — used by the frontend to restore chat history on reload."""
+    turns = get_history(session_id)
+    return {
+        "status": "ok",
+        "session_id": session_id,
+        "turns": turns,
+        "count": len(turns),
+    }
+
+
 @router.post("/query")
 def query_agent(payload: AgentQueryRequest) -> dict[str, Any]:
     if payload.year_from and payload.year_to and payload.year_from > payload.year_to:
         raise HTTPException(status_code=400, detail="year_from must be <= year_to")
+
+    history = get_history(payload.session_id) if payload.session_id else []
 
     context = {
         "branch": payload.branch,
@@ -246,6 +265,7 @@ def query_agent(payload: AgentQueryRequest) -> dict[str, Any]:
         "client_name": payload.client_name,
         "skip_llm": payload.skip_llm,
         "force_llm": payload.force_llm,
+        "history": history,
     }
 
     try:
@@ -253,8 +273,18 @@ def query_agent(payload: AgentQueryRequest) -> dict[str, Any]:
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Agent query failed: {exc}")
 
+    if payload.session_id:
+        append_turn(
+            session_id=payload.session_id,
+            user_question=payload.question,
+            assistant_answer=result.get("answer", ""),
+            context=context,
+            intent=result.get("intent", ""),
+        )
+
     return {
         "status": "ok",
+        "session_id": payload.session_id,
         "agent": result,
     }
 
@@ -262,3 +292,89 @@ def query_agent(payload: AgentQueryRequest) -> dict[str, Any]:
 @router.post("/chat")
 def chat_agent(payload: AgentQueryRequest) -> dict[str, Any]:
     return query_agent(payload)
+
+
+@router.post("/query/stream")
+async def stream_agent_query(payload: AgentQueryRequest) -> StreamingResponse:
+    """
+    SSE endpoint — emits progress events + LLM tokens in real time, then a
+    final `result` event containing the full agent response JSON.
+
+    Event types:
+      {"type": "progress", "step": "...", "label": "..."}
+      {"type": "llm_token",  "token": "..."}
+      {"type": "result",     "data": { ...full agent response... }}
+      {"type": "error",      "detail": "..."}
+    """
+    if payload.year_from and payload.year_to and payload.year_from > payload.year_to:
+        raise HTTPException(status_code=400, detail="year_from must be <= year_to")
+
+    history = get_history(payload.session_id) if payload.session_id else []
+    context: dict[str, Any] = {
+        "branch":         payload.branch,
+        "year_from":      payload.year_from,
+        "year_to":        payload.year_to,
+        "month":          payload.month,
+        "gouvernorat":    payload.gouvernorat,
+        "top_k":          payload.top_k,
+        "horizon_months": payload.horizon_months,
+        "client_name":    payload.client_name,
+        "skip_llm":       payload.skip_llm,
+        "force_llm":      payload.force_llm,
+        "history":        history,
+    }
+
+    main_loop = asyncio.get_event_loop()
+    queue: asyncio.Queue[dict[str, Any] | None] = asyncio.Queue()
+
+    def on_event(ev: dict[str, Any]) -> None:
+        main_loop.call_soon_threadsafe(queue.put_nowait, ev)
+
+    def _run_sync() -> dict[str, Any]:
+        token = _progress_cb.set(on_event)
+        try:
+            return run_agent_query_sync(question=payload.question, context=context)
+        finally:
+            _progress_cb.reset(token)
+            # Signal generator that we're done
+            main_loop.call_soon_threadsafe(queue.put_nowait, None)
+
+    async def generator():
+        future = main_loop.run_in_executor(None, _run_sync)
+
+        # Forward events until the sentinel None arrives
+        while True:
+            ev = await queue.get()
+            if ev is None:
+                break
+            yield f"data: {json.dumps(ev, ensure_ascii=False)}\n\n"
+
+        # Collect final result (the future is done at this point)
+        try:
+            result = await future
+        except Exception as exc:
+            yield f"data: {json.dumps({'type': 'error', 'detail': str(exc)}, ensure_ascii=False)}\n\n"
+            yield "data: [DONE]\n\n"
+            return
+
+        if payload.session_id:
+            append_turn(
+                session_id=payload.session_id,
+                user_question=payload.question,
+                assistant_answer=result.get("answer", ""),
+                context=context,
+                intent=result.get("intent", ""),
+            )
+
+        yield f"data: {json.dumps({'type': 'result', 'data': result}, ensure_ascii=False)}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",   # disable Nginx buffering
+            "Connection": "keep-alive",
+        },
+    )

@@ -4,7 +4,8 @@ import asyncio
 import json
 import os
 import re
-from typing import Any, TypedDict
+from contextvars import ContextVar
+from typing import Any, Callable, TypedDict
 
 import requests
 from langgraph.graph import END, StateGraph
@@ -30,6 +31,20 @@ def _env_int(name: str, default: int) -> int:
         return int(os.getenv(name, str(default)))
     except (TypeError, ValueError):
         return default
+
+
+# Per-request progress callback (set by the streaming endpoint).
+# Thread-safe: run_in_executor copies the context, so the callback set in the
+# async generator is visible inside the sync worker thread.
+_progress_cb: ContextVar[Callable[[dict[str, Any]], None] | None] = ContextVar(
+    "_progress_cb", default=None
+)
+
+
+def _emit(event: dict[str, Any]) -> None:
+    cb = _progress_cb.get(None)
+    if cb is not None:
+        cb(event)
 
 
 OUT_OF_SCOPE_MESSAGE = (
@@ -99,6 +114,23 @@ DOMAIN_KEYWORDS = {
     "responsabilite",
     "sexe", "femme", "femmes", "homme", "hommes",
     "produits distincts", "familles",
+    # Regulatory bodies & acronyms
+    "fga", "cga", "cnam", "cnss", "bipar", "iard",
+    "arrete", "decret", "loi", "circulaire", "code",
+    "reglementaire", "reglementation", "regle", "regles",
+    # Financial / actuarial terms
+    "tarif", "tarification", "tarifs",
+    "bareme", "baremes",
+    "franchise", "franchises",
+    "solvabilite", "marge",
+    "indemnisation", "indemnite", "indemnites",
+    "expertise", "expert", "experts",
+    "norme", "normes",
+    "calcul", "calcule", "calculer",
+    "definition", "defini", "signifie",
+    # Definition-question anchors
+    "comment", "pourquoi", "qu'est-ce", "c'est quoi",
+    "expliquer", "explication",
 }
 
 INTENT_MIN_CONFIDENCE = AGENT_INTENT_MIN_CONFIDENCE
@@ -273,8 +305,24 @@ INTENT_RULES: list[dict[str, Any]] = [
     },
     {
         "intent": "rag",
-        "keywords": ["regle", "documentation", "policy", "rag", "contexte"],
-        "tool_families": ["rag", "kpi"],
+        "keywords": [
+            "regle", "regles", "documentation", "policy", "rag", "contexte",
+            # definition / explanation triggers
+            "qu'est-ce", "c'est quoi", "definition", "defini", "signifie", "signifient",
+            "expliquer", "explication", "comment fonctionne", "comment est calcule",
+            "comment calcule", "comment calculer",
+            # regulatory entities
+            "fga", "cga", "cnam", "cnss",
+            # regulatory concepts
+            "norme", "normes", "reglementaire", "reglementation",
+            "loi", "decret", "circulaire", "bareme", "baremes",
+            "tarif", "tarification", "solvabilite",
+            "provision", "psap", "ppna", "prc",
+            "bonus malus", "malus",
+            "franchise", "indemnisation",
+            "delai", "delais", "preavis",
+        ],
+        "tool_families": ["rag"],
         "required": ["rag"],
         "skip_llm": False,
     },
@@ -326,6 +374,7 @@ INTENT_RULES: list[dict[str, Any]] = [
 class AgentState(TypedDict, total=False):
     question: str
     context: dict[str, Any]
+    history: list[dict[str, Any]]   # prior turns from session_store
     intent: str
     intent_confidence: float
     tool_families: list[str]
@@ -347,6 +396,27 @@ class AgentState(TypedDict, total=False):
 
 def _keyword_score(normalized_question: str, keywords: list[str]) -> int:
     return sum(1 for keyword in keywords if keyword in normalized_question)
+
+
+# Patterns that signal a follow-up filter change rather than a new topic.
+# "et pour IRDS ?", "et la branche SANTE ?", "même chose pour 2023", "idem pour AUTO"
+_FOLLOWUP_PREFIXES = re.compile(
+    r"^(et\s+(pour|la|le|les|en|sur)|meme\s+chose|idem|pareil|qu'en\s+est[- ]il|same\s+for)\b",
+    re.IGNORECASE,
+)
+
+
+def _is_followup_question(normalized: str, history: list[dict[str, Any]]) -> bool:
+    """
+    Return True when the question is a short filter-change follow-up
+    (e.g. 'et pour IRDS ?') and there is a prior turn to inherit from.
+    """
+    if not history:
+        return False
+    # Short questions only — a long question is almost always a new topic.
+    if len(normalized.split()) > 8:
+        return False
+    return bool(_FOLLOWUP_PREFIXES.search(normalized))
 
 
 def _is_predictive_question(normalized_question: str) -> bool:
@@ -525,8 +595,120 @@ def is_domain_question(question: str) -> bool:
     return False
 
 
-def classify_question(question: str) -> tuple[str, float, list[str], list[str], bool]:
-    normalized = _normalize_text(question)
+_OLLAMA_INTENT_SYSTEM = """
+Tu es un classificateur d'intentions pour un agent analytique d'assurance (Maghrebia).
+Ton seul rôle : identifier les intents présents dans la question et retourner un JSON.
+
+Intents disponibles (choisis UNIQUEMENT parmi cette liste) :
+- kpi          : KPI globaux, prime nette, commission, ratio combiné, taux résiliation, chiffres de performance
+- sql          : données brutes, tableaux, graphes, top N, évolution, répartition, nombre de X, impayés, sinistres
+- forecast     : prévision, projection, futur, prochain mois
+- anomaly      : anomalie, outlier, pic inhabituel, rupture
+- drift        : dérive modèle, stabilité, dégradation distribution
+- alerte       : alerte, seuil critique, surveillance, monitoring
+- explain      : explication facteurs, SHAP, pourquoi une prédiction
+- predict      : lancer modèle ML, prédire fraude, modélisation
+- segmentation : segmentation, cluster, profil client
+- client       : recherche client, identité, homonyme
+- rag          : définition, explication, réglementation, règles métier, documentation, normes, calcul méthodologique.
+                 UTILISER pour : "qu'est-ce que X", "comment est calculé X", "c'est quoi X",
+                 "quelle est la norme de X", "quelles sont les règles de X",
+                 questions sur FGA, CNAM, CGA, CNSS, bonus-malus, provisions, tarification,
+                 délais réglementaires, barèmes, solvabilité, code des assurances.
+- dimension    : catalogue agents, produits, véhicules, polices
+- overview     : vue globale, tableau de bord complet, diagnostic
+
+Règles :
+- Retourne 1 à 3 intents MAX, ordonnés par pertinence décroissante.
+- Ne retourne QUE les intents clairement présents dans la question.
+- confidence entre 0.50 et 0.97.
+- Les questions de définition/explication/réglementation → intent "rag" en PREMIER.
+- Réponds UNIQUEMENT avec ce JSON exact, rien d'autre :
+{"intents": ["intent1"], "confidence": 0.9}
+""".strip()
+
+
+def _classify_with_ollama(
+    question: str,
+    history: list[dict[str, Any]] | None = None,
+) -> dict[str, Any] | None:
+    """
+    Ask Ollama to classify the question into 1-3 intents.
+    If history is provided, the last 2 turns are prepended as prior messages so
+    the model can resolve anaphoric questions like "et pour IRDS ?".
+    Returns {"intents": [...], "confidence": float} or None on any failure.
+    Uses a short timeout so the keyword fallback kicks in quickly if Ollama is slow.
+    """
+    messages: list[dict[str, str]] = [{"role": "system", "content": _OLLAMA_INTENT_SYSTEM}]
+
+    for turn in (history or [])[-2:]:
+        messages.append({"role": "user", "content": str(turn.get("user", ""))})
+        prior_intent = turn.get("intent") or "kpi"
+        messages.append({"role": "assistant", "content": f'{{"intents":["{prior_intent}"],"confidence":0.9}}'})
+
+    messages.append({"role": "user", "content": question})
+
+    try:
+        response = requests.post(
+            f"{OLLAMA_HOST}/api/chat",
+            json={
+                "model": OLLAMA_CHAT_MODEL,
+                "messages": messages,
+                "stream": False,
+                "format": "json",
+                "options": {"temperature": 0.0, "num_predict": 80},
+            },
+            timeout=8.0,
+        )
+        response.raise_for_status()
+        content = response.json()["message"]["content"]
+        parsed = json.loads(content)
+        intents = parsed.get("intents")
+        if isinstance(intents, list) and intents:
+            return {
+                "intents": [str(i) for i in intents],
+                "confidence": float(parsed.get("confidence", 0.75)),
+            }
+    except Exception:
+        pass
+    return None
+
+
+def _classify_from_ollama(
+    result: dict[str, Any],
+) -> tuple[str, float, list[str], list[str], bool]:
+    """Build the classify_question return tuple from a validated Ollama result."""
+    valid_intents = {r["intent"] for r in INTENT_RULES}
+    intents = [i for i in result["intents"] if i in valid_intents]
+    if not intents:
+        intents = ["kpi"]
+
+    confidence = round(min(0.97, max(0.50, result.get("confidence", 0.75))), 3)
+
+    # Accumulate tool families from ALL detected intents (true multi-intent).
+    tool_families: list[str] = []
+    for intent_name in intents:
+        rule = next((r for r in INTENT_RULES if r["intent"] == intent_name), None)
+        if rule:
+            for family in rule["tool_families"]:
+                if family not in tool_families:
+                    tool_families.append(family)
+
+    # Primary intent drives required tools and skip_llm.
+    primary_rule = next(
+        (r for r in INTENT_RULES if r["intent"] == intents[0]),
+        next(r for r in INTENT_RULES if r["intent"] == "kpi"),
+    )
+    required_families = list(primary_rule.get("required", []))
+    skip_llm = bool(primary_rule.get("skip_llm", False))
+
+    return intents[0], confidence, tool_families, required_families, skip_llm
+
+
+def _classify_from_keywords(
+    normalized: str,
+) -> tuple[str, float, list[str], list[str], bool]:
+    """Original keyword-scoring classifier — used as fallback when Ollama is unavailable."""
     scored: list[tuple[int, dict[str, Any]]] = []
 
     for rule in INTENT_RULES:
@@ -557,13 +739,8 @@ def classify_question(question: str) -> tuple[str, float, list[str], list[str], 
             scored.append((4, forecast_rule))
 
         explicit_sql_cues = ["sql", "requete", "query", "base de donnees", "bdd"]
-        asks_explicit_sql = any(token in normalized for token in explicit_sql_cues)
-        if not asks_explicit_sql:
-            scored = [
-                (score, rule)
-                for score, rule in scored
-                if str(rule.get("intent")) != "sql"
-            ]
+        if not any(token in normalized for token in explicit_sql_cues):
+            scored = [(s, r) for s, r in scored if str(r.get("intent")) != "sql"]
 
     if scored:
         scored.sort(key=lambda item: item[0], reverse=True)
@@ -575,10 +752,8 @@ def classify_question(question: str) -> tuple[str, float, list[str], list[str], 
         matched_rules = [primary_rule]
 
     tool_families = list(primary_rule["tool_families"])
-
     primary_intent = str(primary_rule["intent"])
 
-    # Merge one family from additional matched intents to support multi-signal questions.
     for _, rule in scored[1:3]:
         for family in rule["tool_families"]:
             if primary_intent == "sql" and family != "sql":
@@ -606,6 +781,62 @@ def classify_question(question: str) -> tuple[str, float, list[str], list[str], 
         required_families,
         skip_llm,
     )
+
+
+def _classify_from_model(
+    question: str,
+) -> tuple[str, float, list[str], list[str], bool] | None:
+    """
+    Try the trained TF-IDF + LinearSVC classifier first.
+    Returns the full classify_question tuple on success, None if the pkl is
+    absent, confidence is too low, or the predicted intent is unknown.
+    """
+    try:
+        from intent_classifier import classify as _clf_classify
+        result = _clf_classify(question, min_confidence=0.60)
+        if result is None:
+            return None
+        intent, confidence, _ = result
+        rule = next((r for r in INTENT_RULES if r["intent"] == intent), None)
+        if rule is None:
+            return None
+        tool_families = list(rule.get("tool_families", [intent]))
+        required      = list(rule.get("required", []))
+        skip_llm      = bool(rule.get("skip_llm", False))
+        return intent, round(confidence, 3), tool_families, required, skip_llm
+    except Exception:
+        return None
+
+
+def classify_question(
+    question: str,
+    history: list[dict[str, Any]] | None = None,
+) -> tuple[str, float, list[str], list[str], bool]:
+    """
+    Classify the user question into an intent + tool families.
+
+    Path 1 (trained model): TF-IDF + LinearSVC with calibrated probabilities.
+                            Instant (<1ms), no network call. Used when the pkl
+                            exists and confidence ≥ 0.60.
+    Path 2 (Ollama):        Structured JSON prompt via llama3.  Handles anaphoric
+                            follow-ups ("et pour IRDS ?") using conversation history.
+    Path 3 (keywords):      Deterministic keyword-scoring fallback.
+                            Always available even when Ollama is down.
+
+    Set AGENT_FORCE_DETERMINISTIC=true to skip Paths 1 and 2.
+    """
+    normalized = _normalize_text(question)
+
+    if not FORCE_DETERMINISTIC:
+        model_result = _classify_from_model(question)
+        if model_result is not None:
+            return model_result
+
+        ollama_result = _classify_with_ollama(question, history=history)
+        if ollama_result:
+            return _classify_from_ollama(ollama_result)
+
+    return _classify_from_keywords(normalized)
 
 
 def detect_requested_tools(question: str) -> list[str]:
@@ -1216,9 +1447,10 @@ def _compose_precise_metric_answer(state: AgentState) -> str | None:
 
 
 def _call_ollama_chat(system_prompt: str, user_prompt: str) -> str:
-    host    = OLLAMA_HOST
-    model   = OLLAMA_CHAT_MODEL
-    timeout_seconds = OLLAMA_TIMEOUT_SECONDS
+    host  = OLLAMA_HOST
+    model = OLLAMA_CHAT_MODEL
+    cb    = _progress_cb.get(None)
+    use_stream = cb is not None
 
     response = requests.post(
         f"{host}/api/chat",
@@ -1228,16 +1460,33 @@ def _call_ollama_chat(system_prompt: str, user_prompt: str) -> str:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            "stream": False,
-            "options": {
-                "temperature": 0.2,
-            },
+            "stream": use_stream,
+            "options": {"temperature": 0.2},
         },
-        timeout=timeout_seconds,
+        timeout=OLLAMA_TIMEOUT_SECONDS,
+        stream=use_stream,
     )
     response.raise_for_status()
-    payload = response.json()
-    content = (payload.get("message") or {}).get("content", "")
+
+    if use_stream:
+        parts: list[str] = []
+        for raw_line in response.iter_lines():
+            if not raw_line:
+                continue
+            try:
+                chunk = json.loads(raw_line)
+            except json.JSONDecodeError:
+                continue
+            token = (chunk.get("message") or {}).get("content", "")
+            if token:
+                parts.append(token)
+                cb({"type": "llm_token", "token": token})  # type: ignore[misc]
+            if chunk.get("done"):
+                break
+        content = "".join(parts)
+    else:
+        content = (response.json().get("message") or {}).get("content", "")
+
     if not content or not str(content).strip():
         raise RuntimeError("Empty response from Ollama chat endpoint")
     return str(content).strip()
@@ -1279,24 +1528,39 @@ def _build_llm_prompt(state: AgentState) -> tuple[str, str]:
         "Tu es l'agent de synthese d'un systeme multi-agent assurance pour Maghrebia. Reponds en francais.\n"
         "Ton role est de consolider les donnees issues d'une generation NLP->SQL et du contexte documentaire (RAG).\n"
         "Tu dois OBLIGATOIREMENT structurer ta reponse en exactement 4 parties avec ces en-tetes exacts:\n"
-        "\n**Contexte**: (Resume la demande et la source des donnees, ex: 'Basé sur les requêtes SQL et la documentation interne...')\n"
+        "\n**Contexte**: (Resume UNIQUEMENT LA QUESTION ACTUELLE et la source des donnees utilisees. "
+        "Ne parle PAS des questions precedentes de la conversation. "
+        "Ex: 'La presente analyse repond a la question sur X, basee sur la documentation interne RAG.')\n"
         "\n**Analyse**: (Analyse les donnees recuperees depuis les outils et le brouillon. Explique les tendances et les chiffres.)\n"
         "\n**Decision**: (Propose des recommandations metier basees sur l'analyse, ex: 'Il est recommande de cibler telle branche...')\n"
-        "\n**Graphs/Tableaux**: (Si tu as recu des donnees formattes ou de serie temporelle, presente un resume tabulaire ou une suggestion claire du graphique a tracer.)\n"
-        "Respecte strictement cette structure à 4 sections."
-        "Si un outil rag_tool a retourné des documents, tu DOIS citer leur contenu en priorité "
-        "pour répondre aux questions sur les règles, définitions ou politiques. "
-        "Ne réponds PAS avec des chiffres KPI si la question est une question de définition.\n"
+        "\n**Graphs/Tableaux**: (Si tu as recu des donnees formattes ou de serie temporelle, presente un resume tabulaire ou une suggestion claire du graphique a tracer. "
+        "Si la question est une definition, indique simplement 'Pas de graphique applicable.')\n"
+        "REGLES IMPORTANTES:\n"
+        "- Si rag_tool a retourne des documents, cite leur contenu EN PRIORITE pour les questions de definition/reglementation.\n"
+        "- Ne reponds PAS avec des chiffres KPI si la question est une question de definition.\n"
+        "- La section **Contexte** doit decrire la question ACTUELLE uniquement, pas l'historique.\n"
     )
 
+    history = state.get("history") or []
+    history_block = ""
+    if history:
+        lines = ["## Historique (tours precedents — NE PAS confondre avec la question actuelle)"]
+        for turn in history[-3:]:
+            lines.append(f"[Tour precedent] Utilisateur: {turn.get('user', '')}")
+            lines.append(f"[Tour precedent] Assistant: {str(turn.get('assistant', ''))[:200]}")
+        history_block = "\n".join(lines) + "\n\n"
+
     user_prompt = (
-        f"Question utilisateur: {question}\n"
+        f"{history_block}"
+        f"=== QUESTION ACTUELLE A TRAITER ===\n"
+        f"{question}\n"
+        f"===================================\n"
         f"Intent detecte: {state.get('intent')} (confiance={state.get('intent_confidence')})\n"
-        f"Contexte: {_compact_json(context_payload, max_chars=900)}\n"
+        f"Contexte filtres: {_compact_json(context_payload, max_chars=900)}\n"
         f"Rapports agents specialises: {_compact_json(specialist_context, max_chars=4000)}\n"
         f"Sorties outils: {_compact_json(tool_context, max_chars=7000)}\n"
         f"Brouillon deterministe fiable: {_compact_json(grounded_draft, max_chars=3000)}\n"
-        "Instruction: produire une synthese plus lisible que le brouillon, sans perdre les faits."
+        "Instruction: produire une synthese de la QUESTION ACTUELLE uniquement, sans perdre les faits."
     )
     return system_prompt, user_prompt
 
@@ -1317,6 +1581,7 @@ async def _execute_tool(tool_name: str, question: str, context: dict[str, Any]) 
 
 
 def _guardrails_node(state: AgentState) -> AgentState:
+    _emit({"type": "progress", "step": "guardrails", "label": "Vérification du périmètre..."})
     question = state["question"]
     if not is_domain_question(question):
         return {
@@ -1353,6 +1618,7 @@ def _low_confidence_message(confidence: float) -> str:
 
 
 def _intent_node(state: AgentState) -> AgentState:
+    _emit({"type": "progress", "step": "intent", "label": "Classification de l'intention..."})
     context = dict(state.get("context", {}))
     inferred_branch = _infer_branch_from_question(state["question"])
     if inferred_branch == "ALL":
@@ -1372,7 +1638,28 @@ def _intent_node(state: AgentState) -> AgentState:
     if inferred_horizon:
         context["horizon_months"] = inferred_horizon
 
-    intent, confidence, tool_families, required_families, skip_llm = classify_question(state["question"])
+    history = state.get("history") or []
+    normalized_q = _normalize_text(state["question"])
+
+    if _is_followup_question(normalized_q, history):
+        # Inherit the previous turn's intent so "et pour IRDS ?" keeps calling kpi_tool,
+        # not sql_tool, when the prior question was a KPI query.
+        prior_intent = history[-1].get("intent", "") if history else ""
+        prior_rule = next((r for r in INTENT_RULES if r["intent"] == prior_intent), None)
+        if prior_rule:
+            intent = prior_intent
+            confidence = 0.92
+            tool_families = list(prior_rule["tool_families"])
+            required_families = list(prior_rule.get("required", []))
+            skip_llm = bool(prior_rule.get("skip_llm", False))
+        else:
+            intent, confidence, tool_families, required_families, skip_llm = classify_question(
+                state["question"], history=history
+            )
+    else:
+        intent, confidence, tool_families, required_families, skip_llm = classify_question(
+            state["question"], history=history
+        )
     selected_tools = _map_families_to_tools(tool_families)
     required_tools = _map_families_to_tools(required_families)
 
@@ -1474,6 +1761,9 @@ async def _run_tools_node(state: AgentState) -> AgentState:
             "steps": state.get("steps", []) + [{"step": "run_tools", "status": "no_tools"}],
         }
 
+    for tool_name in selected_tools:
+        _emit({"type": "progress", "step": f"tool:{tool_name}", "label": f"Outil {tool_name} en cours..."})
+
     tasks = [
         _execute_tool(tool_name=tool_name, question=question, context=context)
         for tool_name in selected_tools
@@ -1552,6 +1842,7 @@ def _deterministic_answer_node(state: AgentState) -> AgentState:
 
 
 def _llm_synthesis_node(state: AgentState) -> AgentState:
+    _emit({"type": "progress", "step": "llm", "label": "Génération de la réponse..."})
     if not _has_successful_tool_results(state):
         answer = _compose_deterministic_answer(state)
         return {
@@ -1652,9 +1943,13 @@ AGENT_GRAPH = _build_agent_graph()
 
 
 async def run_agent_query(question: str, context: dict[str, Any] | None = None) -> dict[str, Any]:
+    ctx = dict(context or {})
+    history: list[dict[str, Any]] = ctx.pop("history", None) or []
+
     state: AgentState = {
         "question": question,
-        "context": context or {},
+        "context": ctx,
+        "history": history,
         "status": "ok",
         "tool_results": [],
         "specialist_reports": [],

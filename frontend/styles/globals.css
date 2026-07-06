@@ -397,7 +397,8 @@ h1, h2, h3 {
 
 .charts-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  /* Line trend gets twice the width of the two compact charts */
+  grid-template-columns: 2fr 1fr 1fr;
   gap: 12px;
 }
 
@@ -542,12 +543,12 @@ h1, h2, h3 {
 
 .layout-geo {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 
 .map-shell {
-  height: 500px;
+  height: 380px;
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -591,7 +592,145 @@ tbody tr:hover { background: var(--cyan-light); }
 
 .loading-panel { text-align: center; color: var(--muted); }
 
-/* ── Agent chat ─────────────────────────────────────────────── */
+/* ── Agent workspace (history sidebar + chat) ───────────────── */
+
+.agent-workspace {
+  display: grid;
+  grid-template-columns: 230px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+/* ── History sidebar ────────────────────────────────────────── */
+
+.agent-history-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 600px;
+  max-height: 85vh;
+  position: sticky;
+  top: 16px;
+}
+
+.agent-history-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--muted);
+  margin: 0;
+  padding: 0 2px;
+}
+
+.agent-new-conv-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--cyan);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.83rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity 0.14s;
+  flex-shrink: 0;
+}
+.agent-new-conv-btn:hover:not(:disabled) { opacity: 0.88; }
+.agent-new-conv-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.agent-history-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.agent-history-list::-webkit-scrollbar { width: 3px; }
+.agent-history-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+.agent-history-item {
+  position: relative;
+  width: 100%;
+  text-align: left;
+  padding: 9px 28px 9px 10px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  transition: background 0.12s, border-color 0.12s;
+  font-family: inherit;
+}
+.agent-history-item:hover:not(:disabled) {
+  background: var(--panel-alt);
+  border-color: var(--border);
+}
+.agent-history-item:disabled { cursor: not-allowed; }
+.agent-history-active {
+  background: var(--cyan-light) !important;
+  border-color: var(--cyan-border) !important;
+}
+
+.agent-history-title {
+  font-size: 0.81rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+.agent-history-meta {
+  font-size: 0.71rem;
+  color: var(--muted);
+}
+
+.agent-history-delete {
+  position: absolute;
+  top: 50%;
+  right: 7px;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 5px;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.12s, background 0.12s, color 0.12s;
+}
+.agent-history-item:hover .agent-history-delete { opacity: 1; }
+.agent-history-delete:hover {
+  background: var(--crimson-light);
+  color: var(--crimson);
+}
+
+.agent-history-empty {
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-align: center;
+  padding: 24px 0;
+}
+
+/* ── Agent chat panel ───────────────────────────────────────── */
 
 .agent-panel { display: grid; gap: 12px; }
 
@@ -652,8 +791,8 @@ tbody tr:hover { background: var(--cyan-light); }
 .agent-messages {
   display: grid;
   gap: 10px;
-  max-height: 340px;
-  overflow: auto;
+  max-height: 65vh;
+  overflow-y: auto;
   padding-right: 4px;
   scroll-behavior: smooth;
 }
@@ -718,6 +857,62 @@ tbody tr:hover { background: var(--cyan-light); }
   color: var(--muted);
   border-color: var(--border);
 }
+
+/* ── Streaming state ──────────────────────────────── */
+.agent-stream-zone {
+  display: grid;
+  gap: 6px;
+  padding: 4px 0;
+}
+.agent-stream-step {
+  font-size: 0.78rem;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.agent-stream-step::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cyan-border);
+  flex-shrink: 0;
+}
+.agent-stream-tokens {
+  font-size: 0.88rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  color: var(--text);
+}
+.agent-stream-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 0.9em;
+  background: var(--cyan-border);
+  vertical-align: text-bottom;
+  margin-left: 1px;
+  animation: blink 0.9s step-end infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+.agent-stream-dots {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  padding: 4px 0;
+}
+.agent-stream-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cyan-border);
+  opacity: 0.35;
+  animation: pulse-dot 1.2s ease-in-out infinite;
+}
+.agent-stream-dots span:nth-child(2) { animation-delay: 0.2s; }
+.agent-stream-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes pulse-dot { 0%,80%,100% { opacity: 0.35; } 40% { opacity: 1; } }
 
 .agent-policy-chip {
   background: var(--amber-light);
@@ -897,19 +1092,20 @@ tbody tr:hover { background: var(--cyan-light); }
 
 .dim-kpi-row {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  /* auto-fit stretches existing columns to fill width; auto-fill would leave phantom empty columns */
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
 }
 
 .dim-kpi-card {
   background: #FFFFFF;
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 1rem 1.1rem;
+  padding: 0.75rem 0.9rem;
   display: flex;
   align-items: flex-start;
-  gap: 0.75rem;
+  gap: 0.6rem;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
   transition: box-shadow 0.18s, transform 0.18s;
   position: relative;
@@ -931,15 +1127,15 @@ tbody tr:hover { background: var(--cyan-light); }
 .dim-kpi-card:hover { box-shadow: 0 4px 12px rgba(0, 74, 141, 0.1); transform: translateY(-2px); }
 .dim-kpi-card:hover::before { opacity: 1; }
 
-.dim-kpi-icon  { font-size: 1.5rem; line-height: 1; flex-shrink: 0; margin-top: 2px; }
+.dim-kpi-icon  { font-size: 1.25rem; line-height: 1; flex-shrink: 0; margin-top: 2px; }
 .dim-kpi-body  { min-width: 0; }
 
 .dim-kpi-value {
-  font-size: 1.2rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--text);
   line-height: 1.2;
-  margin: 0 0 0.15rem 0;
+  margin: 0 0 0.1rem 0;
 }
 
 .dim-kpi-label {
@@ -966,8 +1162,9 @@ tbody tr:hover { background: var(--cyan-light); }
 
 .dim-charts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 1.25rem;
+  /* 3 charts per row on wide screens, 2 on medium, 1 on narrow */
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
 }
 
 .dim-chart-wide { grid-column: 1 / -1; }
@@ -998,11 +1195,24 @@ tbody tr:hover { background: var(--cyan-light); }
   .app-nav-menu    { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .filters-grid    { grid-template-columns: repeat(3, minmax(150px, 1fr)); }
   .kpi-grid        { grid-template-columns: repeat(2, minmax(170px, 1fr)); }
-  .charts-grid     { grid-template-columns: 1fr; }
+  .charts-grid     { grid-template-columns: 1fr 1fr; }
   .layout-geo      { grid-template-columns: 1fr; }
 
   .agent-section-layout { grid-template-columns: 1fr; }
   .agent-tools-panel    { position: static; }
+
+  /* Stack history panel above chat on narrow screens */
+  .agent-workspace {
+    grid-template-columns: 1fr;
+  }
+  .agent-history-panel {
+    min-height: unset;
+    max-height: 220px;
+    position: static;
+  }
+  .agent-history-list {
+    max-height: 140px;
+  }
 }
 
 @media (max-width: 680px) {

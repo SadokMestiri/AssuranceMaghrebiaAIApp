@@ -15,8 +15,10 @@ from ml_router import router as ml_router
 
 try:
     from agent_router import perform_agent_warmup, router as agent_router
+    from eval_router import router as eval_router
 except ImportError as exc:
     agent_router = None
+    eval_router  = None
     agent_import_error = str(exc)
 
     def perform_agent_warmup(*args: Any, **kwargs: Any) -> dict[str, Any]:
@@ -44,6 +46,8 @@ app.include_router(geo_router, prefix="/api/v1")
 app.include_router(ml_router, prefix="/api/v1")
 if agent_router is not None:
     app.include_router(agent_router, prefix="/api/v1")
+    if eval_router is not None:
+        app.include_router(eval_router, prefix="/api/v1")
 else:
     logger.warning("Agent router disabled because optional dependencies are unavailable.")
 

@@ -6,6 +6,36 @@ import DimKpiRow from "./DimKpiRow";
 
 const fmt = new Intl.NumberFormat("fr-TN");
 
+const RADIAN = Math.PI / 180;
+function renderPieLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent }) {
+  if ((percent || 0) < 0.01) return null;
+  if ((percent || 0) >= 0.07) {
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    return (
+      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={600}>
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
+  }
+  const sin = Math.sin(-midAngle * RADIAN);
+  const cos = Math.cos(-midAngle * RADIAN);
+  const x1 = cx + (outerRadius + 8) * cos;
+  const y1 = cy + (outerRadius + 8) * sin;
+  const x2 = cx + (outerRadius + 24) * cos;
+  const y2 = cy + (outerRadius + 24) * sin;
+  return (
+    <g>
+      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#94a3b8" strokeWidth={1} />
+      <text x={x2 + (cos >= 0 ? 3 : -3)} y={y2} fill="#64748b"
+        textAnchor={cos >= 0 ? "start" : "end"} dominantBaseline="central" fontSize={10} fontWeight={600}>
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    </g>
+  );
+}
+
 const SITUATION_COLORS = {
   V: "#2E7D32", R: "#C62828", T: "#F38F1D", S: "#6A1B9A", A: "#94a3b8",
 };
@@ -37,6 +67,8 @@ export default function PoliceDim({ data, dataPrev }) {
     _orig: e.label,
   }));
 
+  const bonusMalusFiltered = bonusMalus.filter((e) => (e.count || 0) > 0);
+
   return (
     <div className="dim-panel">
       <DimKpiRow cards={[
@@ -52,17 +84,17 @@ export default function PoliceDim({ data, dataPrev }) {
         {/* Situation portefeuille */}
         <article className="panel chart-panel">
           <h3>Situation du portefeuille</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <PieChart margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
+          <ResponsiveContainer width="100%" height={290}>
+            <PieChart margin={{ top: 20, right: 38, bottom: 20, left: 38 }}>
               <Pie data={situationChart} dataKey="count" nameKey="label"
-                outerRadius={68} innerRadius={32} paddingAngle={3}
-                label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+                outerRadius={68} innerRadius={30} paddingAngle={3}
+                label={renderPieLabel} labelLine={false}
               >
                 {bySituation.map((entry) => (
                   <Cell key={entry.label} fill={SITUATION_COLORS[entry.label] || "#94a3b8"} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v) => fmt.format(v)} />
+              <Tooltip formatter={(v) => [fmt.format(v), 'Nombre']} />
               <Legend />
             </PieChart>
           </ResponsiveContainer>
@@ -71,16 +103,16 @@ export default function PoliceDim({ data, dataPrev }) {
         {/* Type de police */}
         <article className="panel chart-panel">
           <h3>Type de police</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <PieChart margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
+          <ResponsiveContainer width="100%" height={270}>
+            <PieChart margin={{ top: 20, right: 38, bottom: 20, left: 38 }}>
               <Pie data={byType} dataKey="count" nameKey="label"
-                outerRadius={68} innerRadius={32} paddingAngle={3}
-                label={({ percent }) => `${(percent * 100).toFixed(1)}%`}
+                outerRadius={68} innerRadius={30} paddingAngle={3}
+                label={renderPieLabel} labelLine={false}
               >
                 <Cell fill="#004A8D" />
                 <Cell fill="#F38F1D" />
               </Pie>
-              <Tooltip formatter={(v) => fmt.format(v)} />
+              <Tooltip formatter={(v) => [fmt.format(v), 'Nombre']} />
               <Legend />
             </PieChart>
           </ResponsiveContainer>
@@ -89,13 +121,13 @@ export default function PoliceDim({ data, dataPrev }) {
         {/* Périodicité */}
         <article className="panel chart-panel">
           <h3>Périodicité de règlement</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={periodiciteChart}>
+          <ResponsiveContainer width="100%" height={210}>
+            <BarChart data={periodiciteChart} margin={{ top: 20 }}>
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v) => fmt.format(v)} />
-              <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+              <Tooltip formatter={(v) => [fmt.format(v), 'Polices']} />
+              <Bar dataKey="count" name="Polices" radius={[6, 6, 0, 0]} label={{ position: "top", fontSize: 11 }}>
                 {byPeriodicite.map((entry) => (
                   <Cell key={entry.label} fill={PERIODICITE_COLORS[entry.label] || "#94a3b8"} />
                 ))}
@@ -107,13 +139,13 @@ export default function PoliceDim({ data, dataPrev }) {
         {/* Durée de police */}
         <article className="panel chart-panel">
           <h3>Durée de police</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={byDuree}>
+          <ResponsiveContainer width="100%" height={210}>
+            <BarChart data={byDuree} margin={{ top: 20 }}>
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
               <XAxis dataKey="label" tick={{ fontSize: 13 }} />
               <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v) => fmt.format(v)} />
-              <Bar dataKey="count" fill="#1B68B2" radius={[6, 6, 0, 0]}
+              <Tooltip formatter={(v) => [fmt.format(v), 'Polices']} />
+              <Bar dataKey="count" name="Polices" fill="#1B68B2" radius={[6, 6, 0, 0]}
                 label={{ position: "top", fontSize: 11 }}
               />
             </BarChart>
@@ -123,14 +155,14 @@ export default function PoliceDim({ data, dataPrev }) {
         {/* Bonus-Malus */}
         <article className="panel chart-panel dim-chart-wide">
           <h3>Distribution Bonus-Malus</h3>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={bonusMalus}>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={bonusMalusFiltered} margin={{ top: 20 }}>
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
               <XAxis dataKey="label" tick={{ fontSize: 13 }} />
               <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v) => fmt.format(v)} />
-              <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                {bonusMalus.map((entry, i) => (
+              <Tooltip formatter={(v) => [fmt.format(v), 'Polices']} />
+              <Bar dataKey="count" name="Polices" radius={[6, 6, 0, 0]} label={{ position: "top", fontSize: 11 }}>
+                {bonusMalusFiltered.map((entry, i) => (
                   <Cell key={entry.label} fill={BM_COLORS[i % BM_COLORS.length]} />
                 ))}
               </Bar>

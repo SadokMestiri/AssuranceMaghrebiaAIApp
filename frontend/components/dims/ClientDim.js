@@ -7,10 +7,41 @@ import DimKpiRow from "./DimKpiRow";
 const fmt = new Intl.NumberFormat("fr-TN");
 const fmtPct = (v) => `${Number(v || 0).toFixed(1)} %`;
 
+const RADIAN = Math.PI / 180;
+function renderPieLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent }) {
+  if ((percent || 0) < 0.01) return null;
+  if ((percent || 0) >= 0.07) {
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    return (
+      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={600}>
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
+  }
+  const sin = Math.sin(-midAngle * RADIAN);
+  const cos = Math.cos(-midAngle * RADIAN);
+  const x1 = cx + (outerRadius + 8) * cos;
+  const y1 = cy + (outerRadius + 8) * sin;
+  const x2 = cx + (outerRadius + 24) * cos;
+  const y2 = cy + (outerRadius + 24) * sin;
+  return (
+    <g>
+      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#94a3b8" strokeWidth={1} />
+      <text x={x2 + (cos >= 0 ? 3 : -3)} y={y2} fill="#64748b"
+        textAnchor={cos >= 0 ? "start" : "end"} dominantBaseline="central" fontSize={10} fontWeight={600}>
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    </g>
+  );
+}
+
 export default function ClientDim({ data, dataPrev }) {
   if (!data) return <p className="dim-loading">Chargement clients…</p>;
 
-  const { kpis = {}, sexe = [], typePersonne = [], ageTranches = [], natp = [], topVilles = [], churnBySexe = [] } = data;
+  const { kpis = {}, sexe = [], typePersonne = [], ageTranches: rawAgeTranches = [], natp = [], topVilles = [], churnBySexe = [] } = data;
+  const ageTranches = rawAgeTranches.filter((e) => (e.count || 0) > 0);
   const prev = dataPrev?.kpis || {};
 
   const SEXE_COLORS = { F: "#E91E8C", M: "#004A8D", "N/A": "#94a3b8" };
@@ -33,17 +64,17 @@ export default function ClientDim({ data, dataPrev }) {
         {/* Répartition par sexe */}
         <article className="panel chart-panel">
           <h3>Répartition par sexe</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <PieChart margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
+          <ResponsiveContainer width="100%" height={270}>
+            <PieChart margin={{ top: 20, right: 38, bottom: 20, left: 38 }}>
               <Pie data={sexe} dataKey="count" nameKey="label"
-                outerRadius={68} innerRadius={32} paddingAngle={3}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
+                outerRadius={68} innerRadius={30} paddingAngle={3}
+                label={renderPieLabel} labelLine={false}
               >
                 {sexe.map((entry) => (
                   <Cell key={entry.label} fill={SEXE_COLORS[entry.label] || "#94a3b8"} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v) => fmt.format(v)} />
+              <Tooltip formatter={(v) => [fmt.format(v), 'Nombre']} />
               <Legend />
             </PieChart>
           </ResponsiveContainer>
@@ -52,13 +83,13 @@ export default function ClientDim({ data, dataPrev }) {
         {/* Distribution par tranche d'âge */}
         <article className="panel chart-panel">
           <h3>Tranches d'âge</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={ageTranches} layout="vertical">
+          <ResponsiveContainer width="100%" height={210}>
+            <BarChart data={ageTranches} layout="vertical" margin={{ right: 45 }}>
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
               <XAxis type="number" tick={{ fontSize: 11 }} />
               <YAxis type="category" dataKey="label" tick={{ fontSize: 12 }} width={55} />
-              <Tooltip formatter={(v) => fmt.format(v)} />
-              <Bar dataKey="count" fill={AGE_COLOR} radius={[0, 6, 6, 0]} label={{ position: "right", fontSize: 11 }} />
+              <Tooltip formatter={(v) => [fmt.format(v), 'Nombre']} />
+              <Bar dataKey="count" name="Clients" fill={AGE_COLOR} radius={[0, 6, 6, 0]} label={{ position: "right", fontSize: 11 }} />
             </BarChart>
           </ResponsiveContainer>
         </article>
@@ -66,17 +97,17 @@ export default function ClientDim({ data, dataPrev }) {
         {/* Type de personne */}
         <article className="panel chart-panel">
           <h3>Type de personne</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <PieChart margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
+          <ResponsiveContainer width="100%" height={270}>
+            <PieChart margin={{ top: 20, right: 38, bottom: 20, left: 38 }}>
               <Pie data={typePersonne} dataKey="count" nameKey="label"
-                outerRadius={68} innerRadius={32} paddingAngle={3}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
+                outerRadius={68} innerRadius={30} paddingAngle={3}
+                label={renderPieLabel} labelLine={false}
               >
                 {typePersonne.map((entry, i) => (
                   <Cell key={entry.label} fill={TYPE_COLORS[entry.label] || "#94a3b8"} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v) => fmt.format(v)} />
+              <Tooltip formatter={(v) => [fmt.format(v), 'Nombre']} />
               <Legend />
             </PieChart>
           </ResponsiveContainer>
@@ -85,53 +116,55 @@ export default function ClientDim({ data, dataPrev }) {
         {/* Nationalité */}
         <article className="panel chart-panel">
           <h3>Nationalité (NATP)</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <PieChart margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
+          <ResponsiveContainer width="100%" height={260}>
+            <PieChart margin={{ top: 20, right: 38, bottom: 20, left: 38 }}>
               <Pie data={natp} dataKey="count" nameKey="label"
-                outerRadius={68} innerRadius={32} paddingAngle={3}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
+                outerRadius={68} innerRadius={30} paddingAngle={3}
+                label={renderPieLabel} labelLine={false}
               >
                 {natp.map((entry, i) => (
                   <Cell key={entry.label} fill={NATP_COLORS[i % NATP_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v) => fmt.format(v)} />
+              <Tooltip formatter={(v) => [fmt.format(v), 'Nombre']} />
               <Legend />
             </PieChart>
           </ResponsiveContainer>
         </article>
 
-        {/* Churn by sexe */}
-        {churnBySexe && churnBySexe.length > 0 && (
-          <article className="panel chart-panel">
-            <h3>Résiliations par sexe</h3>
+        {/* Résiliations par sexe + Top 10 villes — side by side, spanning full grid width */}
+        <div style={{ gridColumn: "1 / -1", display: "flex", gap: "1rem" }}>
+          {churnBySexe && churnBySexe.length > 0 && (
+            <article className="panel chart-panel" style={{ flex: "0 0 300px" }}>
+              <h3>Résiliations par sexe</h3>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={churnBySexe}>
+                  <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 13 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={(v) => [fmt.format(v), 'Nombre']} />
+                  <Bar dataKey="resiliees" name="Polices résiliées" fill="#E91E8C" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="total" name="Total polices" fill="#004A8D" radius={[6, 6, 0, 0]} />
+                  <Legend />
+                </BarChart>
+              </ResponsiveContainer>
+            </article>
+          )}
+
+          <article className="panel chart-panel" style={{ flex: 1, minWidth: 0 }}>
+            <h3>Top 10 villes — concentration clients</h3>
             <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={churnBySexe}>
+              <BarChart data={topVilles} layout="vertical" margin={{ right: 45 }}>
                 <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
-                <XAxis dataKey="label" tick={{ fontSize: 13 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(v) => fmt.format(v)} />
-                <Bar dataKey="resiliees" name="Polices résiliées" fill="#E91E8C" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="total" name="Total polices" fill="#004A8D" radius={[6, 6, 0, 0]} />
-                <Legend />
+                <XAxis type="number" tick={{ fontSize: 11 }} />
+                <YAxis type="category" dataKey="label" tick={{ fontSize: 11 }} width={85} interval={0} />
+                <Tooltip formatter={(v) => [fmt.format(v), 'Nombre']} />
+                <Bar dataKey="count" name="Clients" fill="#004A8D" radius={[0, 6, 6, 0]}
+                  label={{ position: "right", fontSize: 11 }} />
               </BarChart>
             </ResponsiveContainer>
           </article>
-        )}
-
-        {/* Top 10 villes */}
-        <article className="panel chart-panel dim-chart-wide">
-          <h3>Top 10 villes — concentration clients</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={topVilles}>
-              <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
-              <XAxis dataKey="label" tick={{ fontSize: 11 }} angle={-20} textAnchor="end" height={55} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v) => fmt.format(v)} />
-              <Bar dataKey="count" fill="#004A8D" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </article>
+        </div>
 
       </div>
     </div>

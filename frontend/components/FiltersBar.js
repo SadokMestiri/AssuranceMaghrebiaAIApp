@@ -17,8 +17,47 @@ const MONTH_OPTIONS = [
   { value: "12", label: "Dec" },
 ];
 
-export default function FiltersBar({ governorates, loading }) {
+function FilterLabel({ children, support }) {
+  const na = support === false;
+  const partial = support === "partial";
+  const autoOnly = support === "auto";
+
+  let hint = null;
+  if (na)       hint = "non applicable à cette vue";
+  if (partial)  hint = "filtrage partiel côté client";
+  if (autoOnly) hint = "branche AUTO uniquement";
+
+  return (
+    <span style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+      <span style={{ opacity: na ? 0.45 : 1 }}>{children}</span>
+      {hint && (
+        <span
+          title={hint}
+          style={{
+            fontSize: "10px",
+            fontWeight: 600,
+            color: na ? "#94a3b8" : "#d97706",
+            background: na ? "rgba(148,163,184,0.12)" : "rgba(217,119,6,0.1)",
+            borderRadius: "3px",
+            padding: "1px 5px",
+            cursor: "default",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {na ? "—" : autoOnly ? "AUTO" : "~"}
+        </span>
+      )}
+    </span>
+  );
+}
+
+export default function FiltersBar({ governorates, loading, filterSupport = {} }) {
   const { filters, setFilter, resetFilters } = useFilters();
+
+  const branchSupport = filterSupport.branch ?? true;
+  const yearSupport   = filterSupport.year   ?? true;
+  const monthSupport  = filterSupport.month  ?? true;
+  const govSupport    = filterSupport.gouvernorat ?? true;
 
   return (
     <section className="panel filters-panel">
@@ -30,51 +69,55 @@ export default function FiltersBar({ governorates, loading }) {
       </div>
 
       <div className="filters-grid">
-        <label>
-          Annee debut
+        <label style={{ opacity: yearSupport === false ? 0.5 : 1 }}>
+          <FilterLabel support={yearSupport}>Annee debut</FilterLabel>
           <input
             type="number"
             min={YEAR_MIN}
             max={YEAR_MAX}
             value={filters.yearFrom}
             onChange={(event) => setFilter("yearFrom", event.target.value)}
-            disabled={loading}
+            disabled={loading || yearSupport === false}
           />
         </label>
 
-        <label>
-          Annee fin
+        <label style={{ opacity: yearSupport === false ? 0.5 : 1 }}>
+          <FilterLabel support={yearSupport}>Annee fin</FilterLabel>
           <input
             type="number"
             min={YEAR_MIN}
             max={YEAR_MAX}
             value={filters.yearTo}
             onChange={(event) => setFilter("yearTo", event.target.value)}
-            disabled={loading}
+            disabled={loading || yearSupport === false}
           />
         </label>
 
         <label>
-          Branche
+          <FilterLabel support={branchSupport}>Branche</FilterLabel>
           <select
             value={filters.branch}
             onChange={(event) => setFilter("branch", event.target.value)}
             disabled={loading}
           >
             {BRANCH_OPTIONS.map((option) => (
-              <option key={option} value={option}>
+              <option
+                key={option}
+                value={option}
+                disabled={branchSupport === "auto" && option !== "ALL" && option !== "AUTO"}
+              >
                 {option}
               </option>
             ))}
           </select>
         </label>
 
-        <label>
-          Mois
+        <label style={{ opacity: monthSupport === false ? 0.5 : 1 }}>
+          <FilterLabel support={monthSupport}>Mois</FilterLabel>
           <select
             value={filters.month}
             onChange={(event) => setFilter("month", event.target.value)}
-            disabled={loading}
+            disabled={loading || monthSupport === false}
           >
             {MONTH_OPTIONS.map((monthOption) => (
               <option key={monthOption.value} value={monthOption.value}>
@@ -84,12 +127,12 @@ export default function FiltersBar({ governorates, loading }) {
           </select>
         </label>
 
-        <label>
-          Gouvernorat
+        <label style={{ opacity: govSupport === false ? 0.5 : 1 }}>
+          <FilterLabel support={govSupport}>Gouvernorat</FilterLabel>
           <select
             value={filters.gouvernorat}
             onChange={(event) => setFilter("gouvernorat", event.target.value)}
-            disabled={loading}
+            disabled={loading || govSupport === false}
           >
             <option value="ALL">Tous</option>
             {governorates.map((gov) => (

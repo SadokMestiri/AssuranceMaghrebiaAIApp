@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -197,18 +196,14 @@ def _load_alert_history_documents() -> list[dict[str, Any]]:
     return docs
 
 
-def _hash_fallback_embedding(text_value: str, vector_size: int = 384) -> list[float]:
-    digest = hashlib.sha256(text_value.encode("utf-8")).hexdigest()
-    seed = int(digest[:16], 16)
-    rng = np.random.default_rng(seed)
-    vector = rng.normal(size=vector_size)
-    norm = float(np.linalg.norm(vector))
-    if norm == 0:
-        return [0.0] * vector_size
-    return (vector / norm).astype(float).tolist()
+def _embed_text(text_value: str) -> list[float] | None:
+    """Returns a real semantic embedding from Ollama, or None if Ollama is unreachable.
 
-
-def _embed_text(text_value: str) -> tuple[list[float], str]:
+    The old SHA-256 hash fallback has been removed: seeded-RNG vectors have no
+    semantic structure, so indexing them in Qdrant produces noise results that
+    look valid but are actually random. Callers must skip documents when None
+    is returned rather than indexing garbage.
+    """
     try:
         response = requests.post(
             f"{OLLAMA_HOST}/api/embeddings",
@@ -223,9 +218,9 @@ def _embed_text(text_value: str) -> tuple[list[float], str]:
         embedding = payload.get("embedding")
         if not isinstance(embedding, list) or not embedding:
             raise RuntimeError("Invalid embedding payload from Ollama")
-        return [float(item) for item in embedding], "ollama"
+        return [float(item) for item in embedding]
     except Exception:
-        return _hash_fallback_embedding(text_value), "hash_fallback"
+        return None
 
 
 def _ensure_collection(collection_name: str, vector_size: int) -> None:
@@ -271,18 +266,27 @@ def _to_qdrant_point_id(raw_id: Any) -> str | int:
     return str(uuid4())
 
 
-def _build_points(documents: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], int, list[str]]:
+def _build_points(documents: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], int, int]:
+    """Embed each document and build Qdrant point dicts.
+
+    Documents whose embedding fails (Ollama unreachable) are skipped entirely
+    so no noise vectors reach Qdrant.  Returns (points, vector_size, n_skipped).
+    """
     points: list[dict[str, Any]] = []
     vector_size = 0
-    engines_used: set[str] = set()
+    n_skipped = 0
 
     for document in documents:
         content = str(document.get("content", "")).strip()
         if not content:
+            n_skipped += 1
             continue
 
-        embedding, engine_name = _embed_text(content)
-        engines_used.add(engine_name)
+        embedding = _embed_text(content)
+        if embedding is None:
+            n_skipped += 1
+            continue
+
         vector_size = len(embedding)
         payload = {
             "title": document.get("title", ""),
@@ -290,7 +294,7 @@ def _build_points(documents: list[dict[str, Any]]) -> tuple[list[dict[str, Any]]
             "source": document.get("source", ""),
             "metadata": _sanitize_for_json(document.get("metadata", {})),
             "indexed_at": datetime.now(timezone.utc).isoformat(),
-            "embedding_engine": engine_name,
+            "embedding_engine": "ollama",
         }
 
         points.append(
@@ -301,10 +305,13 @@ def _build_points(documents: list[dict[str, Any]]) -> tuple[list[dict[str, Any]]
             }
         )
 
-    if vector_size == 0:
-        raise RuntimeError("No vectors were generated")
+    if vector_size == 0 and not points:
+        raise RuntimeError(
+            "No vectors were generated — Ollama may be unreachable. "
+            f"{n_skipped} document(s) skipped. Start Ollama and retry."
+        )
 
-    return points, vector_size, sorted(engines_used)
+    return points, vector_size, n_skipped
 
 
 def run_indexing(max_docs_per_collection: int = 400) -> dict[str, Any]:
@@ -332,16 +339,21 @@ def run_indexing(max_docs_per_collection: int = 400) -> dict[str, Any]:
             }
             continue
 
-        points, vector_size, engines_used = _build_points(sliced_documents)
+        points, vector_size, n_skipped = _build_points(sliced_documents)
         _ensure_collection(collection_name, vector_size)
         _upsert_points(collection_name, points)
 
-        report["collections"][collection_name] = {
+        entry: dict[str, Any] = {
             "indexed": len(points),
             "vector_size": vector_size,
             "source_documents": len(sliced_documents),
-            "embedding_engines": engines_used,
+            "embedding_engine": "ollama",
         }
+        if n_skipped:
+            entry["skipped"] = n_skipped
+            entry["warning"] = f"{n_skipped} document(s) not indexed — Ollama embedding failed"
+            report["status"] = "partial"
+        report["collections"][collection_name] = entry
 
     return report
 

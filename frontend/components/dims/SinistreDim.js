@@ -3,23 +3,43 @@ import {
   Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend,
 } from "recharts";
 import DimKpiRow from "./DimKpiRow";
+import { formatShortCurrency } from "../shared";
 
 const fmt = new Intl.NumberFormat("fr-TN");
-const fmtTND = new Intl.NumberFormat("fr-TN", { style: "currency", currency: "TND", maximumFractionDigits: 0 });
-
-function formatShortCurrency(value) {
-  const num = Number(value || 0);
-  if (num >= 1_000_000) {
-    return `${(num / 1_000_000).toFixed(1)}M DT`;
-  } else if (num >= 1_000) {
-    return `${Math.round(num / 1_000)}K DT`;
-  }
-  return `${num} DT`;
-}
 
 const ETAT_COLORS  = { Clos: "#2E7D32", Ouvert: "#C62828", "Refusé": "#F38F1D" };
 const RESP_COLORS  = { "0": "#2E7D32", "50": "#F38F1D", "100": "#C62828" };
-const RESP_LABELS  = { "0": "0 % (Tiers resp.)", "50": "50 % (Partage)", "100": "100 % (Assuré)" };
+const RESP_LABELS  = { "0": "Tiers resp.", "50": "Partage", "100": "Assuré" };
+
+const RADIAN = Math.PI / 180;
+function renderPieLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent }) {
+  if ((percent || 0) < 0.01) return null;
+  if ((percent || 0) >= 0.07) {
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    return (
+      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={600}>
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
+  }
+  const sin = Math.sin(-midAngle * RADIAN);
+  const cos = Math.cos(-midAngle * RADIAN);
+  const x1 = cx + (outerRadius + 8) * cos;
+  const y1 = cy + (outerRadius + 8) * sin;
+  const x2 = cx + (outerRadius + 24) * cos;
+  const y2 = cy + (outerRadius + 24) * sin;
+  return (
+    <g>
+      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#94a3b8" strokeWidth={1} />
+      <text x={x2 + (cos >= 0 ? 3 : -3)} y={y2} fill="#64748b"
+        textAnchor={cos >= 0 ? "start" : "end"} dominantBaseline="central" fontSize={10} fontWeight={600}>
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    </g>
+  );
+}
 const NATURE_COLORS = [
   "#C62828","#004A8D","#F38F1D","#2E7D32",
   "#6A1B9A","#00838F","#5D4037","#3949AB","#E91E8C","#00ACC1",
@@ -50,13 +70,13 @@ export default function SinistreDim({ data, dataPrev }) {
         {/* Nature sinistre */}
         <article className="panel chart-panel dim-chart-wide">
           <h3>Sinistres par nature</h3>
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={byNature} layout="vertical">
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={byNature} layout="vertical" margin={{ right: 45 }}>
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
               <XAxis type="number" tick={{ fontSize: 11 }} />
               <YAxis type="category" dataKey="label" tick={{ fontSize: 11 }} width={130} />
-              <Tooltip formatter={(v) => fmt.format(v)} />
-              <Bar dataKey="count" name="Sinistres">
+              <Tooltip formatter={(v) => [fmt.format(v), 'Nombre']} />
+              <Bar dataKey="count" name="Sinistres" label={{ position: "right", fontSize: 11 }}>
                 {byNature.map((entry, i) => (
                   <Cell key={entry.label} fill={NATURE_COLORS[i % NATURE_COLORS.length]} />
                 ))}
@@ -68,17 +88,17 @@ export default function SinistreDim({ data, dataPrev }) {
         {/* État sinistre */}
         <article className="panel chart-panel">
           <h3>État des sinistres</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <PieChart margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
+          <ResponsiveContainer width="100%" height={270}>
+            <PieChart margin={{ top: 20, right: 38, bottom: 20, left: 38 }}>
               <Pie data={byEtat} dataKey="count" nameKey="label"
-                outerRadius={68} innerRadius={32} paddingAngle={3}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
+                outerRadius={68} innerRadius={30} paddingAngle={3}
+                label={renderPieLabel} labelLine={false}
               >
                 {byEtat.map((entry) => (
                   <Cell key={entry.label} fill={ETAT_COLORS[entry.label] || "#94a3b8"} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v) => fmt.format(v)} />
+              <Tooltip formatter={(v) => [fmt.format(v), 'Nombre']} />
               <Legend />
             </PieChart>
           </ResponsiveContainer>
@@ -87,17 +107,17 @@ export default function SinistreDim({ data, dataPrev }) {
         {/* Responsabilité */}
         <article className="panel chart-panel">
           <h3>Responsabilité engagée</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <PieChart margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
+          <ResponsiveContainer width="100%" height={270}>
+            <PieChart margin={{ top: 20, right: 38, bottom: 20, left: 38 }}>
               <Pie data={respChart} dataKey="count" nameKey="label"
-                outerRadius={68} innerRadius={32} paddingAngle={3}
-                label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+                outerRadius={68} innerRadius={30} paddingAngle={3}
+                label={renderPieLabel} labelLine={false}
               >
                 {byResponsabilite.map((entry) => (
                   <Cell key={entry.label} fill={RESP_COLORS[entry.label] || "#94a3b8"} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v) => fmt.format(v)} />
+              <Tooltip formatter={(v) => [fmt.format(v), 'Nombre']} />
               <Legend />
             </PieChart>
           </ResponsiveContainer>
@@ -106,13 +126,13 @@ export default function SinistreDim({ data, dataPrev }) {
         {/* Par branche */}
         <article className="panel chart-panel">
           <h3>Sinistres par branche</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={byBranche}>
+          <ResponsiveContainer width="100%" height={210}>
+            <BarChart data={byBranche} margin={{ top: 20 }}>
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
               <XAxis dataKey="label" tick={{ fontSize: 13 }} />
               <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v) => fmt.format(v)} />
-              <Bar dataKey="count" radius={[6, 6, 0, 0]} fill="#C62828"
+              <Tooltip formatter={(v) => [fmt.format(v), 'Sinistres']} />
+              <Bar dataKey="count" name="Sinistres" radius={[6, 6, 0, 0]} fill="#C62828"
                 label={{ position: "top", fontSize: 11 }}
               />
             </BarChart>
@@ -123,13 +143,13 @@ export default function SinistreDim({ data, dataPrev }) {
         {monthly && monthly.length > 0 && (
           <article className="panel chart-panel dim-chart-wide">
             <h3>Évolution mensuelle sinistres</h3>
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={180}>
               <BarChart data={monthly}>
                 <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
                 <XAxis dataKey="label" tick={{ fontSize: 10 }} angle={-20} textAnchor="end" height={50} />
                 <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(v) => fmt.format(v)} />
-                <Bar dataKey="count" fill="#C62828" radius={[4, 4, 0, 0]} />
+                <Tooltip formatter={(v) => [fmt.format(v), 'Sinistres']} />
+                <Bar dataKey="count" name="Sinistres" fill="#C62828" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </article>

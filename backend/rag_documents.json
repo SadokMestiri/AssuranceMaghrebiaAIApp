@@ -1,52 +1,187 @@
 [
   {
     "id": "tdsp_phase3",
-    "title": "TDSP Phase 3 - KPI dashboard",
-    "content": "La phase 3 met l accent sur les KPI business: prime nette, commission, taux de resiliation, impayes, top agents et analyse par branche pour le pilotage CEO."
+    "title": "TDSP Phase 3 - Dashboard KPI Metier",
+    "content": "La phase 3 du projet met en place le tableau de bord KPI metier destine au CEO et aux responsables de branche. Les indicateurs couvrent : prime nette par branche (AUTO, IRDS, SANTE), taux de resiliation, montant et taux d'impayes, commission reseau, ratio sinistres/primes (S/P proxy). Les vues disponibles sont : vision mensuelle avec comparaison N-1, vision annuelle cumul, decomposition par branche, par gouvernorat et par reseau agent. Le but operationnel est de fournir des recommandations actionnables : acceleration commerciale, retention client, recouvrement cible et reduction des zones de risque."
   },
   {
     "id": "tdsp_phase4",
-    "title": "TDSP Phase 4 - Agent IA",
-    "content": "La phase 4 ajoute un agent IA metier qui orchestre des tools analytiques: KPI, rag, forecast, anomaly, drift, explain et segment."
+    "title": "TDSP Phase 4 - Agent IA Metier LangGraph",
+    "content": "La phase 4 ajoute un agent IA metier base sur LangGraph qui orchestre des outils analytiques en langage naturel. L'architecture comprend 6 noeuds : guardrails (filtrage securite), intent (classification Ollama JSON), run_tools (execution parallele des outils), validate (controle qualite), deterministic_answer et llm_synthesis. Les outils disponibles : kpi_tool, rag_tool, alerte_tool, forecast_tool, anomaly_tool, drift_tool, explain_tool, segmentation_tool, client_tool, sql_tool, ml_predict_tool, dim_tool. Le classifieur d'intention utilise Ollama llama3 en mode JSON avec fallback mots-cles. La memoire de session (TTL 30 min) permet des conversations multi-tours."
   },
   {
     "id": "kpi_prime_nette",
-    "title": "Definition prime nette",
-    "content": "La prime nette represente la production hors taxes et hors frais additionnels. Elle est la base de reference pour la performance commerciale."
+    "title": "Prime nette - Definition et calcul",
+    "content": "La prime nette (mt_pnet dans dwh_fact_emission) represente la production hors taxes et hors frais additionnels. C'est la base de reference pour la performance commerciale. Calcul : prime nette = somme de toutes les garanties souscrites (RC + dommages + incendie + vol + assistance + ...) sans les taxes. La prime TTC (mt_ptt) inclut : prime nette + FGA (25% de la RC pour l'AUTO) + taxe 6% + timbre. En AUTO, mt_ptt ≈ mt_pnet x 1.32. En IRDS, mt_ptt ≈ mt_pnet x 1.065. En SANTE, mt_ptt ≈ mt_pnet x 1.06. Le suivi de la prime nette par branche permet de mesurer la croissance reelle de la production hors effet fiscal."
   },
   {
     "id": "kpi_sp_proxy",
-    "title": "S over P proxy",
-    "content": "Dans cette plateforme, un ratio proxy de sinistralite est calcule via impayes sur prime nette quand les sinistres detailles ne sont pas totalement disponibles."
+    "title": "Ratio sinistres/primes (S/P) - Definition et interpretation",
+    "content": "Le ratio S/P (sinistres sur primes) est le principal indicateur de rentabilite technique. Formule exacte : S/P = Sinistres payes / Prime nette x 100. Dans la plateforme Maghrebia, un proxy S/P est calcule via impayes sur prime nette quand les sinistres detailles ne sont pas totalement disponibles. Norme sectorielle Tunisie : AUTO < 75%, IRDS 50-80% selon l'annee, SANTE 65-85%. Un S/P > 100% signifie que la compagnie paie plus en sinistres qu'elle ne percoit en primes : perte technique garantie. Le ratio combine = S/P + ratio de chargement (frais/primes). Un ratio combine < 95% est la cible pour un assureur IARD sain. Un S/P IRDS de 352% dans les donnees signale une sinistralite catastrophique ou une sous-tarification severe sur cet exercice."
   },
   {
     "id": "kpi_churn",
-    "title": "Taux de resiliation",
-    "content": "Le churn mesure la proportion de polices resiliees sur le portefeuille total. Un churn eleve signale une erosion de valeur client."
+    "title": "Taux de resiliation (churn) - Calcul et seuils d'alerte",
+    "content": "Le taux de resiliation mesure la proportion de polices perdues sur le portefeuille. Formule : taux resiliation = (polices resiliees + annulations) / polices en vigueur debut de periode x 100. Causes de resiliation en assurance tunisienne : resiliation a l'echeance (preavis 2 mois), resiliation apres sinistre (dans 30 jours), non-paiement de prime (suspension J+10, resiliation J+30), aggravation du risque. Dans dim_police, situation='R' = Resiliee, 'V' = En vigueur, 'S' = Suspendue, 'T' = Terminee. Seuil d'alerte : taux > 15% = critique, 10-15% = attention, < 10% = normal. Le taux Maghrebia AUTO tourne autour de 12%, dans la norme sectorielle (10-15%). Une hausse soudaine du churn apres une periode d'impayes eleves signale un probleme de recouvrement qui entraine des resiliations en cascade."
   },
   {
     "id": "kpi_commission",
-    "title": "Commission reseau",
-    "content": "Le suivi de commission par branche et par agent aide a piloter l efficacite commerciale et la rentabilite du reseau de distribution."
+    "title": "Commission reseau - Taux et pilotage",
+    "content": "La commission (mt_commission dans dwh_fact_emission) est la remuneration versee aux intermediaires. Taux par branche : AUTO 10-15% de la prime nette, IRDS 12-18% selon type de risque, SANTE 6-10%. La commission n'est pas versee sur les taxes (FGA, timbre, taxe 6%) mais uniquement sur la prime nette. Un ratio commission/prime nette > 20% est anormal. Le pilotage du reseau via la commission inclut : classement agents par volume production, sinistralite du portefeuille de chaque agent, taux de fidelisation par agent. Un agent dont le ratio S/P > 120% de la moyenne reseau est un signal d'alerte : il amene de mauvais risques. Les groupes agents dans dim_agent : GD (Grandes Directions), AG (Agents Generaux), CR (Courtiers)."
   },
   {
     "id": "risk_recouvrement",
-    "title": "Risque recouvrement",
-    "content": "Le risque recouvrement est surveille via taux impaye, montant impaye et ecart entre signal predit et signal observe."
+    "title": "Risque recouvrement et impayes",
+    "content": "Le risque recouvrement designe la probabilite de non-paiement des primes emises. Un impaye (dwh_fact_impaye, colonne mt_acp) est une prime non encaisee a echeance. Processus reglementaire : J+10 mise en demeure, J+20 suspension de garantie, J+30 resiliation. Le taux d'impaye = montant impaye / prime nette emise x 100. Seuil d'alerte Maghrebia : > 2% = critique, 1-2% = attention. Le stock d'impayes represente un double risque : credit (perte de prime) et assurantiel (sinistres en periode de suspension). La colonne sit dans dwh_fact_emission trace le statut de paiement. Le modele ML predit le risque d'impaye par police a partir du bonus-malus, branche, mois d'echeance et historique de paiement. AUC ROC du modele ~0.72."
   },
   {
     "id": "governance_model",
-    "title": "Gouvernance modele",
-    "content": "La gouvernance champion challenger trace les entrainements et promotions avec historique des decisions pour auditabilite et stabilite en production."
+    "title": "Gouvernance modele ML - Champion/Challenger",
+    "content": "La gouvernance champion/challenger est un cadre de gestion du cycle de vie des modeles ML. Principe : le modele champion est le modele en production ; le challenger est un candidat entraine sur des donnees plus recentes ou avec une architecture differente. La promotion du challenger en champion se fait quand ses metriques (AUC, precision, rappel) depassent le champion de plus de 2 points de pourcentage sur les donnees de validation holdout. L'historique des decisions (entrainement, validation, promotion) est trace pour auditabilite. Le drift_tool detecte la degradation du champion en production via PSI (Population Stability Index, seuil critique 0.25) et test KS. Un modele doit etre reentraire si : PSI > 0.25 sur une feature cle, ou AUC en production chute de > 5 points vs validation. Periodicite recommandee : reentrainement trimestriel minimal."
   },
   {
     "id": "geo_risk",
-    "title": "Geo risque Tunisie",
-    "content": "La carte geo met en evidence les zones a risque via un signal proxy impaye par gouvernorat afin de prioriser les actions terrain."
+    "title": "Geo-risque Tunisie - Sinistralite par gouvernorat",
+    "content": "La carte geographique de risque identifie les zones a sinistralite ou impayes eleves par gouvernorat. Les 24 gouvernorats tunisiens ont des profils de risque differents. Grand Tunis (Tunis, Ben Arous, Ariana, Manouba) : forte densite de circulation, sinistralite AUTO elevee, mais production elevee aussi. Sfax : 2e ville, trafic commercial intense, ratio S/P AUTO superieur a la moyenne. Sousse, Monastir : tourisme + industrie, risque modere. Sud (Tozeur, Tataouine, Kebili) : faible densite, sinistralite basse mais aussi faible production. La carte geo alimente la priorisation des actions terrain : agents a renforcer dans les zones sous-penetrees, revue tarifaire dans les zones a sinistralite elevee, campagnes recouvrement dans les gouvernorats a fort taux d'impayes."
   },
   {
     "id": "ceo_usage",
-    "title": "Usage CEO",
-    "content": "Le dashboard CEO doit fournir des recommandations actionnables: acceleration commerciale, retention, recouvrement cible et reduction des zones de risque."
+    "title": "Usage CEO - Tableau de bord et questions types",
+    "content": "Le tableau de bord CEO Maghrebia est concu pour le pilotage strategique. Questions frequentes CEO : 'Quelle est la prime nette totale ce mois vs N-1 ?' -> KPI par branche et evolution. 'Pourquoi le ratio combine IRDS est-il si eleve ?' -> analyser sinistres par nature et gouvernorat. 'Quelle branche est la plus rentable ?' -> comparer ratio combine et volume prime. 'Ou sont nos risques de concentration ?' -> carte geo et top agents. 'Prevision de production sur 3 mois ?' -> forecast_tool. 'Y a-t-il des alertes de risque ce mois ?' -> alerte_tool. Axes de lecture recommandes : 1) Evolution mensuelle vs N-1 et budget. 2) Ratio combine < 100% = cible. 3) Stock impayes < 1.5 mois de prime. 4) Top agents en sur-sinistralite. 5) Forecast 3 mois pour anticiper tresorerie."
+  },
+  {
+    "id": "code_assurances_tunisie",
+    "title": "Code des Assurances Tunisien - Loi 2002-37",
+    "content": "La loi n° 2002-37 du 1er avril 2002 constitue le code des assurances en Tunisie, modifiee par la loi 2008-8. Elle regit toutes les operations d'assurance terrestres. Les entreprises d'assurance doivent obtenir un agrement du Comite General des Assurances (CGA) pour chaque branche. Branches numerotees : AUTO (30-38), Incendie/IRDS (20-29, 50-89), Sante Groupe (60-62). Marge de solvabilite minimale : 1/3 des primes nettes encaissees pour les branches IARD. Provisions techniques obligatoires : PPNA (primes non acquises), PSAP (sinistres a payer), PRC (risques en cours). Tout deficit en provisions entraine une mise en demeure de la CGA dans 30 jours. La CGA peut imposer un plan de redressement si le ratio de solvabilite descend sous 100%."
+  },
+  {
+    "id": "cga_role",
+    "title": "CGA - Comite General des Assurances : Role et circulaires",
+    "content": "Le Comite General des Assurances (CGA) est l'autorite de controle du secteur des assurances en Tunisie, sous tutelle du Ministere des Finances. Attributions : agrement/retrait, controle solvabilite, approbation tarifs, surveillance provisions. Circulaires cles : CGA 2019-01 - calcul PSAP dossier/dossier pour sinistres corporels graves. CGA 2020-03 - reporting trimestriel de solvabilite obligatoire. CGA 2021-05 - delais reglementaires de reglement sinistres (45 jours max apres expertise pour IARD, 8 mois offre d'indemnisation pour RC corporelle). La CGA dispose d'un fonds de protection des assures qui intervient en cas de faillite d'un assureur. Les tarifs AUTO sont deposes a la CGA mais ne sont plus homologues (liberte tarifaire depuis 1994). Les tarifs Vie et Capitalisation restent soumis a agrement prealable."
+  },
+  {
+    "id": "branche_auto",
+    "title": "Branche AUTO - Regles tarifaires et garanties",
+    "content": "L'assurance automobile est regie par la loi n°82-101 du 31 decembre 1982. La Responsabilite Civile (RC) est OBLIGATOIRE pour tout vehicule terrestre a moteur. La prime RC est soumise a : taxe FGA de 25% sur la prime RC nette, timbre fiscal (0.5% sur prime TTC), taxe assurance 6%. Usage vehicule : particulier (NV3), taxi (NV4), transport (NV5), engin de chantier (NV6). La garantie Dommages Collision est facultative. Le bonus-malus s'applique sur la prime RC : coefficient 0.50 (50% bonus max apres 13 ans sans sinistre), majoration 25% par sinistre responsable. Carte Verte : valide dans les pays membres du Bureau International de l'Automobile. Carte Orange : extension Maghreb. La branche AUTO represente environ 75% du CA de Maghrebia."
+  },
+  {
+    "id": "fga_regles",
+    "title": "FGA - Fonds de Garantie Automobile : Regles et comptabilite",
+    "content": "Le Fonds de Garantie Automobile (FGA) est alimente par une cotisation obligatoire de 25% prelevee sur la prime RC nette. Le FGA indemnise les victimes d'accidents causes par : vehicules non identifies (delit de fuite), vehicules non assures, vehicules voles. Plafonds FGA : corporel illimite pour les dommages graves, 100 000 TND pour les dommages materiels. La colonne mt_fga dans dwh_fact_emission correspond a ce prelevement. En comptabilite Maghrebia, le FGA n'est pas du chiffre d'affaires propre : c'est une taxe collectee pour le compte du fonds. Le ratio combine exclut le FGA du calcul de la prime nette pour ne pas gonfler artificiellement la base. Le FGA couvre les victimes meme si l'assure est en defaut de paiement (protection des tiers)."
+  },
+  {
+    "id": "bonus_malus",
+    "title": "Bonus-Malus Automobile - Systeme et coefficients",
+    "content": "Le systeme bonus-malus tunisien est reglemente par le decret n°83-406 du 30 avril 1983. Coefficient de depart : 1.00. Bonus : reduction de 5% par annee sans sinistre responsable, minimum 0.50 apres 13 ans. Malus : majoration 25% par sinistre responsable a 100%, 12.5% si responsabilite partagee 50/50. Coefficient maximum : 3.50 (250% de majoration). Le coefficient est personnel et suit l'assure, pas le vehicule. Dans dwh_fact_emission et dim_police, la colonne bonus_malus stocke ce coefficient. Un coefficient > 1.00 signale un assure a sinistralite elevee. Lors d'un changement de vehicule ou de compagnie, l'assure presente son releve d'information au nouvel assureur. Le bonus-malus est un element cle dans le modele de prediction d'impayes : les assures avec fort malus paient moins bien."
+  },
+  {
+    "id": "branche_irds",
+    "title": "Branche IRDS - Incendie, Risques Divers et Sante",
+    "content": "La branche IRDS (Incendie, Risques Divers, Securite) couvre les dommages aux biens immobiliers et mobiliers. Sous-branches principales : Incendie (code 20-22, 27) : habitations, commerces, industries contre incendie, explosion, degats des eaux. Vol (code 50-51) : effraction, agression. RC (code 80-89) : RC chef de famille, RC professionnelle, RC decennale. Risques Speciaux (code 74-78) : bris de machine, bris de glaces, tous risques informatique. Assistance (code 17-19) : assistance voyage, rapatriement. Tarification : basee sur valeur des biens, type de construction, activite exercee. Prime incendie = valeur assuree x taux de base x coefficient construction x coefficient activite. Pas de FGA sur IRDS. Taux de base habitation : beton 0.5%, mixte 0.8%, inflammable 2%. Entreprise : atelier mecanique 1.5%, entrepot 1%, bureau 0.4%."
+  },
+  {
+    "id": "branche_sante",
+    "title": "Branche SANTE - Groupe Maladie et complementarite CNAM",
+    "content": "L'assurance Groupe Maladie (codes 60-62) couvre les frais medicaux des salaries d'une entreprise. En Tunisie, la CNAM (Caisse Nationale d'Assurance Maladie, loi 2004-71) gere la couverture de base obligatoire depuis 2007. L'assurance groupe Maghrebia est COMPLEMENTAIRE a la CNAM. Filières CNAM : publique (100% hopitaux publics), privee conventionnee (ticket moderateur 20%), liberte (pas de remboursement). Maghrebia rembourse la partie non prise en charge par la CNAM selon conditions du contrat. La prime groupe est calculee sur : effectifs x cotisation mensuelle par tete (adulte / conjoint / enfant). Exclusions types : maladies anterieures declarees, cosmetique, cure thermale. Le ratio S/P SANTE est structurellement eleve (65-85%) car les remboursements sont frequents. Les contrats groupe se renouvellent annuellement avec revision tarifaire basee sur le S/P de l'annee precedente."
+  },
+  {
+    "id": "provisions_techniques",
+    "title": "Provisions techniques - Types et obligations reglementaires",
+    "content": "Les provisions techniques sont des passifs comptables obligatoires representant les engagements futurs. Types (circulaire CGA) : 1) PPNA (Provision pour Primes Non Acquises) : fraction de prime non encore gagnee = prime x jours restants / duree totale. 2) PSAP (Provision pour Sinistres a Payer) : estimation des indemnites dues non encore reglees. Methode dossier/dossier pour sinistres corporels graves, methode statistique frequence/cout moyen pour IARD courant. 3) PRC (Provision pour Risques en Cours) : complement si PPNA insuffisante. 4) PRES (Provision pour Equalisation Sinistres) : lissage fluctuations en RC auto. Dans le DWH Maghrebia, mt_evaluation dans dwh_fact_sinistre correspond a l'estimation PSAP par dossier. Les sinistres 'Ouverts' representent des dossiers provisiones non soldes. Deficit en provisions = infraction grave sanctionnee par CGA."
+  },
+  {
+    "id": "ratio_combine",
+    "title": "Ratio combine - Formule, interpretation et normes",
+    "content": "Le ratio combine est le principal indicateur de rentabilite technique d'une compagnie d'assurance. Formule : Ratio Combine = (Sinistres payes + Frais de gestion) / Prime nette x 100. Proxy utilise dans la plateforme Maghrebia (frais de gestion non disponibles dans le DWH) : Ratio Combine ≈ (montant impayes + commissions) / prime nette x 100, ou sinistres evalues / prime nette x 100. Interpretation : < 95% = rentabilite technique bonne (cible), 95-100% = equilibre fragile, > 100% = perte technique (les sinistres et frais depassent les primes). Normes sectorielles Tunisie : IARD < 95%, Sante Groupe 85-100%, AUTO < 90% idealement. Un ratio > 200% est une alerte majeure necessitant revision tarifaire urgente. Le ratio combine IRDS eleve (352%) dans les donnees reflète une sous-tarification ou sinistralite exceptionnelle."
+  },
+  {
+    "id": "polices_quittances",
+    "title": "Polices et quittances - Structure du portefeuille",
+    "content": "Une police (dim_police) est le contrat d'assurance entre l'assure et Maghrebia. Une quittance (dwh_fact_emission) est un document de paiement correspondant a une echeance de prime. Relation : 1 police -> N quittances selon periodicite (annuelle : 1/an, semestrielle : 2/an, trimestrielle : 4/an). Situation police dans dim_police : V = En vigueur, R = Resiliee, S = Suspendue, T = Terminee, A = Annulee. Le num_avn (avenant) trace les modifications en cours de vie. Les polices flottes regroupent plusieurs vehicules sous un contrat unique avec police-mere (polrp). date_effet et date_echeance bornent la couverture. Etat quittance dans dwh_fact_emission : E = Emise (non payee), P = Payee, A = Annulee. La colonne sit = 0 signale un impaye potentiel."
+  },
+  {
+    "id": "sinistres_gestion",
+    "title": "Sinistres AUTO - Gestion et delais reglementaires",
+    "content": "Etapes de gestion d'un sinistre : Declaration (date_declaration dans dwh_fact_sinistre), Ouverture dossier (etat_sinistre = 'Ouvert'), Expertise et evaluation (mt_evaluation = montant provisionne), Reglement (mt_paye), Cloture (etat_sinistre = 'Clos'). Types de sinistres : Materiel (chocs, bris), Corporel (accidents, plus graves), Vol, Maladie (SANTE). Responsabilite (colonne responsabilite = 0, 50, 100) determine l'imputabilite au bonus-malus. Delais reglementaires CGA 2021-05 : 45 jours apres expertise pour IARD materiel. RC corporelle : offre d'indemnisation obligatoire dans 8 mois. Barème corporel (decret 88-1742) : ITT (indemnite journaliere x jours), IPP (capital = taux x bareme age), deces (capital aux ayants droit). Un ecart mt_evaluation vs mt_paye > 30% sur le portefeuille signale une sous ou sur-evaluation systematique."
+  },
+  {
+    "id": "rc_decennale",
+    "title": "Responsabilite Civile Decennale - Garantie obligatoire construction",
+    "content": "La Responsabilite Civile Decennale (code 80, 88) couvre les promoteurs immobiliers et entrepreneurs de construction pour les dommages survenus dans les 10 ans apres reception des travaux. C'est une garantie OBLIGATOIRE pour tout constructeur d'immeuble en Tunisie (loi n°94-9 du 31 janvier 1994). Sont couverts : vices de construction affectant la solidite de l'ouvrage ou le rendant impropre a sa destination. La prime est calculee sur le cout total de construction TTC, avec un taux variable selon le type d'ouvrage (3-5% du cout pour les batiments courants). La police est souscrite avant ouverture du chantier et court 10 ans a compter de la date de reception. Le risque pour l'assureur est long terme : les sinistres peuvent survenir des annees apres emission de la prime, ce qui necessite des provisions longue duree (PSAP longue queue)."
+  },
+  {
+    "id": "assistance_voyage",
+    "title": "Assistance Voyage et Rapatriement (code 17-19)",
+    "content": "La garantie Assistance Voyage (code 17-19 dans la nomenclature IRDS) couvre les assures lors de deplacements hors de leur domicile habituel. Garanties types : frais medicaux d'urgence a l'etranger (plafond 50 000 a 200 000 TND selon contrat), rapatriement medical ou de corps, avance de caution penale, retour premature des enfants, billet de remplacement. Le seuil declencheur : generalement distance > 50 km du domicile. Assistance souscrite en complement ou incluse dans les contrats AUTO (carte verte etrangers) et les contrats IRDS multi-risques habitation. La prime assistance est modique (20-80 TND/an selon niveau de garantie). Le cout sinistre est domine par les rapatriements medicaux depuis l'etranger (pouvant atteindre 20 000-50 000 TND pour un rapatriement sanitaire aerien)."
+  },
+  {
+    "id": "modele_ml_impaye",
+    "title": "Modele ML prediction impayes - Features et interpretation",
+    "content": "Le modele de prediction du risque d'impaye est un XGBoost entraine sur les donnees 2019-2024. Features principales (FEATURE_COLUMNS) : bonus_malus (coefficient bonus-malus de l'assure), branche (AUTO=1, IRDS=2, SANTE=3), mois_echeance (1-12, capture la saisonnalite), annee_echeance (tendance temporelle), mt_pnet (niveau de prime, proxy de risque). Variable cible : 1 si la quittance est dans dwh_fact_impaye, 0 sinon. Interpretation SHAP (explain_tool) : bonus_malus eleve -> risque impaye plus fort. Mois juillet-aout -> plus d'impayes (difficultes financieres estivales). Prime elevee -> legerement plus d'impayes. Metriques modele : AUC ROC ~0.72, Precision ~68%, Rappel ~61%. Le modele est reentraire trimestriellement. Un model_readiness < 60 signale une degradation necessitant rereentrainement."
+  },
+  {
+    "id": "drift_detection",
+    "title": "Drift des modeles ML - Detection et actions correctives",
+    "content": "Le drift designe le phenomene ou la distribution des donnees de production s'eloigne de la distribution d'entrainement, degradant les performances du modele. Types surveilles : Data drift (distribution des features), Concept drift (relation features->target), Prediction drift (distribution des scores). Methodes de detection : PSI (Population Stability Index) sur features numeriques - seuil PSI > 0.25 = drift critique, 0.10-0.25 = attention, < 0.10 = stable. Test KS (Kolmogorov-Smirnov) pour comparaison de distributions. Le rapport drift_tool presente un statut par feature avec valeur PSI. Causes typiques de drift en assurance : inflation des reparations auto, nouveaux comportements de paiement post-COVID, changements reglementaires, nouveaux profils de risque. Action corrective : reenentrainement du modele sur donnees recentes ou ajustement des seuils de decision."
+  },
+  {
+    "id": "forecast_methodes",
+    "title": "Forecast KPI - Methodes de prevision et saisonnalite",
+    "content": "La plateforme utilise des modeles de prevision pour les projections KPI sur 1 a 12 mois. Methode principale : Holt-Winters (lissage exponentiel triple) pour les series mensuelles avec saisonnalite. Saisonnalite assurance Tunisie : pic de production en janvier (renouvellements annuels), creux en juillet-aout (vacances estivales). Le modele de prevision du taux de resiliation est un ARIMA ajuste sur l'historique 2019-2025 mensuel. La prevision d'impayes utilise XGBoost entraine sur : bonus-malus, branche, mois d'echeance, historique de paiement, gouvernorat. Horizon standard : 3 mois, ajustable jusqu'a 12 mois. Intervalle de confiance : bandes a +/-1.96 sigma autour de la projection centrale. Un drift du modele detecte par drift_tool degrade la qualite des previsions et necessite reenentrainement."
+  },
+  {
+    "id": "segmentation_client",
+    "title": "Segmentation client - Methode et profils types",
+    "content": "La segmentation client utilise un clustering K-Means sur les clients actifs de Maghrebia. Features de clustering : anciennete (duree portefeuille), nombre de polices, prime moyenne, taux de sinistralite historique, taux de paiement, type de personne (physique/morale). Profils types identifies : Segment 1 'Client fidele faible risque' : anciennete > 5 ans, faible sinistralite, paiement regulier -> a fideliser avec offres loyaute. Segment 2 'Nouveau client standard' : < 2 ans, profil moyen -> a developper et cross-seller. Segment 3 'Client risque' : impayes frequents, sinistralite elevee -> surveiller, revoir tarification au renouvellement. Segment 4 'Grands comptes entreprises' : plusieurs polices, volume prime eleve -> relation compte cle. La segmentation alimente les campagnes marketing ciblees et la politique tarifaire de renouvellement. Donnees dans dim_client : type_personne (P/M), sexe, date_naissance (age), ville."
+  },
+  {
+    "id": "reseau_distribution",
+    "title": "Reseau de distribution - Agents, courtiers et performance",
+    "content": "Maghrebia distribue ses produits via trois reseaux : Agents generaux (code AG) : mandataires exclusifs, representent Maghrebia localement. Courtiers (code CR) : multi-compagnies, apporteurs d'affaires. Bancassurance : partenariats bancaires. La colonne id_agent / code_agent dans dim_agent identifie chaque intermediaire. Performance reseau : prime nette par agent (ranking), sinistralite du portefeuille agent (agents apportant de mauvais risques), taux de fidelisation client. Un agent dont le ratio sinistralite > 120% de la moyenne reseau fait l'objet d'une revue de contrat d'agence. Les localites agents (latitude/longitude) permettent la cartographie du reseau et l'identification de zones sans couverture. Encadrement CGA : les agents et courtiers doivent etre agrees par la CGA, justifier d'une formation professionnelle et d'une garantie financiere."
+  },
+  {
+    "id": "delais_traitement",
+    "title": "Delais reglementaires de traitement sinistres et transparence client",
+    "content": "La reglementation tunisienne encadre les delais de traitement client. Delais reglementaires CGA : Accuse de reception declaration sinistre : 48 heures. Designation expert : 10 jours ouvres apres declaration. Remise rapport expertise : 30 jours apres mission. Offre d'indemnisation IARD materiel : 45 jours apres rapport. Offre RC corporelle : 8 mois maximum. Reglement effectif : 30 jours apres acceptation. Penalites : manquements = interets de retard (interet legal + 5%). Transparence tarifaire : tarifs AUTO deposes CGA, liberte tarifaire depuis 1994. Droit de retractation : 30 jours pour assurances vie, non applicable en IARD. La CGA dispose d'un service de mediation pour les litiges assures/assureurs. Un portefeuille avec un taux de sinistres 'Refuses' > 15% signale des problemes de couverture ou des exclusions mal communiquees."
+  },
+  {
+    "id": "kpi_alerte_seuils",
+    "title": "Seuils d'alerte KPI - Regles metier Maghrebia",
+    "content": "L'outil alerte_tool detecte les derives KPI selon des seuils metier definis dans la configuration. Seuils d'alerte : Taux d'impaye > 2% = critique (ALERTE_IMPAYE_RATE_PCT). Chute de production mensuelle > 10% vs mois precedent = alerte (ALERTE_PRODUCTION_DROP_PCT). Ratio combine > 100% = alerte technique. S/P > 80% = attention, > 100% = critique. Taux de resiliation > 15% = critique. Score drift PSI > 0.25 = alerte modele. Model readiness < 60 = modele a reentrainer. Les alertes sont classees par severite : HIGH (action immediate), MEDIUM (surveillance renforcee), LOW (information). La fenetre d'analyse alerte est ancree sur DATA_YEAR_TO (derniere annee de donnees disponibles) et non sur la date systeme courante pour eviter des fenêtres vides quand les donnees historiques ne couvrent pas la periode recente."
+  },
+  {
+    "id": "glossaire_assurance",
+    "title": "Glossaire assurance - Termes cles utilises dans la plateforme",
+    "content": "Termes cles de la plateforme Maghrebia : Prime nette (mt_pnet) : prime hors taxes. Prime TTC (mt_ptt) : prime toutes taxes comprises. FGA : Fonds de Garantie Automobile (25% de la RC). PPNA : Provision pour Primes Non Acquises. PSAP : Provision pour Sinistres a Payer. PRC : Provision pour Risques en Cours. PRES : Provision pour Equalisation Sinistres. S/P : ratio Sinistres sur Primes (rentabilite technique). Ratio combine : (sinistres + frais) / primes (solvabilite). Churn : taux de resiliation (fidelisation). Impaye (mt_acp) : prime emise non encaissee. Avenant (num_avn) : modification en cours de vie d'un contrat. Periodicite : frequence de paiement des primes (annuelle, semestrielle, trimestrielle). Sinistre ouvert : dossier en cours de traitement, encore provisionne. Bonus-malus : coefficient de majoration/reduction de prime RC selon historique de sinistres."
+  },
+  {
+    "id": "benchmark_sectoriel",
+    "title": "Benchmark sectoriel assurance Tunisie",
+    "content": "Le marche tunisien de l'assurance compte environ 25 compagnies agreees. Chiffres cles secteur (source : rapport CGA 2022-2023) : Croissance marche ~8% par an. Part de l'AUTO : ~45% des primes totales du marche. Ratio combine moyen secteur : ~92%. Taux d'impayes moyen secteur : environ 3-5%. Taux de sinistralite AUTO : 65-75% selon annee. Taux de sinistralite IARD : 50-70% selon type. Taux de sinistralite Groupe Maladie : 70-85%. Maghrebia est positionne principalement sur AUTO (75% de son CA), avec IRDS (~15%) et SANTE (~10%). La concentration sur l'AUTO est superieure a la moyenne du marche (~45%), ce qui expose Maghrebia davantage a la sinistralite routiere et aux fluctuations du prix du petrole (cout reparations). Les compagnies diversifiees sur Vie et SANTE ont des ratios combines plus stables."
+  },
+  {
+    "id": "schema_dwh",
+    "title": "Schema Data Warehouse Maghrebia - Tables principales",
+    "content": "Le Data Warehouse Maghrebia contient les tables principales suivantes : dwh_fact_emission : quittances de primes emises (mt_pnet, mt_ptt, mt_fga, mt_commission, date_effet, date_echeance, code_branche, id_agent, id_client). dwh_fact_sinistre : dossiers sinistres (date_declaration, date_cloture, mt_evaluation, mt_paye, etat_sinistre, nature_sinistre, responsabilite, gouvernorat). dwh_fact_impaye : primes non encaissees (mt_acp, date_echeance, id_police, id_client). dim_police : referentiel polices (situation, type_police, date_effet, date_echeance, num_avn, periodicite, polrp pour flottes). dim_client : referentiel clients (type_personne P/M, sexe, date_naissance, ville, gouvernorat). dim_agent : referentiel intermediaires (code_agent, groupe_agent AG/GD/CR, localite, latitude, longitude). dim_branche : nomenclature des branches et codes produits. Les tables sont alimentees via ETL depuis le systeme de gestion operationnel (SGI)."
+  },
+  {
+    "id": "anomalie_detection",
+    "title": "Detection d'anomalies - Methodes et interpretation",
+    "content": "L'outil anomaly_tool detecte les valeurs aberrantes dans les series temporelles KPI. Methodes utilisees : Z-score (valeurs a plus de 2 ou 3 ecarts-types de la moyenne) pour les series stationnaires. IQR (interquartile range) pour les distributions non gaussiennes. Isolation Forest pour la detection multivariee. Les anomalies detectees peuvent etre : des pics de sinistres (evenements catastrophiques, fraude), des chutes de production (perte d'un grand compte, probleme systeme), des variations inhabituelles d'impayes (crise economique, changement reglementaire). L'interpretation requiert toujours un regard metier : une anomalie statistique peut avoir une explication legitime (fusion de portefeuille, renouvellements groupes, saisonnalite forte). Le rapport anomaly_tool indique la date, la valeur observee, la valeur attendue et le z-score pour chaque anomalie detectee."
+  },
+  {
+    "id": "fraude_assurance",
+    "title": "Fraude en assurance - Indicateurs et prevention",
+    "content": "La fraude a l'assurance represente un risque materiel pour la rentabilite. Types de fraude courants en Tunisie : Declaration de sinistres fictifs ou gonfles (faux accidents AUTO, faux vols). Fraude a la souscription (sous-declaration du risque, fausse adresse). Complicite reparateur-assure (surestimation des dommages). Fraude aux faux documents (cartes grises, permis de conduire, factures). Indicateurs d'alerte fraude dans les donnees : Concentration de sinistres sur un agent ou un reparateur specifique. Frequence de sinistres d'un assure > 3 par an. Sinistres declares systematiquement en fin de periode de couverture. Sinistres avec expertise interne et externe discordantes (ecart mt_evaluation > 50%). Delai de declaration > 30 jours apres la date du sinistre. Une cellule anti-fraude analysant ces indicateurs peut reduire le S/P de 2 a 5 points de pourcentage."
+  },
+  {
+    "id": "tarification_actuarielle",
+    "title": "Tarification actuarielle - Principes de base",
+    "content": "La tarification actuarielle vise a calculer une prime suffisante pour couvrir les sinistres attendus et les frais, tout en restant competitive. Principe fondamental : Prime pure = Frequence sinistres x Cout moyen sinistre. Prime commerciale = Prime pure / (1 - chargements). Chargements : commissions (10-15%), frais de gestion (10-15%), benefice cible (3-5%). La methode Burning Cost analyse la sinistralite historique : sinistres payes annualises / primes nettes. Une approche prospective integre les tendances (inflation, comportements). La segmentation tarifaire permet d'adapter la prime au profil de risque de chaque assure. En AUTO : variables tarifaires cles = puissance fiscale, usage, bonus-malus, age du conducteur, zone geographique (non encore appliquee en Tunisie). La sous-tarification chronique est le principal facteur de ratios combines > 100% pour les jeunes compagnies ou sur des branches peu analysees."
+  },
+  {
+    "id": "solvabilite_marge",
+    "title": "Marge de solvabilite et fonds propres - Exigences reglementaires",
+    "content": "La marge de solvabilite est le coussin de capital obligatoire au-dela des provisions techniques. Exigences CGA (code des assurances loi 2002-37) : Minimum IARD : max(1/3 des primes nettes, 1/4 du S/P moyen 3 ans). Capital minimum absolu : 3 millions TND pour les compagnies IARD. Ratio de solvabilite = Fonds propres / Marge de solvabilite minimale requise x 100. Seuils d'alerte : ratio < 100% = mise en demeure CGA, plan de redressement obligatoire. ratio < 150% = surveillance renforcee CGA. Les fonds propres doivent etre investis dans des actifs eligibles (obligations d'Etat tunisiennes, immobilier, actions cotees) selon des quotas reglementaires. Une compagnie avec un portefeuille en forte croissance (primes +20%/an) doit securiser ses fonds propres proportionnellement pour ne pas violer la marge de solvabilite."
   }
 ]

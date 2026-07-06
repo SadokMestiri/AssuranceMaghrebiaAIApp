@@ -75,7 +75,7 @@ export default function GeoInsights({ sinistresByGov, topZones }) {
     <div className="geo-insights-grid">
       <article className="panel chart-panel">
         <h3>Sinistres par gouvernorat</h3>
-        <ResponsiveContainer width="100%" height={280}>
+        <ResponsiveContainer width="100%" height={210}>
           <BarChart data={sinistresByGov}>
             <CartesianGrid strokeDasharray="4 4" stroke="rgba(0, 74, 141, 0.2)" />
             <XAxis

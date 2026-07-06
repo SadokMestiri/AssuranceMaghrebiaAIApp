@@ -1301,6 +1301,196 @@ def get_ml_churn_risk_kpi(
     }
 
 
+@router.get("/annulation-monthly")
+def get_annulation_monthly(
+    branch: str | None = Query(default=None, description="AUTO | IRDS | SANTE"),
+    year_from: int | None = Query(default=2019, ge=2019, le=2026),
+    year_to: int | None = Query(default=2026, ge=2019, le=2026),
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    normalized_branch = branch.strip().upper() if branch else None
+    sql = text(
+        """
+        SELECT
+            annee_echeance                                        AS annee,
+            mois_echeance                                         AS mois,
+            branche,
+            COUNT(*) FILTER (WHERE etat_quit = 'A')               AS nb_annulations,
+            COUNT(*)                                               AS nb_total,
+            ROUND(
+                100.0 * COUNT(*) FILTER (WHERE etat_quit = 'A')
+                      / NULLIF(COUNT(*), 0),
+                2
+            )                                                      AS taux_annulation_pct
+        FROM dwh_fact_emission
+        WHERE mois_echeance BETWEEN 1 AND 12
+          AND (:branch IS NULL OR branche = :branch)
+          AND (:year_from IS NULL OR annee_echeance >= :year_from)
+          AND (:year_to   IS NULL OR annee_echeance <= :year_to)
+          AND branche IN ('AUTO','IRDS','SANTE')
+        GROUP BY annee_echeance, mois_echeance, branche
+        ORDER BY annee_echeance, mois_echeance, branche
+        """
+    )
+    rows = db.execute(
+        sql,
+        {"branch": normalized_branch, "year_from": year_from, "year_to": year_to},
+    ).mappings().all()
+    return {
+        "filters": {"branch": normalized_branch, "year_from": year_from, "year_to": year_to},
+        "items": [
+            {
+                "periode":            f"{_to_int(row['annee']):04d}-{_to_int(row['mois']):02d}",
+                "branche":            row["branche"],
+                "nb_annulations":     _to_int(row["nb_annulations"]),
+                "nb_total":           _to_int(row["nb_total"]),
+                "taux_annulation_pct": _to_float(row["taux_annulation_pct"]),
+            }
+            for row in rows
+        ],
+    }
+
+
+@router.get("/sp-monthly")
+def get_sp_monthly(
+    branch: str | None = Query(default=None, description="AUTO | IRDS | SANTE"),
+    year_from: int | None = Query(default=2019, ge=2019, le=2026),
+    year_to: int | None = Query(default=2026, ge=2019, le=2026),
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    normalized_branch = branch.strip().upper() if branch else None
+    sql = text(
+        """
+        WITH emissions AS (
+            SELECT
+                annee_echeance AS annee,
+                mois_echeance  AS mois,
+                branche,
+                COALESCE(SUM(mt_pnet), 0) AS total_pnet
+            FROM dwh_fact_emission
+            WHERE etat_quit IN ('E','P','A')
+              AND mt_pnet >= 0
+              AND mois_echeance BETWEEN 1 AND 12
+              AND (:branch IS NULL OR branche = :branch)
+              AND (:year_from IS NULL OR annee_echeance >= :year_from)
+              AND (:year_to   IS NULL OR annee_echeance <= :year_to)
+            GROUP BY annee_echeance, mois_echeance, branche
+        ),
+        sinistres AS (
+            SELECT
+                annee_survenance AS annee,
+                mois_survenance  AS mois,
+                branche,
+                COALESCE(SUM(mt_paye), 0) AS total_mt_paye
+            FROM dwh_fact_sinistre
+            WHERE mois_survenance BETWEEN 1 AND 12
+              AND (:branch IS NULL OR branche = :branch)
+              AND (:year_from IS NULL OR annee_survenance >= :year_from)
+              AND (:year_to   IS NULL OR annee_survenance <= :year_to)
+            GROUP BY annee_survenance, mois_survenance, branche
+        )
+        SELECT
+            COALESCE(e.annee,   s.annee)   AS annee,
+            COALESCE(e.mois,    s.mois)    AS mois,
+            COALESCE(e.branche, s.branche) AS branche,
+            COALESCE(e.total_pnet, 0)      AS total_pnet,
+            COALESCE(s.total_mt_paye, 0)   AS total_mt_paye,
+            ROUND(
+                100.0 * COALESCE(s.total_mt_paye, 0)
+                      / NULLIF(COALESCE(e.total_pnet, 0), 0),
+                2
+            ) AS taux_sp_pct
+        FROM emissions e
+        FULL OUTER JOIN sinistres s
+            ON  s.annee   = e.annee
+            AND s.mois    = e.mois
+            AND s.branche = e.branche
+        WHERE COALESCE(e.branche, s.branche) IN ('AUTO','IRDS','SANTE')
+        ORDER BY annee, mois, branche
+        """
+    )
+    rows = db.execute(
+        sql,
+        {"branch": normalized_branch, "year_from": year_from, "year_to": year_to},
+    ).mappings().all()
+    return {
+        "filters": {"branch": normalized_branch, "year_from": year_from, "year_to": year_to},
+        "items": [
+            {
+                "periode":      f"{_to_int(row['annee']):04d}-{_to_int(row['mois']):02d}",
+                "branche":      row["branche"],
+                "total_pnet":   round(_to_float(row["total_pnet"]), 2),
+                "total_mt_paye": round(_to_float(row["total_mt_paye"]), 2),
+                "taux_sp_pct":  _to_float(row["taux_sp_pct"]),
+            }
+            for row in rows
+        ],
+    }
+
+
+@router.get("/branch-profile")
+def get_branch_profile(
+    year_from: int | None = Query(default=2019, ge=2019, le=2026),
+    year_to: int | None = Query(default=2026, ge=2019, le=2026),
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    sql = text(
+        """
+        WITH polices AS (
+            SELECT
+                e.branche,
+                COUNT(DISTINCT e.id_police)  AS nb_polices,
+                COALESCE(SUM(e.mt_pnet), 0)  AS total_pnet
+            FROM dwh_fact_emission e
+            WHERE e.etat_quit IN ('E','P','A')
+              AND e.mt_pnet >= 0
+              AND (:year_from IS NULL OR e.annee_echeance >= :year_from)
+              AND (:year_to   IS NULL OR e.annee_echeance <= :year_to)
+            GROUP BY e.branche
+        ),
+        sinistres AS (
+            SELECT
+                s.branche,
+                COUNT(*)                      AS nb_sinistres,
+                COALESCE(SUM(s.mt_paye), 0)   AS total_mt_paye
+            FROM dwh_fact_sinistre s
+            WHERE (:year_from IS NULL OR s.annee_survenance >= :year_from)
+              AND (:year_to   IS NULL OR s.annee_survenance <= :year_to)
+            GROUP BY s.branche
+        )
+        SELECT
+            p.branche,
+            p.nb_polices,
+            p.total_pnet,
+            COALESCE(s.nb_sinistres, 0)   AS nb_sinistres,
+            COALESCE(s.total_mt_paye, 0)  AS total_mt_paye,
+            ROUND(
+                100.0 * COALESCE(s.total_mt_paye, 0) / NULLIF(p.total_pnet, 0),
+                2
+            ) AS taux_sinistres_pct
+        FROM polices p
+        LEFT JOIN sinistres s ON s.branche = p.branche
+        WHERE p.branche IN ('AUTO','IRDS','SANTE')
+        ORDER BY p.branche
+        """
+    )
+    rows = db.execute(sql, {"year_from": year_from, "year_to": year_to}).mappings().all()
+    return {
+        "filters": {"year_from": year_from, "year_to": year_to},
+        "items": [
+            {
+                "branche":            row["branche"],
+                "nb_polices":         _to_int(row["nb_polices"]),
+                "total_pnet":         round(_to_float(row["total_pnet"]), 2),
+                "nb_sinistres":       _to_int(row["nb_sinistres"]),
+                "total_mt_paye":      round(_to_float(row["total_mt_paye"]), 2),
+                "taux_sinistres_pct": round(_to_float(row["taux_sinistres_pct"]), 2),
+            }
+            for row in rows
+        ],
+    }
+
+
 @router.get("/ml/client-ltv")
 def get_ml_client_ltv_kpi(
     db: Session = Depends(get_db),

@@ -2,6 +2,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 
 import AgentChat from "../components/AgentChat";
+import ResiliationChart from "../components/ResiliationChart";
 import ChartsPanel from "../components/ChartsPanel";
 import DimNav from "../components/dims/DimNav";
 import FiltersBar from "../components/FiltersBar";
@@ -43,6 +44,18 @@ const AGENT_TOOL_SLOTS = [
   "sql tool",
 ];
 
+// Which filters each dim actually applies. Used by FiltersBar to annotate
+// inapplicable controls and by dim components to show contextual notices.
+const DIM_FILTER_SUPPORT = {
+  overview:  { branch: true,       year: true,  month: "partial", gouvernorat: "partial" },
+  clients:   { branch: true,       year: true,  month: true,      gouvernorat: false },
+  agents:    { branch: true,       year: true,  month: true,      gouvernorat: false },
+  produits:  { branch: true,       year: true,  month: true,      gouvernorat: false },
+  polices:   { branch: true,       year: false, month: false,     gouvernorat: false },
+  sinistres: { branch: true,       year: true,  month: true,      gouvernorat: false },
+  vehicules: { branch: "auto",     year: false, month: false,     gouvernorat: false },
+};
+
 async function fetchJson(url) {
   const response = await fetch(url);
   if (!response.ok) {
@@ -51,7 +64,7 @@ async function fetchJson(url) {
   return response.json();
 }
 
-function buildCommonQuery(filters) {
+function buildCommonQuery(filters, { includeMonth = false } = {}) {
   const params = new URLSearchParams();
 
   if (filters.branch !== "ALL") {
@@ -70,6 +83,10 @@ function buildCommonQuery(filters) {
   params.set("year_from", String(Math.min(normalizedYearFrom, normalizedYearTo)));
   params.set("year_to", String(Math.max(normalizedYearFrom, normalizedYearTo)));
 
+  if (includeMonth && filters.month && filters.month !== "ALL") {
+    params.set("month", filters.month);
+  }
+
   return params.toString();
 }
 
@@ -82,6 +99,7 @@ export default function DashboardPage() {
   const [dashboard, setDashboard]           = useState(null);
   const [dashboardPrev, setDashboardPrev]   = useState(null);
   const [heatmapPoints, setHeatmapPoints]   = useState([]);
+  const [resiliation, setResiliation]       = useState([]);
   const [sinistresByGov, setSinistresByGov] = useState([]);
   const [topZones, setTopZones]             = useState([]);
   const [updatedAt, setUpdatedAt]           = useState("");
@@ -102,14 +120,14 @@ export default function DashboardPage() {
     const rawYearTo   = Number(filters.yearTo);
     const yFrom = Number.isFinite(rawYearFrom) ? Math.min(YEAR_MAX, Math.max(YEAR_MIN, Math.trunc(rawYearFrom))) : YEAR_MIN;
     const yTo   = Number.isFinite(rawYearTo)   ? Math.min(YEAR_MAX, Math.max(YEAR_MIN, Math.trunc(rawYearTo)))   : YEAR_MAX;
-    const prevFrom = Math.min(yFrom, yTo) - 1;
-    const prevTo   = Math.max(yFrom, yTo) - 1;
-    // Don't fetch if the entire prev range would be outside valid data bounds
-    if (prevTo < YEAR_MIN) return null;
+    // YoY only makes sense for a single-year selection
+    if (yFrom !== yTo) return null;
+    const prevYear = yFrom - 1;
+    if (prevYear < YEAR_MIN) return null;
     const params = new URLSearchParams();
     if (filters.branch !== "ALL") params.set("branch", filters.branch);
-    params.set("year_from", String(Math.max(YEAR_MIN, prevFrom)));
-    params.set("year_to",   String(Math.max(YEAR_MIN, prevTo)));
+    params.set("year_from", String(prevYear));
+    params.set("year_to",   String(prevYear));
     return params.toString();
   }
 
@@ -125,14 +143,15 @@ export default function DashboardPage() {
         const query     = buildCommonQuery(filters);
         const prevQuery = buildPrevQuery(filters);
 
-        const [dashboardPayload, heatmapPayload, sinistresPayload, zonesPayload, ltvPayload, churnPayload, prevPayload] =
+        const [dashboardPayload, heatmapPayload, sinistresPayload, zonesPayload, ltvPayload, churnPayload, branchPayload, prevPayload] =
           await Promise.all([
             fetchJson(`${API_BASE}/api/v1/kpis/dashboard/ceo?${query}`),
-            fetchJson(`${API_BASE}/api/v1/geo/heatmap-polices?${query}&limit=300`),
+            fetchJson(`${API_BASE}/api/v1/geo/heatmap-polices?${query}`),
             fetchJson(`${API_BASE}/api/v1/geo/sinistres/by-gouvernorat?${query}`),
             fetchJson(`${API_BASE}/api/v1/geo/top-zones-risque?${query}&limit=10`),
             fetchJson(`${API_BASE}/api/v1/kpis/ml/client-ltv`),
             fetchJson(`${API_BASE}/api/v1/kpis/ml/churn-risk`),
+            fetchJson(`${API_BASE}/api/v1/kpis/annulation-monthly?${query}`),
             prevQuery ? fetchJson(`${API_BASE}/api/v1/kpis/dashboard/ceo?${prevQuery}`).catch(() => null) : Promise.resolve(null),
           ]);
 
@@ -145,6 +164,7 @@ export default function DashboardPage() {
         setHeatmapPoints(heatmapPayload.items || []);
         setSinistresByGov(sinistresPayload.items || []);
         setTopZones(zonesPayload.items || []);
+        setResiliation(branchPayload.items || []);
         setUpdatedAt(new Date().toISOString());
       } catch (requestError) {
         if (!active) return;
@@ -166,7 +186,7 @@ export default function DashboardPage() {
       setDimLoading(true);
       setDimError("");
       try {
-        const query     = buildCommonQuery(filters);
+        const query     = buildCommonQuery(filters, { includeMonth: true });
         const prevQuery = buildPrevQuery(filters);
         const [payload, prevPayload] = await Promise.all([
           fetchJson(`/api/dims?${query}`),
@@ -185,10 +205,12 @@ export default function DashboardPage() {
 
     loadDimData();
     return () => { active = false; };
-  }, [filters.branch, filters.yearFrom, filters.yearTo]);
+  }, [filters.branch, filters.yearFrom, filters.yearTo, filters.month]);
 
-  // ── Agent status polling ─────────────────────────────────────
+  // ── Agent status polling — only runs when the agent tab is visible ─────────
   useEffect(() => {
+    if (activeSection !== "agent") return;
+
     let active = true;
 
     const loadAgentStatus = async () => {
@@ -203,7 +225,7 @@ export default function DashboardPage() {
     loadAgentStatus();
     const timer = setInterval(loadAgentStatus, 30000);
     return () => { active = false; clearInterval(timer); };
-  }, []);
+  }, [activeSection]);
 
   const runSmokeEval = async () => {
     setSmokeLoading(true);
@@ -276,15 +298,33 @@ export default function DashboardPage() {
   // ── Dimension content renderer ────────────────────────────────
   function renderDimContent() {
     if (activeDim === "overview") {
+      if (loading && !dashboard) {
+        return (
+          <section className="panel loading-panel">
+            <p>Chargement du tableau de bord…</p>
+          </section>
+        );
+      }
+      if (error) {
+        return (
+          <section className="panel error-panel">
+            <h3>Erreur de chargement</h3>
+            <p>{error}</p>
+          </section>
+        );
+      }
       return (
         <>
           <KpiCards dashboard={dashboard} dashboardPrev={dashboardPrev} />
           <ChartsPanel dashboard={dashboard} monthFilter={filters.month} />
           <section className="layout-geo">
-            <article className="panel map-panel">
-              <h3>Carte Leaflet Tunisie — heatmap polices</h3>
-              <CarteWidget points={filteredHeatmap} />
-            </article>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px", height: "100%" }}>
+              <article className="panel map-panel">
+                <h3>Carte Leaflet Tunisie — heatmap polices</h3>
+                <CarteWidget points={filteredHeatmap} />
+              </article>
+              <ResiliationChart data={resiliation} />
+            </div>
             <GeoInsights sinistresByGov={filteredSinistresByGov} topZones={filteredTopZones} />
           </section>
         </>
@@ -312,7 +352,7 @@ export default function DashboardPage() {
       case "clients":   return <ClientDim   data={dimData?.clients}   dataPrev={dimDataPrev?.clients}   />;
       case "agents":    return <AgentDim    data={dimData?.agents}    dataPrev={dimDataPrev?.agents}    />;
       case "produits":  return <ProduitDim  data={dimData?.produits}  dataPrev={dimDataPrev?.produits}  />;
-      case "vehicules": return <VehiculeDim data={dimData?.vehicules} dataPrev={dimDataPrev?.vehicules} />;
+      case "vehicules": return <VehiculeDim data={dimData?.vehicules} dataPrev={dimDataPrev?.vehicules} branch={filters.branch} />;
       case "polices":   return <PoliceDim   data={dimData?.polices}   dataPrev={dimDataPrev?.polices}   />;
       case "sinistres": return <SinistreDim data={dimData?.sinistres} dataPrev={dimDataPrev?.sinistres} />;
       default:          return null;
@@ -379,7 +419,11 @@ export default function DashboardPage() {
         </header>
 
         {activeSection === "dashboard" ? (
-          <FiltersBar governorates={governorates} loading={loading} />
+          <FiltersBar
+            governorates={governorates}
+            loading={loading}
+            filterSupport={DIM_FILTER_SUPPORT[activeDim] ?? DIM_FILTER_SUPPORT.overview}
+          />
         ) : null}
 
         {error ? (
