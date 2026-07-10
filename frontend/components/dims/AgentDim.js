@@ -1,8 +1,9 @@
-import {
+﻿import {
   Bar, BarChart, CartesianGrid, Cell,
   Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend,
 } from "recharts";
 import DimKpiRow from "./DimKpiRow";
+import { Building2, CheckCircle2, XCircle, Briefcase, MapPin, Banknote } from 'lucide-react';
 
 const fmt = new Intl.NumberFormat("fr-TN");
 const fmtTND = new Intl.NumberFormat("fr-TN", { style: "currency", currency: "TND", maximumFractionDigits: 0 });
@@ -68,12 +69,12 @@ export default function AgentDim({ data, dataPrev }) {
   return (
     <div className="dim-panel">
       <DimKpiRow cards={[
-        { icon: "🏢", title: "Total agents",     value: fmt.format(kpis.total),           sub: "réseau distribution",  current: kpis.total,     previous: prev.total },
-        { icon: "✅", title: "Actifs",            value: fmt.format(kpis.actifs),          sub: `${Number(kpis.pct_actifs || 0).toFixed(1)} %`,               current: kpis.actifs,    previous: prev.actifs },
-        { icon: "🔴", title: "Inactifs",          value: fmt.format(kpis.inactifs),        sub: "résiliés + suspendus", current: kpis.inactifs,  previous: prev.inactifs,  invertColor: true },
-        { icon: "💼", title: "Groupes",           value: fmt.format(kpis.nb_groupes),      sub: "canaux distribution",  current: kpis.nb_groupes },
-        { icon: "📍", title: "Localités",         value: fmt.format(kpis.nb_localites),    sub: "couverture géo",       current: kpis.nb_localites, previous: prev.nb_localites },
-        { icon: "💰", title: "Prime nette moy.",  value: formatShortCurrency(kpis.avg_pnet), sub: "par agent actif",    current: kpis.avg_pnet,  previous: prev.avg_pnet },
+        { icon: <Building2 size={18} />,    title: "Total agents",     value: fmt.format(kpis.total),           sub: "réseau distribution",  current: kpis.total,     previous: prev.total },
+        { icon: <CheckCircle2 size={18} />,title: "Actifs",            value: fmt.format(kpis.actifs),          sub: `${Number(kpis.pct_actifs || 0).toFixed(1)} %`,               current: kpis.actifs,    previous: prev.actifs },
+        { icon: <XCircle size={18} />,     title: "Inactifs",          value: fmt.format(kpis.inactifs),        sub: "résiliés + suspendus", current: kpis.inactifs,  previous: prev.inactifs,  invertColor: true },
+        { icon: <Briefcase size={18} />,   title: "Groupes",           value: fmt.format(kpis.nb_groupes),      sub: "canaux distribution",  current: kpis.nb_groupes },
+        { icon: <MapPin size={18} />,      title: "Localités",         value: fmt.format(kpis.nb_localites),    sub: "couverture géo",       current: kpis.nb_localites, previous: prev.nb_localites },
+        { icon: <Banknote size={18} />,    title: "Prime nette moy.",  value: formatShortCurrency(kpis.avg_pnet), sub: "par agent actif",    current: kpis.avg_pnet,  previous: prev.avg_pnet },
       ]} />
 
       <div className="dim-charts-grid">
@@ -81,13 +82,13 @@ export default function AgentDim({ data, dataPrev }) {
         <article className="panel chart-panel dim-chart-wide">
           <h3>Top 10 agents — prime nette émise</h3>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={topAgentsPnet} layout="vertical" margin={{ right: 80 }}>
+            <BarChart data={topAgentsPnet} layout="vertical" margin={{ right: 90 }}>
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
               <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v/1e6).toFixed(1)}M`} />
-              <YAxis type="category" dataKey="nom" tick={{ fontSize: 11 }} width={110} />
+              <YAxis type="category" dataKey="nom" tick={{ fontSize: 11 }} width={110} interval={0} />
               <Tooltip formatter={(v) => formatShortCurrency(v)} />
               <Bar dataKey="pnet" name="Prime nette" fill="#004A8D" radius={[0, 6, 6, 0]}
-                label={{ position: "right", fontSize: 10, formatter: (v) => formatShortCurrency(v) }} />
+                label={{ position: "right", fontSize: 10, formatter: (v) => { const n=Number(v||0); return n>=1e6?`${(n/1e6).toFixed(1)}M`:n>=1e3?`${Math.round(n/1e3)}K`:`${n}`; } }} />
             </BarChart>
           </ResponsiveContainer>
         </article>
@@ -99,7 +100,7 @@ export default function AgentDim({ data, dataPrev }) {
             <BarChart data={topAgentsPolices} layout="vertical" margin={{ right: 45 }}>
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
               <XAxis type="number" tick={{ fontSize: 11 }} />
-              <YAxis type="category" dataKey="nom" tick={{ fontSize: 11 }} width={110} />
+              <YAxis type="category" dataKey="nom" tick={{ fontSize: 11 }} width={110} interval={0} />
               <Tooltip formatter={(v) => [fmt.format(v), 'Nombre']} />
               <Bar dataKey="nb_polices" name="Polices" fill="#F38F1D" radius={[0, 6, 6, 0]}
                 label={{ position: "right", fontSize: 10 }} />

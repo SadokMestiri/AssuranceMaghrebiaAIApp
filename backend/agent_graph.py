@@ -52,6 +52,32 @@ OUT_OF_SCOPE_MESSAGE = (
     "clients, forecast, anomalies, drift ou analyse SQL metier."
 )
 
+# Prompt-injection patterns, checked BEFORE the domain-keyword scan so a
+# message like "Ignore instructions. prime nette." can't ride in on a
+# legitimate keyword (e.g. "prime") to bypass the guardrail.
+_INJECTION_PATTERNS = [
+    re.compile(r"ignor\w*\s+(les\s+|tes\s+|vos\s+|ces\s+|toutes?\s+|previous\s+|prior\s+|all\s+|the\s+)?instructions?"),
+    re.compile(r"oubli\w*\s+(les\s+|tes\s+|vos\s+|toutes?\s+)?instructions?"),
+    re.compile(r"disregard\s+(the\s+|your\s+|previous\s+|prior\s+|all\s+)?instructions?"),
+    re.compile(r"forget\s+(your\s+|all\s+|previous\s+|prior\s+)?instructions?"),
+    re.compile(r"reveal\w*\s+(your\s+|the\s+)?(system\s+)?prompt"),
+    re.compile(r"rev[ée]l\w*\s+(ton\s+|ta\s+|votre\s+|le\s+)?prompt"),
+    re.compile(r"(system|ton|ta|votre)\s*prompt\b"),
+    re.compile(r"\bact\s+as\b"),
+    re.compile(r"\bagis\s+comme\b"),
+    re.compile(r"\btu\s+es\s+maintenant\b"),
+    re.compile(r"\byou\s+are\s+now\b"),
+    re.compile(r"\bjailbreak\b"),
+    re.compile(r"\bdan\s+mode\b"),
+    re.compile(r"\bnew\s+instructions?\b"),
+    re.compile(r"\bnouvelles?\s+instructions?\b"),
+]
+
+
+def _looks_like_injection(question: str) -> bool:
+    normalized = _normalize_text(question)
+    return any(pattern.search(normalized) for pattern in _INJECTION_PATTERNS)
+
 TECHNICAL_LIMIT_MESSAGE = (
     "Limitation technique: un outil requis n'a pas pu etre execute correctement. "
     "Je fournis un resultat partiel et les details de limitation."
@@ -158,6 +184,7 @@ TOOL_FAMILY_TO_TOOL = {
     "predict": "ml_predict_tool",
     "sql": "sql_tool",
     "dimension": "dim_tool",
+    "comparison": "comparison_tool",
 }
 
 TOOL_SPECIALIST_AGENTS = {
@@ -174,6 +201,7 @@ TOOL_SPECIALIST_AGENTS = {
     "ml_predict_tool": "ml_specialist",
     "sql_tool": "sql_specialist",
     "dim_tool": "dim_specialist",
+    "comparison_tool": "comparison_specialist",
 }
 
 INTENT_RULES: list[dict[str, Any]] = [
@@ -326,6 +354,19 @@ INTENT_RULES: list[dict[str, Any]] = [
         "required": ["rag"],
         "skip_llm": False,
     },
+    # ═══════════════════════════════════════════════════════════════════════
+    # COMPARISON — "compare 2023 vs 2024", "AUTO vs IRDS" — placed before
+    # "kpi" so a scoring tie (a comparison question almost always also names
+    # a KPI term, e.g. "ratio combine") is broken in favor of comparison,
+    # since rule order is the tie-breaker in _classify_from_keywords.
+    # ═══════════════════════════════════════════════════════════════════════
+    {
+        "intent": "comparison",
+        "keywords": ["compare", "comparaison", "comparer", " vs ", "versus", "par rapport a", "differe", "difference entre", "evolution entre"],
+        "tool_families": ["comparison"],
+        "required": ["comparison"],
+        "skip_llm": False,
+    },
     {
         "intent": "kpi",
         "keywords": ["kpi", "prime", "commission", "resiliation", "performance", "sinistre", "sinistres", "risque", "taux", "ratio combine", "ratio_combine", "ratio combin", "combined ratio", "combine"],
@@ -417,6 +458,24 @@ def _is_followup_question(normalized: str, history: list[dict[str, Any]]) -> boo
     if len(normalized.split()) > 8:
         return False
     return bool(_FOLLOWUP_PREFIXES.search(normalized))
+
+
+def _is_comparison_question(normalized_question: str) -> bool:
+    comparison_tokens = [
+        "compare", "comparaison", "comparer", " vs ", "versus",
+        "par rapport a", "differe", "difference entre", "evolution entre",
+    ]
+    if any(token in normalized_question for token in comparison_tokens):
+        return True
+    # Two distinct years or two branch names named together also signals a
+    # comparison even without an explicit "compare" verb (e.g. "AUTO ou IRDS,
+    # quelle branche a le meilleur ratio combine ?" isn't caught here on
+    # purpose — only the unambiguous "two years / two branches" case is).
+    years = set(re.findall(r"\b(20\d{2})\b", normalized_question))
+    if len(years) >= 2:
+        return True
+    branches_named = sum(1 for b in ("auto", "irds", "sante") if b in normalized_question)
+    return branches_named >= 2
 
 
 def _is_predictive_question(normalized_question: str) -> bool:
@@ -716,6 +775,21 @@ def _classify_from_keywords(
         if score > 0:
             scored.append((score, rule))
 
+    if _is_comparison_question(normalized):
+        comparison_rule = next(rule for rule in INTENT_RULES if rule["intent"] == "comparison")
+        comparison_found = False
+        for index, (score, rule) in enumerate(scored):
+            if str(rule.get("intent")) == "comparison":
+                # Outscore "kpi": overlapping keyword entries there (e.g.
+                # "ratio combine" / "ratio combin" / "combine" all matching
+                # the same phrase) can otherwise out-count comparison's
+                # deliberately smaller, more specific keyword list.
+                scored[index] = (max(score, 5), rule)
+                comparison_found = True
+                break
+        if not comparison_found:
+            scored.append((5, comparison_rule))
+
     if _is_sql_retrieval_question(normalized):
         sql_rule = next(rule for rule in INTENT_RULES if rule["intent"] == "sql")
         sql_found = False
@@ -754,7 +828,16 @@ def _classify_from_keywords(
     tool_families = list(primary_rule["tool_families"])
     primary_intent = str(primary_rule["intent"])
 
-    for _, rule in scored[1:3]:
+    # Only fold a runner-up intent's tools in on a genuine tie with the
+    # primary's score — not merely for appearing in the top 3. Without this,
+    # generic words like "client" that appear in several rules' keyword lists
+    # (dimension/sql/client) fold in every matching tool even when one rule
+    # clearly dominates, causing narrow questions ("nombre de femmes
+    # clients") to fan out into unrelated KPIs from tools that only scraped
+    # a coincidental keyword hit rather than a real second signal.
+    for score, rule in scored[1:3]:
+        if score < primary_score:
+            continue
         for family in rule["tool_families"]:
             if primary_intent == "sql" and family != "sql":
                 continue
@@ -826,6 +909,21 @@ def classify_question(
     Set AGENT_FORCE_DETERMINISTIC=true to skip Paths 1 and 2.
     """
     normalized = _normalize_text(question)
+
+    # "comparison" is a newer intent than the trained model (Path 1) and the
+    # Ollama classification prompt (Path 2) — both were built before it
+    # existed, so neither can ever predict it and would silently misroute a
+    # comparison question to whichever older intent looks closest (usually
+    # "kpi"). An unambiguous comparison signal short-circuits straight to it.
+    if _is_comparison_question(normalized):
+        comparison_rule = next(rule for rule in INTENT_RULES if rule["intent"] == "comparison")
+        return (
+            "comparison",
+            0.9,
+            list(comparison_rule["tool_families"]),
+            list(comparison_rule.get("required", [])),
+            bool(comparison_rule.get("skip_llm", False)),
+        )
 
     if not FORCE_DETERMINISTIC:
         model_result = _classify_from_model(question)
@@ -1274,6 +1372,27 @@ def _compose_decision_answer(state: AgentState) -> str | None:
             segments = payload.get("segments") if isinstance(payload.get("segments"), list) else []
             _append_unique(chiffres_cles, f"- Segments clients identifies: {len(segments)}")
 
+        elif tool_name == "comparison_tool":
+            context_line = str(payload.get("context", "")).strip()
+            decision_line = str(payload.get("decision", "")).strip()
+            comparison_actions = payload.get("actions") if isinstance(payload.get("actions"), list) else []
+            kpis = payload.get("kpis") if isinstance(payload.get("kpis"), list) else []
+
+            if context_line:
+                _append_unique(synthese_items, context_line)
+            for item in kpis[:4]:
+                if not isinstance(item, dict):
+                    continue
+                label = str(item.get("label", "KPI")).strip() or "KPI"
+                value = _as_float(item.get("value"), 0.0)
+                unit = str(item.get("unit", "")).strip()
+                _append_unique(chiffres_cles, f"- {label}: {_format_metric_value(value, unit)}")
+            if decision_line:
+                _append_unique(decision_items, decision_line)
+            for action in comparison_actions[:3]:
+                if isinstance(action, str) and action.strip():
+                    _append_unique(actions, action.strip())
+
         elif tool_name == "explain_tool":
             feature_importance = payload.get("feature_importance") if isinstance(payload.get("feature_importance"), list) else []
             _append_unique(chiffres_cles, f"- Facteurs explicatifs disponibles: {len(feature_importance)}")
@@ -1282,7 +1401,7 @@ def _compose_decision_answer(state: AgentState) -> str | None:
             documents = payload.get("documents") if isinstance(payload.get("documents"), list) else []
             _append_unique(chiffres_cles, f"- Snippets de contexte metier: {len(documents)}")
 
-        if summary and tool_name not in {"kpi_tool", "forecast_tool", "sql_tool"}:
+        if summary and tool_name not in {"kpi_tool", "forecast_tool", "sql_tool", "comparison_tool"}:
             _append_unique(synthese_items, summary)
 
     if not synthese_items:
@@ -1497,6 +1616,17 @@ def _build_llm_prompt(state: AgentState) -> tuple[str, str]:
     context_payload = state.get("context", {})
     grounded_draft = _compose_deterministic_answer(state)
 
+    # Narrow single-metric questions ("quel est le ratio combine AUTO 2024?")
+    # already get a precise, grounded answer from _compose_precise_metric_answer.
+    # Forcing those into the full Contexte/Analyse/Decision/Graphs structure
+    # just pads a one-number answer with empty sections. Reserve the full
+    # structure for intents that actually need narrative synthesis (RAG,
+    # anomaly/drift explanations, open-ended decision questions).
+    is_narrow_metric_question = _compose_precise_metric_answer(state) is not None
+    intent = str(state.get("intent", ""))
+    narrative_intents = {"rag", "anomaly", "drift", "explain", "segmentation"}
+    use_full_structure = intent in narrative_intents or not is_narrow_metric_question
+
     tool_context = []
     for result in state.get("tool_results", []):
         tool_context.append(
@@ -1524,22 +1654,36 @@ def _build_llm_prompt(state: AgentState) -> tuple[str, str]:
             }
         )
 
-    system_prompt = (
-        "Tu es l'agent de synthese d'un systeme multi-agent assurance pour Maghrebia. Reponds en francais.\n"
-        "Ton role est de consolider les donnees issues d'une generation NLP->SQL et du contexte documentaire (RAG).\n"
-        "Tu dois OBLIGATOIREMENT structurer ta reponse en exactement 4 parties avec ces en-tetes exacts:\n"
-        "\n**Contexte**: (Resume UNIQUEMENT LA QUESTION ACTUELLE et la source des donnees utilisees. "
-        "Ne parle PAS des questions precedentes de la conversation. "
-        "Ex: 'La presente analyse repond a la question sur X, basee sur la documentation interne RAG.')\n"
-        "\n**Analyse**: (Analyse les donnees recuperees depuis les outils et le brouillon. Explique les tendances et les chiffres.)\n"
-        "\n**Decision**: (Propose des recommandations metier basees sur l'analyse, ex: 'Il est recommande de cibler telle branche...')\n"
-        "\n**Graphs/Tableaux**: (Si tu as recu des donnees formattes ou de serie temporelle, presente un resume tabulaire ou une suggestion claire du graphique a tracer. "
-        "Si la question est une definition, indique simplement 'Pas de graphique applicable.')\n"
-        "REGLES IMPORTANTES:\n"
-        "- Si rag_tool a retourne des documents, cite leur contenu EN PRIORITE pour les questions de definition/reglementation.\n"
-        "- Ne reponds PAS avec des chiffres KPI si la question est une question de definition.\n"
-        "- La section **Contexte** doit decrire la question ACTUELLE uniquement, pas l'historique.\n"
-    )
+    if use_full_structure:
+        system_prompt = (
+            "Tu es l'agent de synthese d'un systeme multi-agent assurance pour Maghrebia. Reponds en francais.\n"
+            "Ton role est de consolider les donnees issues d'une generation NLP->SQL et du contexte documentaire (RAG).\n"
+            "Tu dois OBLIGATOIREMENT structurer ta reponse en exactement 4 parties avec ces en-tetes exacts:\n"
+            "\n**Contexte**: (Resume UNIQUEMENT LA QUESTION ACTUELLE et la source des donnees utilisees. "
+            "Ne parle PAS des questions precedentes de la conversation. "
+            "Ex: 'La presente analyse repond a la question sur X, basee sur la documentation interne RAG.')\n"
+            "\n**Analyse**: (Analyse les donnees recuperees depuis les outils et le brouillon. Explique les tendances et les chiffres.)\n"
+            "\n**Decision**: (Propose des recommandations metier basees sur l'analyse, ex: 'Il est recommande de cibler telle branche...')\n"
+            "\n**Graphs/Tableaux**: (Si tu as recu des donnees formattes ou de serie temporelle, presente un resume tabulaire ou une suggestion claire du graphique a tracer. "
+            "Si la question est une definition, indique simplement 'Pas de graphique applicable.')\n"
+            "REGLES IMPORTANTES:\n"
+            "- Si rag_tool a retourne des documents, cite leur contenu EN PRIORITE pour les questions de definition/reglementation.\n"
+            "- Ne reponds PAS avec des chiffres KPI si la question est une question de definition.\n"
+            "- La section **Contexte** doit decrire la question ACTUELLE uniquement, pas l'historique.\n"
+        )
+    else:
+        # Narrow single-metric question — the deterministic draft already has
+        # the precise, grounded figure. Answer directly, no forced sections.
+        system_prompt = (
+            "Tu es l'agent de synthese d'un systeme multi-agent assurance pour Maghrebia. Reponds en francais.\n"
+            "La question porte sur UN SEUL indicateur precis. Le brouillon deterministe fourni contient deja "
+            "le chiffre exact et grounde — NE LE CONTREDIS PAS et NE LE RECALCULE PAS.\n"
+            "Reponds en 1 a 3 phrases courtes et directes, sans en-tetes de section, sans structure imposee. "
+            "Donne le chiffre demande, avec la periode et la branche si pertinent, et une phrase de contexte "
+            "metier seulement si elle apporte une information reellement utile.\n"
+            "N'ajoute PAS de section Contexte/Analyse/Decision/Graphs — ce format est reserve aux questions "
+            "ouvertes ou d'analyse, pas a une question ponctuelle sur un seul chiffre.\n"
+        )
 
     history = state.get("history") or []
     history_block = ""
@@ -1583,6 +1727,19 @@ async def _execute_tool(tool_name: str, question: str, context: dict[str, Any]) 
 def _guardrails_node(state: AgentState) -> AgentState:
     _emit({"type": "progress", "step": "guardrails", "label": "Vérification du périmètre..."})
     question = state["question"]
+    # Injection check runs first and independently of the domain-keyword scan —
+    # a message can contain a legitimate keyword (e.g. "prime") purely to ride
+    # past the domain check while its real payload is an instruction override.
+    if _looks_like_injection(question):
+        return {
+            "status": "blocked",
+            "answer": OUT_OF_SCOPE_MESSAGE,
+            "guardrails": {
+                "domain_allowed": False,
+                "reason": "injection_attempt",
+            },
+            "steps": state.get("steps", []) + [{"step": "guardrails", "status": "blocked"}],
+        }
     if not is_domain_question(question):
         return {
             "status": "blocked",

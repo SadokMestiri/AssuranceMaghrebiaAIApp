@@ -1,13 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Sparkles, User, Download } from "lucide-react";
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   Legend,
   Line,
   LineChart,
+  Pie,
+  PieChart,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -94,6 +100,41 @@ function MessageContent({ content }) {
   );
 }
 
+// Excel opens UTF-8 CSV natively (with a BOM for accented characters), so
+// this covers "export as Excel" without pulling in a new xlsx dependency.
+function downloadCsv(filename, columns, rows) {
+  const escapeCell = (value) => {
+    const str = value === null || value === undefined ? "" : String(value);
+    return /[",\n;]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+  };
+  const header = columns.map(escapeCell).join(",");
+  const body = rows.map((row) => columns.map((c) => escapeCell(row?.[c])).join(",")).join("\n");
+  const csvContent = "﻿" + [header, body].filter(Boolean).join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename.toLowerCase().endsWith(".csv") ? filename : `${filename}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function ExportButton({ filename, columns, rows }) {
+  if (!rows?.length || !columns?.length) return null;
+  return (
+    <button
+      type="button"
+      className="agent-export-btn"
+      title="Exporter en CSV (compatible Excel)"
+      onClick={() => downloadCsv(filename, columns, rows)}
+    >
+      <Download size={12} /> Exporter
+    </button>
+  );
+}
+
 function ToolTable({ table, index }) {
   const rows    = Array.isArray(table?.rows)    ? table.rows    : [];
   const columns = Array.isArray(table?.columns) ? table.columns
@@ -101,7 +142,10 @@ function ToolTable({ table, index }) {
   if (rows.length === 0 || columns.length === 0) return null;
   return (
     <article className="agent-structured-card" key={`table-${index}`}>
-      <h5>{table?.title || `Table ${index + 1}`}</h5>
+      <h5>
+        {table?.title || `Table ${index + 1}`}
+        <ExportButton filename={table?.title || `table-${index + 1}`} columns={columns} rows={rows} />
+      </h5>
       <div className="agent-mini-table-wrapper">
         <table className="agent-mini-table">
           <thead><tr>{columns.map((c) => <th key={c}>{c}</th>)}</tr></thead>
@@ -113,30 +157,134 @@ function ToolTable({ table, index }) {
             ))}
           </tbody>
         </table>
+        {rows.length > 8 && (
+          <p className="agent-table-truncated-note">
+            Affichage de 8 sur {rows.length} lignes — export CSV pour tout voir.
+          </p>
+        )}
       </div>
     </article>
   );
 }
 
-function ToolChart({ chart, index }) {
+// Fixed categorical order (never cycled past this set) — reused app-wide
+// so a given hue reads consistently across dashboard tabs and agent charts.
+const CATEGORICAL_PALETTE = ["#004A8D", "#F38F1D", "#25C6FF", "#BE123C", "#2E7D32", "#6A1B9A", "#00838F", "#E91E8C"];
+
+// Part-to-whole charts blur past ~7 segments — fold the tail into "Autres"
+// rather than rendering a rainbow of indistinguishable slivers.
+function capPieSegments(items, xKey, yKey, maxSegments = 7) {
+  if (items.length <= maxSegments) return items;
+  const sorted = [...items].sort((a, b) => Number(b?.[yKey] || 0) - Number(a?.[yKey] || 0));
+  const head = sorted.slice(0, maxSegments - 1);
+  const tail = sorted.slice(maxSegments - 1);
+  const otherTotal = tail.reduce((sum, row) => sum + Number(row?.[yKey] || 0), 0);
+  return [...head, { [xKey]: "Autres", [yKey]: otherTotal }];
+}
+
+// Turns a clicked chart category into a natural-language follow-up question,
+// using the chart's own title as the only signal for which dimension was
+// clicked (no per-chart-type wiring needed — new chart titles degrade to the
+// generic case instead of doing nothing).
+function composeDrillDownQuestion(chart, clickedLabel) {
+  const label = String(clickedLabel ?? "").trim();
+  if (!label) return null;
+  const title = String(chart?.title || "").toLowerCase();
+  if (title.includes("gouvernorat") || title.includes("ville") || title.includes("localite")) {
+    return `Top clients a ${label} par impaye`;
+  }
+  if (title.includes("branche")) {
+    return `Analyse detaillee de la branche ${label}`;
+  }
+  if (title.includes("agent")) {
+    return `Details sur l'agent ${label}`;
+  }
+  if (title.includes("produit")) {
+    return `Details sur le produit ${label}`;
+  }
+  if (title.includes("marque")) {
+    return `Details sur les vehicules de marque ${label}`;
+  }
+  if (title.includes("sinistre")) {
+    return `Details sur les sinistres ${label}`;
+  }
+  return `Plus de details sur ${label} (${chart?.title || "graphique"})`;
+}
+
+function ToolChart({ chart, index, onDrillDown }) {
   const items = Array.isArray(chart?.items) ? chart.items : [];
   if (items.length === 0) return null;
   const keys  = Object.keys(items[0] || {});
   const xKey  = chart?.x_key || keys[0];
   const yKey  = chart?.y_key || keys[1];
   if (!xKey || !yKey) return null;
-  const isLine  = String(chart?.type || "").toLowerCase() === "line";
-  const palette = ["#004A8D", "#F38F1D", "#1B68B2", "#BE123C"];
+  const type = String(chart?.type || "bar").toLowerCase();
+  const isPie  = type === "pie" || type === "donut";
+  const isArea = type === "area";
+  const isLine = type === "line";
+  const palette = CATEGORICAL_PALETTE;
   const declaredSeries = Array.isArray(chart?.series) ? chart.series.filter(Boolean) : [];
   const chartSeries = declaredSeries.length > 0 ? declaredSeries
-    : [{ key: yKey, label: yKey, color: isLine ? "#004A8D" : "#F38F1D" }];
+    : [{ key: yKey, label: yKey, color: isLine || isArea ? "#004A8D" : "#F38F1D" }];
   const fmt = (v, n) => [formatCellValue(v), String(n || "Valeur")];
+  const pieItems = isPie ? capPieSegments(items, xKey, yKey) : items;
+  const drillDownEnabled = typeof onDrillDown === "function" && (isPie || (!isLine && !isArea));
+  const handleSliceClick = (data) => {
+    if (!drillDownEnabled) return;
+    const label = data?.[xKey] ?? data?.name ?? data?.payload?.[xKey];
+    const followUp = composeDrillDownQuestion(chart, label);
+    if (followUp) onDrillDown(followUp);
+  };
   return (
     <article className="agent-structured-card" key={`chart-${index}`}>
-      <h5>{chart?.title || `Chart ${index + 1}`}</h5>
+      <h5>
+        <span>
+          {chart?.title || `Chart ${index + 1}`}
+          {drillDownEnabled && <span className="agent-chart-drilldown-hint">cliquez pour explorer</span>}
+        </span>
+        <ExportButton filename={chart?.title || `chart-${index + 1}`} columns={[xKey, yKey]} rows={items} />
+      </h5>
       <div className="agent-chart-box">
         <ResponsiveContainer width="100%" height={220}>
-          {isLine ? (
+          {isPie ? (
+            <PieChart margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+              <Pie
+                data={pieItems}
+                dataKey={yKey}
+                nameKey={xKey}
+                cx="50%"
+                cy="50%"
+                outerRadius={78}
+                innerRadius={type === "donut" ? 46 : 0}
+                paddingAngle={2}
+                label={({ percent }) => (percent >= 0.06 ? `${(percent * 100).toFixed(0)}%` : "")}
+                labelLine={false}
+                onClick={drillDownEnabled ? handleSliceClick : undefined}
+                cursor={drillDownEnabled ? "pointer" : "default"}
+              >
+                {pieItems.map((_, i) => (
+                  <Cell key={`slice-${i}`} fill={palette[i % palette.length]} />
+                ))}
+              </Pie>
+              <Tooltip formatter={fmt} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+            </PieChart>
+          ) : isArea ? (
+            <AreaChart data={items} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#dbe7f3" />
+              <XAxis dataKey={xKey} tick={{ fontSize: 12 }} stroke="#64748b" />
+              <YAxis tick={{ fontSize: 12 }} stroke="#64748b" />
+              <Tooltip formatter={fmt} />
+              {chartSeries.length > 1 && <Legend />}
+              {chartSeries.map((s, i) => (
+                <Area key={`area-${i}`} type="monotone" dataKey={s?.key || yKey}
+                  name={s?.label || s?.key || yKey}
+                  stroke={s?.color || palette[i % palette.length]}
+                  fill={s?.color || palette[i % palette.length]} fillOpacity={0.16}
+                  strokeWidth={2.2} />
+              ))}
+            </AreaChart>
+          ) : isLine ? (
             <LineChart data={items} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#dbe7f3" />
               <XAxis dataKey={xKey} tick={{ fontSize: 12 }} stroke="#64748b" />
@@ -161,7 +309,9 @@ function ToolChart({ chart, index }) {
               <XAxis dataKey={xKey} tick={{ fontSize: 12 }} stroke="#64748b" />
               <YAxis tick={{ fontSize: 12 }} stroke="#64748b" />
               <Tooltip formatter={fmt} />
-              <Bar dataKey={chartSeries[0]?.key || yKey} fill={chartSeries[0]?.color || "#004A8D"} radius={[8, 8, 0, 0]} />
+              <Bar dataKey={chartSeries[0]?.key || yKey} fill={chartSeries[0]?.color || "#004A8D"} radius={[8, 8, 0, 0]}
+                onClick={drillDownEnabled ? handleSliceClick : undefined}
+                cursor={drillDownEnabled ? "pointer" : "default"} />
             </BarChart>
           )}
         </ResponsiveContainer>
@@ -212,6 +362,7 @@ export default function AgentChat({ filters, recommendedPrompts = [], enableAnal
   const [isLoading,     setIsLoading]     = useState(false);
   const [ready,         setReady]         = useState(false);
   const bottomRef = useRef(null);
+  const titleRequestedRef = useRef(new Set());
 
   // ── Init: load index + restore last active conversation ────────────────────
   useEffect(() => {
@@ -240,7 +391,7 @@ export default function AgentChat({ filters, recommendedPrompts = [], enableAnal
     const userMsgs = messages.filter((m) => m.role === "user");
     if (userMsgs.length === 0) return; // nothing to save yet
 
-    const title = (() => {
+    const fallbackTitle = (() => {
       const raw = userMsgs[0].content || "";
       return raw.length > 55 ? raw.slice(0, 52) + "…" : raw;
     })();
@@ -251,13 +402,36 @@ export default function AgentChat({ filters, recommendedPrompts = [], enableAnal
         ? prev.map((c) => c.id === sessionId
             ? { ...c, lastUpdated: Date.now(), messageCount: userMsgs.length }
             : c)
-        : [{ id: sessionId, title, createdAt: Date.now(), lastUpdated: Date.now(), messageCount: 1 }, ...prev]
+        : [{ id: sessionId, title: fallbackTitle, createdAt: Date.now(), lastUpdated: Date.now(), messageCount: 1 }, ...prev]
             .slice(0, MAX_CONVS);
       saveIndex(updated);
       return updated;
     });
 
     saveMessages(sessionId, messages);
+
+    // Upgrade the naive truncated title to a short generated one — once per
+    // conversation, right after its first full exchange completes. The
+    // fallback above already shows instantly; this just swaps it in later.
+    const firstAssistant = messages.find((m) => m.role === "assistant" && !m.isStreaming);
+    if (userMsgs.length === 1 && firstAssistant && !titleRequestedRef.current.has(sessionId)) {
+      titleRequestedRef.current.add(sessionId);
+      fetch(`${API_BASE}/agent/title`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: userMsgs[0].content || "", answer: firstAssistant.content || "" }),
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (!data?.title) return;
+          setConversations((prev) => {
+            const updated = prev.map((c) => (c.id === sessionId ? { ...c, title: data.title } : c));
+            saveIndex(updated);
+            return updated;
+          });
+        })
+        .catch(() => {});
+    }
   }, [messages, sessionId, ready]);
 
   // ── Auto-scroll ────────────────────────────────────────────────────────────
@@ -467,6 +641,13 @@ export default function AgentChat({ filters, recommendedPrompts = [], enableAnal
                 key={msg.id || `${msg.role}-${idx}`}
                 className={`agent-message ${msg.role === "user" ? "agent-user" : "agent-assistant"}`}
               >
+                <div className="agent-message-avatar-row">
+                  <span className={`agent-message-avatar ${msg.role === "user" ? "avatar-user" : "avatar-ai"}`}>
+                    {msg.role === "user" ? <User size={13} /> : <Sparkles size={13} />}
+                  </span>
+                  <span className="agent-message-sender">{msg.role === "user" ? "Vous" : "Assistant IA"}</span>
+                </div>
+
                 {msg.isStreaming ? (
                   <div className="agent-stream-zone">
                     {(msg.streamProgress || []).map((label, i) => (
@@ -529,7 +710,9 @@ export default function AgentChat({ filters, recommendedPrompts = [], enableAnal
                         {kpis.map((kpi, ki) => <ToolKpi kpi={kpi} index={ki} key={`kpi-${kpi.key}`} />)}
                       </div>
                     )}
-                    {(msg.charts || []).map((c, ci) => <ToolChart chart={c} index={ci} key={`chart-${ci}`} />)}
+                    {(msg.charts || []).map((c, ci) => (
+                      <ToolChart chart={c} index={ci} key={`chart-${ci}`} onDrillDown={submitQuestion} />
+                    ))}
                     {(msg.tables || []).map((t, ti) => <ToolTable table={t} index={ti} key={`table-${ti}`} />)}
                   </div>
                 ) : null}

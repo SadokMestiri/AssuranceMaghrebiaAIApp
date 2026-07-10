@@ -133,8 +133,12 @@ export default function ChartsPanel({ dashboard, monthFilter }) {
             <XAxis dataKey="branche" tick={{ fontSize: 12 }} />
             <YAxis tick={{ fontSize: 12 }} />
             <Tooltip />
-            <Bar dataKey="taux_impaye_sur_pnet_pct" fill="#F38F1D" radius={[10, 10, 0, 0]}
-              label={{ position: "top", fontSize: 11, formatter: (v) => `${Number(v || 0).toFixed(1)}%` }} />
+            <Bar dataKey="taux_impaye_sur_pnet_pct" radius={[10, 10, 0, 0]}
+              label={{ position: "top", fontSize: 11, formatter: (v) => `${Number(v || 0).toFixed(1)}%` }}>
+              {impayeRate.map((entry, index) => (
+                <Cell key={`${entry.branche}-${index}`} fill={getBranchColor(entry?.branche, index)} />
+              ))}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </article>

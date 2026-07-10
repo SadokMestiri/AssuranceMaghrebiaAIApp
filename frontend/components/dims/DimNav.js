@@ -1,11 +1,13 @@
+import { LayoutDashboard, Users, Building2, Package, Car, FileText, AlertTriangle } from 'lucide-react';
+
 const DIMS = [
-  { key: "overview",  label: "Vue Globale",  icon: "⬡" },
-  { key: "clients",   label: "Clients",       icon: "👥" },
-  { key: "agents",    label: "Agents",        icon: "🏢" },
-  { key: "produits",  label: "Produits",      icon: "📦" },
-  { key: "vehicules", label: "Véhicules",     icon: "🚗" },
-  { key: "polices",   label: "Polices",       icon: "📋" },
-  { key: "sinistres", label: "Sinistres",     icon: "⚠️" },
+  { key: "overview",  label: "Vue Globale",  Icon: LayoutDashboard },
+  { key: "clients",   label: "Clients",       Icon: Users },
+  { key: "agents",    label: "Agents",        Icon: Building2 },
+  { key: "produits",  label: "Produits",      Icon: Package },
+  { key: "vehicules", label: "Véhicules",     Icon: Car },
+  { key: "polices",   label: "Polices",       Icon: FileText },
+  { key: "sinistres", label: "Sinistres",     Icon: AlertTriangle },
 ];
 
 export default function DimNav({ activeDim, onDimChange }) {
@@ -19,7 +21,7 @@ export default function DimNav({ activeDim, onDimChange }) {
             className={`dim-nav-tab ${activeDim === dim.key ? "active" : ""}`}
             onClick={() => onDimChange(dim.key)}
           >
-            <span className="dim-tab-icon">{dim.icon}</span>
+            <span className="dim-tab-icon"><dim.Icon size={18} /></span>
             <span className="dim-tab-label">{dim.label}</span>
             {activeDim === dim.key && <span className="dim-tab-indicator" />}
           </button>

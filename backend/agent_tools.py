@@ -25,4 +25,5 @@ from tools.client import client_tool  # noqa: F401
 from tools.sql import sql_tool, data_query_tool  # noqa: F401
 from tools.ml_predict import ml_predict_tool  # noqa: F401
 from tools.dim import dim_tool  # noqa: F401
+from tools.comparison import comparison_tool  # noqa: F401
 from db import query_dataframe as _query_dataframe  # noqa: F401  (re-exported for legacy monkeypatches)

@@ -3,6 +3,7 @@ import {
   Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend,
 } from "recharts";
 import DimKpiRow from "./DimKpiRow";
+import { FileText, CheckCircle2, XCircle, User, Layers, Target } from 'lucide-react';
 
 const fmt = new Intl.NumberFormat("fr-TN");
 
@@ -72,12 +73,12 @@ export default function PoliceDim({ data, dataPrev }) {
   return (
     <div className="dim-panel">
       <DimKpiRow cards={[
-        { icon: "📋", title: "Total polices",       value: fmt.format(kpis.total),           sub: "portefeuille",              current: kpis.total,         previous: prev.total },
-        { icon: "✅", title: "En vigueur",           value: fmt.format(kpis.en_vigueur),      sub: `${Number(kpis.pct_vigueur || 0).toFixed(1)} %`,   current: kpis.en_vigueur,    previous: prev.en_vigueur },
-        { icon: "🔴", title: "Résiliées",            value: fmt.format(kpis.resiliees),       sub: `${Number(kpis.pct_resiliees || 0).toFixed(1)} %`, current: kpis.resiliees,     previous: prev.resiliees,     invertColor: true },
-        { icon: "👤", title: "Polices individuelles",value: fmt.format(kpis.individuelles),   sub: `${Number(kpis.pct_indiv || 0).toFixed(1)} %`,     current: kpis.individuelles, previous: prev.individuelles },
-        { icon: "🚌", title: "Polices flotte",       value: fmt.format(kpis.flottes),         sub: `${Number(kpis.pct_flotte || 0).toFixed(1)} %`,    current: kpis.flottes,       previous: prev.flottes },
-        { icon: "🎯", title: "BM moyen",             value: Number(kpis.avg_bm || 0).toFixed(2),           sub: "bonus-malus moyen",         current: kpis.avg_bm,        previous: prev.avg_bm,        invertColor: true },
+        { icon: <FileText size={18} />,     title: "Total polices",       value: fmt.format(kpis.total),           sub: "portefeuille",              current: kpis.total,         previous: prev.total },
+        { icon: <CheckCircle2 size={18} />,title: "En vigueur",           value: fmt.format(kpis.en_vigueur),      sub: `${Number(kpis.pct_vigueur || 0).toFixed(1)} %`,   current: kpis.en_vigueur,    previous: prev.en_vigueur },
+        { icon: <XCircle size={18} />,     title: "Résiliées",            value: fmt.format(kpis.resiliees),       sub: `${Number(kpis.pct_resiliees || 0).toFixed(1)} %`, current: kpis.resiliees,     previous: prev.resiliees,     invertColor: true },
+        { icon: <User size={18} />,        title: "Polices individuelles",value: fmt.format(kpis.individuelles),   sub: `${Number(kpis.pct_indiv || 0).toFixed(1)} %`,     current: kpis.individuelles, previous: prev.individuelles },
+        { icon: <Layers size={18} />,      title: "Polices flotte",       value: fmt.format(kpis.flottes),         sub: `${Number(kpis.pct_flotte || 0).toFixed(1)} %`,    current: kpis.flottes,       previous: prev.flottes },
+        { icon: <Target size={18} />,      title: "BM moyen",             value: Number(kpis.avg_bm || 0).toFixed(2),           sub: "bonus-malus moyen",         current: kpis.avg_bm,        previous: prev.avg_bm,        invertColor: true },
       ]} />
 
       <div className="dim-charts-grid">
@@ -121,10 +122,17 @@ export default function PoliceDim({ data, dataPrev }) {
         {/* Périodicité */}
         <article className="panel chart-panel">
           <h3>Périodicité de règlement</h3>
-          <ResponsiveContainer width="100%" height={210}>
-            <BarChart data={periodiciteChart} margin={{ top: 20 }}>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={periodiciteChart} margin={{ top: 20, bottom: 10 }}>
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
-              <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 10 }}
+                angle={-25}
+                textAnchor="end"
+                height={58}
+                interval={0}
+              />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip formatter={(v) => [fmt.format(v), 'Polices']} />
               <Bar dataKey="count" name="Polices" radius={[6, 6, 0, 0]} label={{ position: "top", fontSize: 11 }}>

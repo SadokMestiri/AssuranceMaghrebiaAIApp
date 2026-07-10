@@ -4,6 +4,12 @@ import {
   LineChart, Line, CartesianGrid, Legend, RadarChart, Radar, PolarGrid,
   PolarAngleAxis, PolarRadiusAxis, ScatterChart, Scatter, Cell, PieChart, Pie
 } from 'recharts';
+import {
+  CreditCard, TrendingDown, TrendingUp, ShieldAlert, Users, Target, Scale,
+  Activity, BarChart2, FlaskConical, Bot, PieChart as PieChartIcon,
+  Zap, Wand2, AlertTriangle, XCircle, Lightbulb, PlayCircle, DollarSign,
+  Loader2, ChevronLeft, ChevronRight, Sparkles, Inbox, Info, Moon, Sun,
+} from 'lucide-react';
 
 const API =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -49,7 +55,7 @@ function Badge({ label, color = 'gray' }) {
 function SectionTitle({ children, icon }) {
   return (
     <h3 className="text-base font-bold text-[#004A8D] flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
-      {icon && <span className="text-lg">{icon}</span>}
+      {icon && <span className="opacity-60 flex-shrink-0">{icon}</span>}
       {children}
     </h3>
   );
@@ -75,7 +81,7 @@ function StatCard({ label, value, sub, tone = 'blue' }) {
 function Spinner({ label = 'Chargement...' }) {
   return (
     <div className="h-64 flex flex-col justify-center items-center text-slate-400 gap-3">
-      <div className="w-8 h-8 border-3 border-slate-200 border-t-[#004A8D] rounded-full animate-spin" />
+      <Loader2 size={28} className="animate-spin opacity-40" />
       <p className="text-sm font-medium animate-pulse">{label}</p>
     </div>
   );
@@ -84,7 +90,7 @@ function Spinner({ label = 'Chargement...' }) {
 function ErrorBox({ msg }) {
   return (
     <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
-      ❌ {msg}
+      <XCircle size={16} className="shrink-0" /> {msg}
     </div>
   );
 }
@@ -101,15 +107,15 @@ function Pagination({ page, total, pageSize, onPage }) {
       </span>
       <div className="flex items-center gap-1">
         <button disabled={page === 1} onClick={() => onPage(page - 1)}
-          className="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-slate-200 text-slate-500 hover:border-[#004A8D]/40 hover:text-[#004A8D] disabled:opacity-30 disabled:cursor-not-allowed transition-all">
-          ← Préc.
+          className="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-slate-200 text-slate-500 hover:border-[#004A8D]/40 hover:text-[#004A8D] disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1">
+          <ChevronLeft size={13} /> Préc.
         </button>
         <span className="px-3 py-1 text-[11px] font-black text-[#004A8D] bg-[#004A8D]/6 rounded-lg">
           {page} / {totalPages}
         </span>
         <button disabled={page === totalPages} onClick={() => onPage(page + 1)}
-          className="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-slate-200 text-slate-500 hover:border-[#004A8D]/40 hover:text-[#004A8D] disabled:opacity-30 disabled:cursor-not-allowed transition-all">
-          Suiv. →
+          className="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-slate-200 text-slate-500 hover:border-[#004A8D]/40 hover:text-[#004A8D] disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1">
+          Suiv. <ChevronRight size={13} />
         </button>
       </div>
     </div>
@@ -273,7 +279,7 @@ function ImpayeTab() {
           </div>
           <button onClick={train} disabled={training}
             className="shrink-0 px-5 py-2.5 bg-[#004A8D] text-white rounded-xl shadow-md font-semibold hover:bg-blue-800 disabled:opacity-50 transition-all flex items-center gap-2 text-sm">
-            {training ? <span className="animate-spin">⚙️</span> : '🚀'}
+            {training ? <Loader2 size={15} className="animate-spin" /> : <PlayCircle size={15} />}
             {training ? 'Chargement...' : 'Verifier modele notebook'}
           </button>
         </div>
@@ -298,7 +304,7 @@ function ImpayeTab() {
 
       {/* Simulator */}
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-          <SectionTitle icon="🧪">Simulateur d'Inférence</SectionTitle>
+          <SectionTitle icon={<FlaskConical size={16} />}>Simulateur d&apos;Inférence</SectionTitle>
           <div className="flex flex-wrap gap-2 mb-4">
             {scenarios.map(s => (
               <button
@@ -329,7 +335,9 @@ function ImpayeTab() {
           </div>
           <button onClick={predict} disabled={explaining}
             className="w-full mt-5 py-3 bg-[#F38F1D] text-white rounded-xl font-bold hover:bg-[#d97d16] disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-md shadow-[#F38F1D]/20">
-            {explaining ? <span className="animate-pulse">Calcul en cours...</span> : '⚡ Évaluer le Risque d\'Impayé'}
+            {explaining
+              ? <><Loader2 size={15} className="animate-spin" /> Calcul en cours...</>
+              : <><Zap size={15} /> Évaluer le Risque d&apos;Impayé</>}
           </button>
         </div>
 
@@ -350,7 +358,7 @@ function ImpayeTab() {
             )
           ) : (
             <div className="text-slate-400 flex flex-col items-center gap-3">
-              <span className="text-5xl opacity-30">🤖</span>
+              <Bot size={48} className="opacity-20" />
               <p className="text-sm font-medium">Simulez une quittance pour voir le score</p>
             </div>
           )}
@@ -417,7 +425,7 @@ function ChurnTab() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Stats panel */}
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-          <SectionTitle icon="📊">Vue Portefeuille — Risque Churn</SectionTitle>
+          <SectionTitle icon={<BarChart2 size={16} />}>Vue Portefeuille — Risque Churn</SectionTitle>
           {loading ? <Spinner label="Chargement des statistiques churn..." /> :
            data?.error ? <ErrorBox msg={data.error} /> : data ? (
             <div className="space-y-4">
@@ -490,7 +498,7 @@ function ChurnTab() {
 
         {/* Simulator */}
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-          <SectionTitle icon="🎯">Simulateur Churn</SectionTitle>
+          <SectionTitle icon={<Target size={16} />}>Simulateur Churn</SectionTitle>
           <div className="grid grid-cols-2 gap-3">
             {[
               ['branche', 'Branche', 'select', [['AUTO','Automobile'],['IRDS','IRDS'],['SANTE','Santé']]],
@@ -515,8 +523,10 @@ function ChurnTab() {
             ))}
           </div>
           <button onClick={predict} disabled={predicting}
-            className="w-full mt-4 py-3 bg-violet-600 text-white rounded-xl font-bold hover:bg-violet-700 disabled:opacity-50 transition-all">
-            {predicting ? '⏳ Calcul...' : '🔮 Prédire le Risque de Churn'}
+            className="w-full mt-4 py-3 inline-flex items-center justify-center gap-2 bg-gradient-to-br from-violet-600 to-indigo-700 text-white rounded-xl font-bold shadow-md shadow-violet-600/20 hover:shadow-lg hover:shadow-violet-600/30 disabled:opacity-50 disabled:shadow-none transition-all">
+            {predicting
+            ? <><Loader2 size={15} className="animate-spin" /> Calcul...</>
+            : <><Wand2 size={15} /> Prédire le Risque de Churn</>}
           </button>
           {result && !result.error && (
             <div className={`mt-4 rounded-xl p-4 border text-center ${result.churn_predicted ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200'}`}>
@@ -578,7 +588,7 @@ function FraudAnomalyTab() {
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Sub-tabs */}
       <div className="flex gap-2 p-1 bg-slate-100 rounded-xl w-fit">
-        {[['fraud', '🚨 Fraude', 'IF + AE + LOF'], ['anomaly', '🔍 Anomalies Contrats', 'IF · LOF · AE · DBSCAN']].map(([id, label, sub]) => (
+        {[['fraud', 'Fraude', 'IF + AE + LOF'], ['anomaly', 'Anomalies Contrats', 'IF · LOF · AE · DBSCAN']].map(([id, label, sub]) => (
           <button key={id} onClick={() => setView(id)}
             className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${view === id ? 'bg-white shadow text-[#004A8D]' : 'text-slate-500 hover:text-slate-700'}`}>
             {label}
@@ -612,7 +622,7 @@ function FraudAnomalyTab() {
               {fraudData.top_fraud && (
                 <div className="bg-white rounded-2xl border border-slate-100 p-5">
                   <div className="flex items-center justify-between mb-4">
-                    <SectionTitle icon="⚠️">Sinistres Suspects</SectionTitle>
+                    <SectionTitle icon={<AlertTriangle size={16} />}>Sinistres Suspects</SectionTitle>
                     <div className="flex gap-1.5 flex-wrap">
                       {[
                         [null,       'Tous suspects',  fraudData.nb_critique + fraudData.nb_eleve + fraudData.nb_modere],
@@ -697,7 +707,7 @@ function FraudAnomalyTab() {
                 return (
                   <div className="bg-white rounded-2xl border border-slate-100 p-5">
                     <div className="flex items-center justify-between mb-3">
-                      <SectionTitle icon="📊">Distribution des Scores Fraude</SectionTitle>
+                      <SectionTitle icon={<BarChart2 size={16} />}>Distribution des Scores Fraude</SectionTitle>
                       <div className="flex gap-3 text-[10px] font-bold">
                         {[['Normal', '#10b981'], ['Modéré p90', '#f59e0b'], ['Élevé p95', '#f97316'], ['Critique p99', '#ef4444']].map(([l, c]) => (
                           <span key={l} className="flex items-center gap-1">
@@ -726,7 +736,7 @@ function FraudAnomalyTab() {
 
               {/* Model info */}
               <div className="bg-white rounded-2xl border border-slate-100 p-5">
-                <SectionTitle icon="🤖">Informations du Modèle</SectionTitle>
+                <SectionTitle icon={<Bot size={16} />}>Informations du Modèle</SectionTitle>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                   <div className="rounded-xl p-4 bg-slate-50 border border-slate-200 text-center">
                     <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Sinistres Analysés</p>
@@ -785,10 +795,10 @@ function FraudAnomalyTab() {
             {!loading && anomalyData && !anomalyData.error && (
               <div className="flex gap-3">
                 {[
-                  ['score_4',  '🚨', '4/4 Modèles', 'rose'],
-                  ['score_3',  '⚠️', '3/4 Modèles', 'orange'],
-                  ['nb_anomalies', '📍', 'Total Suspects', 'blue'],
-                  ['nb_contracts_analysed', '📋', 'Contrats', 'gray'],
+                  ['score_4',  null, '4/4 Modèles', 'rose'],
+                  ['score_3',  null, '3/4 Modèles', 'orange'],
+                  ['nb_anomalies', null, 'Total Suspects', 'blue'],
+                  ['nb_contracts_analysed', null, 'Contrats', 'gray'],
                 ].map(([key, icon, lbl, tone]) => {
                   const colors = { rose: ['bg-rose-50 border-rose-100', '#ef4444'], orange: ['bg-amber-50 border-amber-100', '#f59e0b'], blue: ['bg-sky-50 border-sky-100', '#004A8D'], gray: ['bg-slate-50 border-slate-200', '#64748b'] };
                   const [cls, clr] = colors[tone];
@@ -984,7 +994,7 @@ function ForecastTab() {
           <div>
             {previsions.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 gap-2">
-                <span className="text-4xl">📭</span>
+                <Inbox size={40} className="opacity-25" />
                 <p className="font-medium text-slate-600">Données insuffisantes pour cette branche</p>
                 <p className="text-sm text-slate-400 text-center max-w-sm">
                   Cet indicateur n'a pas assez de données historiques pour <strong>{data.departement}</strong> afin de générer une prévision fiable.
@@ -1084,7 +1094,7 @@ function SegmentationTab() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Pie + segment list */}
           <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-            <SectionTitle icon="🥧">Répartition des Segments</SectionTitle>
+            <SectionTitle icon={<PieChartIcon size={16} />}>Répartition des Segments</SectionTitle>
             {data.segments && (
               <>
                 <ResponsiveContainer width="100%" height={220}>
@@ -1177,8 +1187,9 @@ function SegmentationTab() {
                   </ResponsiveContainer>
                 )}
                 {selected.action && (
-                  <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800 font-medium">
-                    💡 <strong>Action recommandée :</strong> {selected.action}
+                  <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800 font-medium flex items-start gap-2">
+                    <Lightbulb size={15} className="shrink-0 mt-0.5" />
+                    <span><strong>Action recommandée :</strong> {selected.action}</span>
                   </div>
                 )}
               </div>
@@ -1188,7 +1199,7 @@ function SegmentationTab() {
 
         {/* Model metrics */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-          <SectionTitle icon="📊">Performance du Modèle K-Means</SectionTitle>
+          <SectionTitle icon={<Activity size={16} />}>Performance du Modèle K-Means</SectionTitle>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {/* Silhouette */}
             <div className={`rounded-xl p-4 border text-center ${data.silhouette != null && data.silhouette > 0.15 ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
@@ -1282,7 +1293,7 @@ function RiskPricingTab() {
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Sub-tabs */}
       <div className="flex gap-2 p-1 bg-slate-100 rounded-xl w-fit">
-        {[['risk', '🎯 Risk Scoring', 'Score 0–1000 + Prime Technique'], ['claim', '💰 Claim Severity', 'Prédiction Coût Sinistre']].map(([id, label, sub]) => (
+        {[['risk', 'Risk Scoring', 'Score 0–1000 + Prime Technique'], ['claim', 'Claim Severity', 'Prédiction Coût Sinistre']].map(([id, label, sub]) => (
           <button key={id} onClick={() => { setView(id); setResult(null); }}
             className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${view === id ? 'bg-white shadow text-[#004A8D]' : 'text-slate-500 hover:text-slate-700'}`}>
 
@@ -1294,7 +1305,7 @@ function RiskPricingTab() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Form */}
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-          <SectionTitle icon={view === 'risk' ? '🎯' : '💰'}>{view === 'risk' ? 'Simulateur de Risque' : 'Simulateur Sinistre'}</SectionTitle>
+          <SectionTitle icon={view === 'risk' ? <Target size={16} /> : <DollarSign size={16} />}>{view === 'risk' ? 'Simulateur de Risque' : 'Simulateur Sinistre'}</SectionTitle>
           <div className="grid grid-cols-2 gap-3">
             {(
               view === 'risk' ? [
@@ -1345,8 +1356,12 @@ function RiskPricingTab() {
             ))}
           </div>
           <button onClick={submit} disabled={loading}
-            className="w-full mt-5 py-3 bg-[#004A8D] text-white rounded-xl font-bold hover:bg-blue-800 disabled:opacity-50 transition-all">
-            {loading ? '⏳ Calcul...' : view === 'risk' ? '⚡ Calculer Score de Risque' : '🔮 Prédire Coût Sinistre'}
+            className="w-full mt-5 py-3 inline-flex items-center justify-center gap-2 bg-gradient-to-br from-[#004A8D] to-blue-800 text-white rounded-xl font-bold shadow-md shadow-[#004A8D]/20 hover:shadow-lg hover:shadow-[#004A8D]/30 disabled:opacity-50 disabled:shadow-none transition-all">
+            {loading
+              ? <><Loader2 size={15} className="animate-spin" /> Calcul...</>
+              : view === 'risk'
+                ? <><Zap size={15} /> Calculer Score de Risque</>
+                : <><Wand2 size={15} /> Prédire Coût Sinistre</>}
           </button>
         </div>
 
@@ -1396,7 +1411,7 @@ function RiskPricingTab() {
             )
           ) : (
             <div className="text-slate-400 flex flex-col items-center gap-3">
-              <span className="text-5xl opacity-30">{view === 'risk' ? '🎯' : '💰'}</span>
+              {view === 'risk' ? <Target size={48} className="opacity-20" /> : <DollarSign size={48} className="opacity-20" />}
               <p className="text-sm font-medium">Remplissez le formulaire pour calculer</p>
             </div>
           )}
@@ -1424,7 +1439,7 @@ function RiskPricingTab() {
           const ms = info.metrics_sev  || {};
           return (
             <div className="bg-slate-50 rounded-2xl border border-slate-100 p-5">
-              <SectionTitle icon="📈">Performance du Modèle — {info.source}</SectionTitle>
+              <SectionTitle icon={<TrendingUp size={16} />}>Performance du Modèle — {info.source}</SectionTitle>
               <p className="text-xs text-slate-400 -mt-2 mb-4">
                 {info.notebook} · {info.features} features · Chargement ×{info.chargement}
                 &nbsp;|&nbsp; Fréq : XGB {Math.round((info.weights?.freq?.xgb || 0)*100)}% / LGB {Math.round((info.weights?.freq?.lgb || 0)*100)}%
@@ -1454,7 +1469,7 @@ function RiskPricingTab() {
           const m = info.metrics || {};
           return (
             <div className="bg-slate-50 rounded-2xl border border-slate-100 p-5">
-              <SectionTitle icon="📈">Performance du Modèle — {info.source}</SectionTitle>
+              <SectionTitle icon={<TrendingUp size={16} />}>Performance du Modèle — {info.source}</SectionTitle>
               <p className="text-xs text-slate-400 -mt-2 mb-4">
                 {info.notebook} · {info.features} features
                 &nbsp;|&nbsp; XGB {Math.round((info.weights?.xgb || 0)*100)}% / LGB {Math.round((info.weights?.lgb || 0)*100)}%
@@ -1476,7 +1491,7 @@ function RiskPricingTab() {
       {/* Risk table */}
       {view === 'risk' && tableData?.table && (
         <div className="bg-white rounded-2xl border border-slate-100 p-5">
-          <SectionTitle icon="📊">Statistiques du Portefeuille par Branche</SectionTitle>
+          <SectionTitle icon={<BarChart2 size={16} />}>Statistiques du Portefeuille par Branche</SectionTitle>
           <p className="text-xs text-slate-400 mb-4 -mt-2">Données historiques agrégées — fréquence et sévérité réelles du portefeuille</p>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
@@ -1541,7 +1556,7 @@ function DriftTab() {
   const psiData = Array.isArray(data?.psi_features) ? data.psi_features : [];
 
   const psiColor = (v) => v >= 0.2 ? '#ef4444' : v >= 0.1 ? '#f59e0b' : '#10b981';
-  const psiLabel = (v) => v >= 0.2 ? '🚨 Critique' : v >= 0.1 ? '⚠️ Modéré' : '✅ Stable';
+  const psiLabel = (v) => v >= 0.2 ? 'Critique' : v >= 0.1 ? 'Modéré' : 'Stable';
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -1603,7 +1618,7 @@ function DriftTab() {
           {/* PSI bar chart */}
           {psiData.length > 0 && (
             <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
-              <SectionTitle icon="📊">PSI par Feature (Population Stability Index)</SectionTitle>
+              <SectionTitle icon={<BarChart2 size={16} />}>PSI par Feature (Population Stability Index)</SectionTitle>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={psiData} layout="vertical" margin={{ left: 100, right: 40 }}>
                   <XAxis type="number" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => v.toFixed(2)} />
@@ -1710,22 +1725,22 @@ function DriftTab() {
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 const TABS = [
-  { id: 'impaye',       label: 'Risque Impayé',       icon: '💳', notebook: 'impaye_risk_scoring' },
-  { id: 'churn',        label: 'Prédiction Churn',     icon: '📉', notebook: 'churn_prediction_v3' },
-  { id: 'fraud',        label: 'Fraude & Anomalies',   icon: '🚨', notebook: 'fraud_detection + anomaly_detection' },
-  { id: 'forecast',     label: 'Projections IA',       icon: '📈', notebook: 'forecast_model' },
-  { id: 'segmentation', label: 'Segmentation',         icon: '👥', notebook: 'customer_segmentation' },
-  { id: 'risk',         label: 'Risque & Pricing',     icon: '🎯', notebook: 'risk_scoring_pricing + claim_severity' },
-  { id: 'drift',        label: 'Data Drift',           icon: '⚖️', notebook: 'data_drift_evidently' },
+  { id: 'impaye',       label: 'Risque Impayé',     Icon: CreditCard,   notebook: 'impaye_risk_scoring' },
+  { id: 'churn',        label: 'Prédiction Churn',   Icon: TrendingDown, notebook: 'churn_prediction_v3' },
+  { id: 'fraud',        label: 'Fraude & Anomalies', Icon: ShieldAlert,  notebook: 'fraud_detection + anomaly_detection' },
+  { id: 'forecast',     label: 'Projections IA',     Icon: TrendingUp,   notebook: 'forecast_model' },
+  { id: 'segmentation', label: 'Segmentation',       Icon: Users,        notebook: 'customer_segmentation' },
+  { id: 'risk',         label: 'Risque & Pricing',   Icon: Target,       notebook: 'risk_scoring_pricing + claim_severity' },
+  { id: 'drift',        label: 'Data Drift',         Icon: Scale,        notebook: 'data_drift_evidently' },
 ];
 
 export default function MLOpsContent() {
   const [tab, setTab] = useState('impaye');
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden flex flex-col md:flex-row min-h-[750px] m-4 lg:m-8">
+    <div className="mlops-root bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden flex flex-col md:flex-row min-h-[750px] m-4 lg:m-8">
       {/* Sidebar */}
-      <div className="w-full md:w-64 bg-slate-50/80 border-r border-slate-100 flex flex-col p-4 md:p-6 space-y-1.5 shrink-0">
+      <div className="mlops-sidebar w-full md:w-64 bg-slate-50/80 border-r border-slate-100 flex flex-col p-4 md:p-6 space-y-1.5 shrink-0">
         <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-3 mb-4">
           Workflows MLOps
         </h2>
@@ -1736,7 +1751,7 @@ export default function MLOpsContent() {
                 ? 'bg-gradient-to-br from-[#004A8D] to-blue-800 text-white shadow-md shadow-[#004A8D]/20 scale-[1.02]'
                 : 'text-slate-600 hover:bg-white hover:shadow-sm hover:text-slate-900 border border-transparent'
             }`}>
-            <span className="text-lg">{t.icon}</span>
+            <t.Icon size={17} className="shrink-0" />
             <div>
               <p>{t.label}</p>
               <p className={`text-[9px] font-normal leading-tight mt-0.5 ${tab === t.id ? 'text-white/60' : 'text-slate-400'}`}>
@@ -1748,7 +1763,7 @@ export default function MLOpsContent() {
         {/* Model registry summary */}
         <div className="mt-auto pt-4 border-t border-slate-200">
           <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-2 pl-1">Registre Modèles</p>
-          {[['💳 Impayé', 'LightGBM'], ['📉 Churn', 'XGBoost v3'], ['🚨 Fraude', 'IF+AE+LOF'], ['📈 Forecast', 'Prophet+ML'], ['👥 Segments', 'K-Means'], ['🎯 Pricing', 'GBM+GLM'], ['⚖️ Drift', 'Evidently']].map(([name, algo]) => (
+          {[['Impayé', 'LightGBM'], ['Churn', 'XGBoost v3'], ['Fraude', 'IF+AE+LOF'], ['Forecast', 'Prophet+ML'], ['Segments', 'K-Means'], ['Pricing', 'GBM+GLM'], ['Drift', 'Evidently']].map(([name, algo]) => (
             <div key={name} className="flex items-center justify-between py-1 px-1">
               <span className="text-[10px] text-slate-500 font-medium">{name}</span>
               <span className="text-[9px] text-slate-400 bg-slate-100 rounded px-1.5 py-0.5">{algo}</span>
@@ -1758,7 +1773,7 @@ export default function MLOpsContent() {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 p-6 md:p-8 overflow-y-auto bg-[#fcfdfd]">
+      <div className="mlops-main flex-1 p-6 md:p-8 overflow-y-auto bg-[#fcfdfd]">
         {tab === 'impaye'       && <ImpayeTab />}
         {tab === 'churn'        && <ChurnTab />}
         {tab === 'fraud'        && <FraudAnomalyTab />}

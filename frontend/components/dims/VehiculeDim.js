@@ -3,6 +3,7 @@ import {
   Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend,
 } from "recharts";
 import DimKpiRow from "./DimKpiRow";
+import { Car, Gauge, Truck, Wrench, Zap, CalendarDays, Info } from 'lucide-react';
 
 const fmt = new Intl.NumberFormat("fr-TN");
 
@@ -68,7 +69,7 @@ export default function VehiculeDim({ data, dataPrev, branch = "ALL" }) {
           color: "#92400e",
         }}
       >
-        <span style={{ fontSize: "16px" }}>ℹ️</span>
+        <Info size={16} />
         <span>
           La branche <strong>{branch}</strong> n&apos;a pas de données véhicules. Le parc affiché
           couvre toutes les branches.
@@ -80,12 +81,12 @@ export default function VehiculeDim({ data, dataPrev, branch = "ALL" }) {
     <div className="dim-panel">
       {branchNotice}
       <DimKpiRow cards={[
-        { icon: "🚗", title: "Total véhicules",    value: fmt.format(kpis.total),              sub: "assurés",            current: kpis.total,          previous: prev.total },
-        { icon: "🏎", title: "Voitures part.",     value: fmt.format(kpis.nb_vp),              sub: `${Number(kpis.pct_vp || 0).toFixed(1)} % du parc`, current: kpis.nb_vp, previous: prev.nb_vp },
-        { icon: "🚚", title: "Véh. utilitaires",  value: fmt.format(kpis.nb_vu),              sub: "VU + PL + TC",       current: kpis.nb_vu,          previous: prev.nb_vu },
-        { icon: "🔧", title: "Marques distinctes", value: fmt.format(kpis.nb_marques),         sub: "constructeurs",      current: kpis.nb_marques },
-        { icon: "⚡", title: "Puissance moy.",     value: kpis.avg_puissance + " CV",          sub: "moyenne parc",       current: kpis.avg_puissance,  previous: prev.avg_puissance },
-        { icon: "📅", title: "Ancienneté moy.",    value: kpis.avg_age + " ans",               sub: "âge moyen véhicule", current: kpis.avg_age,        previous: prev.avg_age,       invertColor: true },
+        { icon: <Car size={18} />,         title: "Total véhicules",    value: fmt.format(kpis.total),              sub: "assurés",            current: kpis.total,          previous: prev.total },
+        { icon: <Gauge size={18} />,       title: "Voitures part.",     value: fmt.format(kpis.nb_vp),              sub: `${Number(kpis.pct_vp || 0).toFixed(1)} % du parc`, current: kpis.nb_vp, previous: prev.nb_vp },
+        { icon: <Truck size={18} />,       title: "Véh. utilitaires",  value: fmt.format(kpis.nb_vu),              sub: "VU + PL + TC",       current: kpis.nb_vu,          previous: prev.nb_vu },
+        { icon: <Wrench size={18} />,      title: "Marques distinctes", value: fmt.format(kpis.nb_marques),         sub: "constructeurs",      current: kpis.nb_marques },
+        { icon: <Zap size={18} />,         title: "Puissance moy.",     value: kpis.avg_puissance + " CV",          sub: "moyenne parc",       current: kpis.avg_puissance,  previous: prev.avg_puissance },
+        { icon: <CalendarDays size={18} />,title: "Ancienneté moy.",    value: kpis.avg_age + " ans",               sub: "âge moyen véhicule", current: kpis.avg_age,        previous: prev.avg_age,       invertColor: true },
       ]} />
 
       <div className="dim-charts-grid">
@@ -132,7 +133,7 @@ export default function VehiculeDim({ data, dataPrev, branch = "ALL" }) {
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={byPuissance} margin={{ top: 20 }}>
                 <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
-                <XAxis dataKey="label" tick={{ fontSize: 13 }} />
+                <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={0} angle={-35} textAnchor="end" height={45} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip formatter={(v) => [fmt.format(v), 'Véhicules']} />
                 <Bar dataKey="count" name="Véhicules" radius={[6, 6, 0, 0]} label={{ position: "top", fontSize: 11 }}>
@@ -150,7 +151,7 @@ export default function VehiculeDim({ data, dataPrev, branch = "ALL" }) {
               <BarChart data={byType} layout="vertical" margin={{ right: 55 }}>
                 <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
                 <XAxis type="number" tick={{ fontSize: 11 }} />
-                <YAxis type="category" dataKey="label" tick={{ fontSize: 11 }} width={145} />
+                <YAxis type="category" dataKey="label" tick={{ fontSize: 11 }} width={145} interval={0} />
                 <Tooltip formatter={(v) => [fmt.format(v), 'Véhicules']} />
                 <Bar dataKey="count" name="Véhicules" fill="#004A8D" radius={[0, 6, 6, 0]}
                   label={{ position: "right", fontSize: 11 }}

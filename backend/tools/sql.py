@@ -151,6 +151,13 @@ def _detect_sql_metric(normalized_question: str) -> str:
             return "agent_prime_moyenne"
         if "agent" in normalized_question and "nombre de polices" in normalized_question and "top" in normalized_question:
             return "agent_top_polices"
+        # No known dimension keyword matched above — check whether "agent" is
+        # followed by what looks like a name ("trouve l'agent Ben Salah") rather
+        # than falling straight into the generic overview.
+        stopwords = {"actif", "actifs", "inactif", "inactifs", "general", "generaux", "de", "des", "du", "le", "la", "les"}
+        named = re.search(r"agents?\s+([a-z\-]{3,}(?:\s+[a-z\-]{2,})?)", normalized_question)
+        if named and named.group(1).strip() not in stopwords:
+            return "agent_search"
         return "agent_overview"
     
     
@@ -179,6 +186,8 @@ def _detect_sql_metric(normalized_question: str) -> str:
     # ── Véhicule dimensions ──
     vehicule_terms = ["vehicule", "vehicules", "voiture", "voitures", "parc auto"]
     if any(term in normalized_question for term in vehicule_terms):
+        if "sinistralite" in normalized_question or ("sinistre" in normalized_question and "top" in normalized_question):
+            return "vehicule_top_sinistralite"
         if "marque" in normalized_question:
             return "vehicule_top_marques"
         if "genre" in normalized_question or "type" in normalized_question:
@@ -347,18 +356,23 @@ def _build_semantic_sql_query_spec(semantic: dict[str, Any], params: dict[str, A
         return {
             "sql_id": "client_by_sexe",
             "sql_query": """
-                SELECT 
+                SELECT
                     c.sexe,
                     COUNT(DISTINCT c.id_client) AS nb_clients,
                     ROUND(100.0 * COUNT(DISTINCT c.id_client) / SUM(COUNT(DISTINCT c.id_client)) OVER (), 1) AS pct
                 FROM dim_client c
                 INNER JOIN dim_police p ON p.id_client = c.id_client
+                INNER JOIN dwh_fact_emission e ON e.id_police = p.id_police
                 WHERE c.sexe IN ('F', 'M')
                 AND p.situation = 'V'
+                AND e.etat_quit IN ('E', 'P', 'A')
+                AND (:branch IS NULL OR e.branche = :branch)
+                AND (:year_from IS NULL OR e.annee_echeance >= :year_from)
+                AND (:year_to IS NULL OR e.annee_echeance <= :year_to)
                 GROUP BY c.sexe
                 ORDER BY c.sexe
             """,
-            "params": {},
+            "params": params,
             "result_kind": "breakdown",
             "kpi_fields": [
                 {"key": "sexe", "label": "Sexe", "unit": ""},
@@ -443,7 +457,7 @@ def _build_semantic_sql_query_spec(semantic: dict[str, Any], params: dict[str, A
         return {
             "sql_id": "client_overview",
             "sql_query": """
-                SELECT 
+                SELECT
                     COUNT(DISTINCT c.id_client) AS total_clients,
                     COUNT(DISTINCT c.ville) AS nb_villes,
                     COUNT(DISTINCT CASE WHEN c.type_personne = 'P' THEN c.id_client END) AS nb_personnes_physiques,
@@ -453,10 +467,15 @@ def _build_semantic_sql_query_spec(semantic: dict[str, Any], params: dict[str, A
                     ROUND(AVG(EXTRACT(YEAR FROM AGE(CURRENT_DATE, c.date_naissance))), 1) AS age_moyen
                 FROM dim_client c
                 INNER JOIN dim_police p ON p.id_client = c.id_client
+                INNER JOIN dwh_fact_emission e ON e.id_police = p.id_police
                 WHERE p.situation = 'V'
                 AND c.date_naissance IS NOT NULL
+                AND e.etat_quit IN ('E', 'P', 'A')
+                AND (:branch IS NULL OR e.branche = :branch)
+                AND (:year_from IS NULL OR e.annee_echeance >= :year_from)
+                AND (:year_to IS NULL OR e.annee_echeance <= :year_to)
             """,
-            "params": {},
+            "params": params,
             "result_kind": "scalar",
             "kpi_fields": [
                 {"key": "total_clients", "label": "Total clients (portefeuille actif)", "unit": "count"},
@@ -552,6 +571,45 @@ def _build_semantic_sql_query_spec(semantic: dict[str, Any], params: dict[str, A
             ],
         }
     
+    if metric == "agent_search":
+        question_text = str(semantic.get("normalized_question", ""))
+        name_match = re.search(r"agents?\s+([a-z\-]{3,}(?:\s+[a-z\-]{2,})?)", question_text)
+        target_name = name_match.group(1).strip() if name_match else ""
+        return {
+            "sql_id": "agent_search",
+            "sql_query": """
+                SELECT
+                    a.id_agent,
+                    COALESCE(a.nom_agent, 'N/A') AS agent,
+                    COALESCE(a.groupe_agent, 'N/A') AS groupe,
+                    COALESCE(a.localite_agent, 'N/A') AS localite,
+                    CASE
+                        WHEN a.etat_agent = 'A' THEN 'Actif'
+                        WHEN a.etat_agent IN ('R', 'I') THEN 'Inactif'
+                        ELSE 'N/A'
+                    END AS etat,
+                    COUNT(DISTINCT e.id_police) AS nb_polices,
+                    COALESCE(SUM(e.mt_pnet), 0) AS total_pnet
+                FROM dim_agent a
+                LEFT JOIN dwh_fact_emission e ON e.id_agent = a.id_agent AND e.etat_quit IN ('E', 'P', 'A')
+                WHERE a.nom_agent ILIKE :pattern
+                GROUP BY a.id_agent, a.nom_agent, a.groupe_agent, a.localite_agent, a.etat_agent
+                ORDER BY total_pnet DESC
+                LIMIT 20
+            """,
+            "params": {"pattern": f"%{target_name}%"},
+            "result_kind": "breakdown",
+            "kpi_fields": [
+                {"key": "agent", "label": "Agent", "unit": ""},
+                {"key": "groupe", "label": "Groupe", "unit": ""},
+                {"key": "localite", "label": "Localité", "unit": ""},
+                {"key": "etat", "label": "État", "unit": ""},
+                {"key": "nb_polices", "label": "Nb polices", "unit": "count"},
+                {"key": "total_pnet", "label": "Prime nette", "unit": "TND"},
+            ],
+            "chart": {"type": "bar", "title": f"Agents correspondant a '{target_name}'", "x_key": "agent", "y_key": "total_pnet"},
+        }
+
     if metric == "agent_etat":
         return {
             "sql_id": "agent_by_etat",
@@ -942,6 +1000,38 @@ def _build_semantic_sql_query_spec(semantic: dict[str, Any], params: dict[str, A
             ],
         }
     
+    if metric == "vehicule_top_sinistralite":
+        return {
+            "sql_id": "vehicule_top_sinistralite",
+            "sql_query": f"""
+                SELECT
+                    v.id_vehicule,
+                    COALESCE(v.marque, 'N/A') AS marque,
+                    COALESCE(v.immatriculation, 'N/A') AS immatriculation,
+                    COALESCE(v.genre_vehicule, 'N/A') AS genre,
+                    COUNT(s.id_sinistre) AS nb_sinistres,
+                    COALESCE(SUM(s.mt_paye), 0) AS total_mt_paye
+                FROM dim_vehicule v
+                INNER JOIN dwh_fact_sinistre s ON s.id_vehicule = v.id_vehicule
+                WHERE (:branch IS NULL OR s.branche = :branch)
+                  AND (:year_from IS NULL OR s.annee_survenance >= :year_from)
+                  AND (:year_to IS NULL OR s.annee_survenance <= :year_to)
+                GROUP BY v.id_vehicule, v.marque, v.immatriculation, v.genre_vehicule
+                ORDER BY nb_sinistres DESC
+                LIMIT {limit_value}
+            """,
+            "params": params,
+            "result_kind": "breakdown",
+            "kpi_fields": [
+                {"key": "marque", "label": "Marque", "unit": ""},
+                {"key": "immatriculation", "label": "Immatriculation", "unit": ""},
+                {"key": "genre", "label": "Genre", "unit": ""},
+                {"key": "nb_sinistres", "label": "Nb sinistres", "unit": "count"},
+                {"key": "total_mt_paye", "label": "Montant payé", "unit": "TND"},
+            ],
+            "chart": {"type": "bar", "title": "Top véhicules par sinistralité", "x_key": "immatriculation", "y_key": "nb_sinistres"},
+        }
+
     if metric == "vehicule_top_marques":
         return {
             "sql_id": "vehicule_top_marques",

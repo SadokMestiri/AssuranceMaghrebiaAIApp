@@ -6,20 +6,20 @@
 
 /* ═══════════════════════════════════════════════════════════════
    KEYRUS DESIGN TOKENS
-   The Keyrus website is WHITE-based. The three accent colors
-   appear exclusively as decorative highlights, not dominant
-   surfaces. Deep navy on the previous attempt was wrong.
-
    Accent palette (from Keyrus SVG decorations):
-     Cyan    #25C6FF  — vertical bar decoration
-     Amber   #FC990F  — swoosh decoration
-     Crimson #DA0127  — swoosh decoration
-   Backgrounds: #F0F4F9 (page), #FFFFFF (panels)
-   Typography:  Manrope (body) + Space Grotesk (headings) — kept
+     Cyan    #25C6FF  — vertical bar motif
+     Amber   #FC990F  — swoosh motif
+     Crimson #DA0127  — swoosh motif
+   Navy #05072E — Keyrus logo body color (sidebar in dark mode)
+   Theme: .dark class on <html> toggles dark mode
 ═══════════════════════════════════════════════════════════════ */
 
 :root {
-  /* Keyrus accents */
+  /* Keyrus brand navy */
+  --navy:     #05072E;
+  --navy-mid: #0D1147;
+
+  /* Keyrus accent colors */
   --cyan:          #25C6FF;
   --cyan-light:    rgba(37, 198, 255, 0.09);
   --cyan-border:   rgba(37, 198, 255, 0.28);
@@ -29,18 +29,29 @@
   --crimson:       #DA0127;
   --crimson-light: rgba(218, 1, 39, 0.07);
 
-  /* Surfaces */
-  --bg-main:    #F0F4F9;
-  --panel:      #FFFFFF;
-  --panel-alt:  #F7FAFD;
-  --border:     #E2E8F0;
+  /* Light mode surfaces */
+  --bg-main:   #EEF2F8;
+  --panel:     #FFFFFF;
+  --panel-alt: #F6F9FD;
+  --border:    #DDE4EF;
 
-  /* Text */
-  --text:   #1e293b;
-  --muted:  #475569;
-  --subtle: #94a3b8;
+  /* Light mode text */
+  --text:   #0D1147;
+  --muted:  #4A5578;
+  --subtle: #8E9AB8;
 
-  /* Legacy aliases kept for component files */
+  /* Light mode sidebar */
+  --sidebar-bg:              #FFFFFF;
+  --sidebar-shadow:          0 4px 20px rgba(5, 7, 46, 0.09);
+  --sidebar-brand-color:     #0D1147;
+  --sidebar-nav-color:       #2d2d2d;
+  --sidebar-nav-hover-bg:    rgba(37, 198, 255, 0.08);
+  --sidebar-nav-hover-color: #0D1147;
+  --sidebar-nav-active-bg:   rgba(37, 198, 255, 0.11);
+  --sidebar-nav-active-color:#2d2d2d;
+  --sidebar-note-color:      #8E9AB8;
+
+  /* Legacy aliases */
   --teal:        #25C6FF;
   --teal-soft:   #0ea5d4;
   --sky:         #25C6FF;
@@ -50,9 +61,52 @@
   --danger-text: #DA0127;
 
   /* Shadows */
-  --shadow:    0 4px 18px rgba(15, 30, 60, 0.08);
-  --shadow-sm: 0 2px 8px  rgba(15, 30, 60, 0.06);
-  --shadow-lg: 0 12px 36px rgba(15, 30, 60, 0.11);
+  --shadow:    0 4px 18px rgba(5, 7, 46, 0.09);
+  --shadow-sm: 0 2px 8px  rgba(5, 7, 46, 0.06);
+  --shadow-lg: 0 12px 36px rgba(5, 7, 46, 0.12);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DARK MODE — .dark class on <html>
+═══════════════════════════════════════════════════════════════ */
+.dark {
+  /* Dark surfaces — deep space Keyrus palette */
+  --bg-main:   #03050F;
+  --panel:     #080E2A;
+  --panel-alt: #0C1335;
+  --border:    rgba(255, 255, 255, 0.07);
+
+  /* Dark text */
+  --text:   #E8EDF8;
+  --muted:  #7A88B5;
+  --subtle: #38425E;
+
+  /* Slightly brighter accents on dark bg */
+  --cyan-light:   rgba(37, 198, 255, 0.12);
+  --cyan-border:  rgba(37, 198, 255, 0.28);
+  --amber-light:  rgba(252, 153, 15, 0.11);
+  --amber-border: rgba(252, 153, 15, 0.36);
+  --crimson-light:rgba(218, 1, 39, 0.11);
+
+  /* Dark danger */
+  --danger-bg:   rgba(218, 1, 39, 0.14);
+  --danger-text: #FF4466;
+
+  /* Dark mode sidebar — near-black with navy depth */
+  --sidebar-bg:              #030512;
+  --sidebar-shadow:          0 8px 40px rgba(0, 0, 0, 0.60), 0 0 0 1px rgba(37,198,255,0.06);
+  --sidebar-brand-color:     #FFFFFF;
+  --sidebar-nav-color:       #FFFFFF;
+  --sidebar-nav-hover-bg:    rgba(255, 255, 255, 0.055);
+  --sidebar-nav-hover-color: rgba(255, 255, 255, 0.92);
+  --sidebar-nav-active-bg:   rgba(37, 198, 255, 0.14);
+  --sidebar-nav-active-color:#FFFFFF;
+  --sidebar-note-color:      rgba(255, 255, 255, 0.28);
+
+  /* Dark shadows */
+  --shadow:    0 4px 24px rgba(0, 0, 0, 0.50);
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.42);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.60);
 }
 
 /* ── Reset ─────────────────────────────────────────────────── */
@@ -65,15 +119,44 @@ html, body, #__next {
   min-height: 100%;
 }
 
+/* Light mode ambience — same structure as dark mode (grid + blue glow
+   top-right + amber glow bottom-left), just far lower opacity so it stays a
+   texture on a light surface instead of muddying it. */
 body {
   font-family: "Manrope", "Segoe UI", sans-serif;
   color: var(--text);
   background: var(--bg-main);
-  /* Very faint Keyrus accent glows in corners — matches their hero page */
   background-image:
-    radial-gradient(ellipse 50% 25% at 0% 0%,   rgba(37, 198, 255, 0.05) 0%, transparent 60%),
-    radial-gradient(ellipse 38% 22% at 100% 0%,  rgba(252, 153, 15, 0.05)  0%, transparent 55%);
+    /* fine grid */
+    repeating-linear-gradient(0deg,  rgba(13, 17, 71, 0.025) 0px, rgba(13, 17, 71, 0.025) 1px, transparent 1px, transparent 44px),
+    repeating-linear-gradient(90deg, rgba(13, 17, 71, 0.025) 0px, rgba(13, 17, 71, 0.025) 1px, transparent 1px, transparent 44px),
+    /* blue glow, top-right */
+    radial-gradient(ellipse 62% 55% at 90% 6%, rgba(37, 198, 255, 0.10) 0%, transparent 62%),
+    /* amber glow, bottom-left */
+    radial-gradient(ellipse 46% 38% at 6% 92%, rgba(252, 153, 15, 0.09) 0%, transparent 58%);
+  background-repeat: repeat, repeat, no-repeat, no-repeat;
+  background-attachment: fixed, fixed, fixed, fixed;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.25s, color 0.25s;
+}
+
+/* Keyrus-inspired deep-space dark mode ambience — blue glow top-right,
+   amber glow bottom-left, faint grid for depth. background-attachment: fixed
+   pins all of this to the viewport so only the content scrolls, not the
+   ambience — without it, the glow positions (90% 6%, 6% 92%, etc.) are
+   computed against the full scrollable page height instead of the viewport. */
+.dark body {
+  background-image:
+    /* fine grid */
+    repeating-linear-gradient(0deg,  rgba(255, 255, 255, 0.025) 0px, rgba(255, 255, 255, 0.025) 1px, transparent 1px, transparent 44px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0px, rgba(255, 255, 255, 0.025) 1px, transparent 1px, transparent 44px),
+    /* blue glow, top-right */
+    radial-gradient(ellipse 62% 55% at 90% 6%, rgba(41, 145, 220, 0.40) 0%, transparent 62%),
+    /* amber glow, bottom-left */
+    radial-gradient(ellipse 46% 38% at 6% 92%, rgba(200, 110, 20, 0.22) 0%, transparent 58%);
+  background-repeat: repeat, repeat, no-repeat, no-repeat;
+  background-attachment: fixed, fixed, fixed, fixed;
+  background-color: #03050F;
 }
 
 h1, h2, h3 {
@@ -92,21 +175,28 @@ h1, h2, h3 {
   align-items: start;
 }
 
-/* ── Sidebar — white, cyan left border ──────────────────────── */
+/* ── Sidebar — adapts per theme via CSS variables ───────────── */
 
 .app-nav-sidebar {
-  background: #FFFFFF;
-  color: var(--text);
+  background: var(--sidebar-bg);
+  color: var(--sidebar-brand-color);
   border-radius: 20px;
-  border: 1px solid var(--border);
-  /* Keyrus signature: cyan vertical accent bar on left */
+  border: 1px solid transparent;
   border-left: 4px solid var(--cyan);
-  box-shadow: var(--shadow);
+  box-shadow: var(--sidebar-shadow);
   padding: 18px 14px;
   display: grid;
   gap: 14px;
   position: sticky;
   top: 12px;
+  transition: background 0.25s, box-shadow 0.25s, border-color 0.25s;
+}
+
+/* Dark mode sidebar — subtle edge definition */
+.dark .app-nav-sidebar {
+  border-color: rgba(255, 255, 255, 0.05);
+  border-left-color: var(--cyan);
+  background-image: linear-gradient(160deg, rgba(37, 198, 255, 0.04) 0%, transparent 45%);
 }
 
 .app-brand-block {
@@ -119,7 +209,8 @@ h1, h2, h3 {
   display: block;
   width: 100px;
   height: auto;
-  object-fit: contain;
+  color: var(--sidebar-brand-color);
+  transition: color 0.25s;
 }
 
 .app-brand-kicker {
@@ -127,14 +218,14 @@ h1, h2, h3 {
   font-size: 0.7rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--amber);   /* Amber = Keyrus swoosh accent */
+  color: var(--amber);
   font-weight: 700;
 }
 
 .app-brand-block h2 {
   font-size: 1.18rem;
   font-weight: 700;
-  color: var(--text);
+  color: var(--sidebar-brand-color);
 }
 
 .app-nav-menu {
@@ -143,40 +234,91 @@ h1, h2, h3 {
 }
 
 .app-nav-item {
+  display: flex;
+  align-items: center;
   border: 1px solid transparent;
   background: transparent;
-  color: var(--muted);
+  color: var(--sidebar-nav-color);
   border-radius: 10px;
   padding: 10px 12px;
   text-align: left;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 0.875rem;
-  font-family: inherit;
+  font-family: 'Manrope', inherit;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
 .app-nav-item:hover {
-  background: var(--cyan-light);
-  color: var(--text);
-  border-color: var(--cyan-border);
+  background: var(--sidebar-nav-hover-bg);
+  color: var(--sidebar-nav-hover-color);
+  border-color: rgba(37, 198, 255, 0.18);
 }
 
 .app-nav-item.active {
-  background: var(--cyan-light);
+  background: var(--sidebar-nav-active-bg);
   border-left: 3px solid var(--cyan);
   border-top-color: var(--cyan-border);
   border-right-color: var(--cyan-border);
   border-bottom-color: var(--cyan-border);
-  color: var(--text);
-  font-weight: 700;
+  color: var(--sidebar-nav-active-color);
+  font-weight: 800;
 }
 
 .app-nav-note {
   margin: 0;
-  color: var(--subtle);
+  color: var(--sidebar-note-color);
   font-size: 0.82rem;
   line-height: 1.45;
+}
+
+/* ── Keyrus Ai logo — sidebar nav item ───────────────────────── */
+
+.keyrus-ai-logo {
+  display: inline-flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+/* Real Keyrus Ai brand asset — swapped by theme */
+.kai-img {
+  height: 18px;
+  width: auto;
+  display: none;
+}
+
+.kai-img-light { display: block; }
+.dark .kai-img-light { display: none; }
+.dark .kai-img-dark { display: block; }
+
+/* ── Theme toggle button ─────────────────────────────────────── */
+
+.theme-toggle-float {
+  position: fixed;
+  top: 1rem;
+  right: 1.25rem;
+  z-index: 9999;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+  transition: background 0.18s, transform 0.18s, border-color 0.18s;
+  font-family: inherit;
+}
+
+.theme-toggle-float:hover {
+  background: var(--panel-alt);
+  border-color: var(--amber-border);
+  transform: scale(1.08) rotate(12deg);
 }
 
 /* ── Page shell ─────────────────────────────────────────────── */
@@ -190,10 +332,10 @@ h1, h2, h3 {
   min-width: 0;
 }
 
-/* ── Hero — white with Keyrus accent decorations ────────────── */
+/* ── Hero — panel with Keyrus accent decorations ─────────────── */
 
 .hero {
-  background: #FFFFFF;
+  background: var(--panel);
   color: var(--text);
   border-radius: 20px;
   padding: 26px 28px;
@@ -201,15 +343,16 @@ h1, h2, h3 {
   border: 1px solid var(--border);
   position: relative;
   overflow: hidden;
+  transition: background 0.25s;
 }
 
-/* Cyan left bar — Keyrus vertical pillar motif */
+/* Navy→cyan vertical pillar — Keyrus bar motif */
 .hero::before {
   content: "";
   position: absolute;
   top: 0; bottom: 0; left: 0;
   width: 5px;
-  background: linear-gradient(180deg, var(--cyan) 0%, rgba(37, 198, 255, 0.25) 100%);
+  background: linear-gradient(180deg, var(--navy) 0%, var(--cyan) 55%, rgba(37, 198, 255, 0.22) 100%);
   border-radius: 20px 0 0 20px;
 }
 
@@ -269,6 +412,7 @@ h1, h2, h3 {
   border-radius: 16px;
   box-shadow: var(--shadow-sm);
   padding: 18px;
+  transition: background 0.25s;
 }
 
 /* ── Filters ────────────────────────────────────────────────── */
@@ -317,7 +461,16 @@ h1, h2, h3 {
   box-shadow: 0 0 0 3px var(--cyan-light);
 }
 
+.panel-headline-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: 1.5px solid var(--amber-border);
   background: var(--amber-light);
   color: #8a4e00;
@@ -335,6 +488,11 @@ h1, h2, h3 {
   border-color: var(--amber);
 }
 
+.ghost-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* ── KPI cards ──────────────────────────────────────────────── */
 
 .kpi-grid {
@@ -344,14 +502,14 @@ h1, h2, h3 {
 }
 
 .kpi-card {
-  background: #FFFFFF;
+  background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 16px;
   box-shadow: var(--shadow-sm);
   position: relative;
   overflow: hidden;
-  transition: box-shadow 0.2s, transform 0.2s;
+  transition: box-shadow 0.2s, transform 0.2s, background 0.25s;
 }
 
 .kpi-card:hover {
@@ -359,13 +517,13 @@ h1, h2, h3 {
   transform: translateY(-2px);
 }
 
-/* Cyan top line — Keyrus bar motif per card */
+/* Cyan→amber gradient top bar — Keyrus dual-accent motif */
 .kpi-card::before {
   content: "";
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--cyan) 0%, rgba(37, 198, 255, 0.15) 100%);
+  background: linear-gradient(90deg, var(--cyan) 0%, var(--amber) 55%, rgba(252,153,15,0.18) 100%);
   border-radius: 14px 14px 0 0;
 }
 
@@ -397,7 +555,6 @@ h1, h2, h3 {
 
 .charts-grid {
   display: grid;
-  /* Line trend gets twice the width of the two compact charts */
   grid-template-columns: 2fr 1fr 1fr;
   gap: 12px;
 }
@@ -409,6 +566,11 @@ h1, h2, h3 {
 .table-panel h3,
 .error-panel h3 {
   margin-bottom: 10px;
+  padding-left: 10px;
+  border-left: 3px solid var(--amber);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text);
 }
 
 /* ── Agent layout ───────────────────────────────────────────── */
@@ -470,6 +632,9 @@ h1, h2, h3 {
   color: #7c2d12;
 }
 
+.dark .runtime-pill.ok  { background: rgba(22,163,74,0.15);  border-color: rgba(22,163,74,0.35);  color: #4ade80; }
+.dark .runtime-pill.warn { background: rgba(234,179,8,0.15); border-color: rgba(234,179,8,0.35);  color: #facc15; }
+
 /* ── Eval panel ─────────────────────────────────────────────── */
 
 .agent-eval-panel { display: grid; gap: 10px; }
@@ -477,8 +642,8 @@ h1, h2, h3 {
 .agent-eval-actions { display: grid; gap: 6px; }
 
 .agent-eval-actions button {
-  border: 1.5px solid var(--text);
-  background: var(--text);
+  border: 1.5px solid var(--navy);
+  background: var(--navy);
   color: #fff;
   border-radius: 8px;
   padding: 7px 10px;
@@ -489,7 +654,7 @@ h1, h2, h3 {
   transition: background 0.14s;
 }
 
-.agent-eval-actions button:hover { background: #0f172a; }
+.agent-eval-actions button:hover { background: var(--navy-mid); }
 
 .agent-eval-actions button.secondary {
   border-color: var(--amber-border);
@@ -565,7 +730,7 @@ h1, h2, h3 {
 table { width: 100%; border-collapse: collapse; }
 
 th, td {
-  border-bottom: 1px solid #edf0f5;
+  border-bottom: 1px solid var(--border);
   text-align: left;
   padding: 9px 8px;
   font-size: 0.88rem;
@@ -580,7 +745,7 @@ th {
   letter-spacing: 0.07em;
 }
 
-tbody tr:hover { background: var(--cyan-light); }
+tbody tr:hover { background: var(--amber-light); }
 
 /* ── State panels ───────────────────────────────────────────── */
 
@@ -634,7 +799,7 @@ tbody tr:hover { background: var(--cyan-light); }
   gap: 6px;
   width: 100%;
   padding: 9px 12px;
-  background: var(--cyan);
+  background: var(--amber);
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -816,7 +981,42 @@ tbody tr:hover { background: var(--cyan-light); }
 .agent-message-gap      { height: 2px; }
 
 .agent-user      { background: var(--cyan-light); border-color: var(--cyan-border); }
-.agent-assistant { background: #FFFFFF; }
+.agent-assistant { background: var(--panel); }
+
+.agent-message-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.agent-message-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  color: #fff;
+}
+
+/* AI avatar — same brand gradient as the "keyrus Ai" wordmark elsewhere */
+.avatar-ai {
+  background: linear-gradient(135deg, #29C5F6 0%, #29C5F6 30%, #F7941D 68%, #D0021B 100%);
+}
+
+.avatar-user {
+  background: var(--muted);
+}
+
+.agent-message-sender {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
 
 .agent-tools-row { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
 
@@ -856,6 +1056,12 @@ tbody tr:hover { background: var(--cyan-light); }
   background: var(--panel-alt);
   color: var(--muted);
   border-color: var(--border);
+}
+
+.dark .agent-mode-chip.mode-llm {
+  background: rgba(22,163,74,0.15);
+  color: #4ade80;
+  border-color: rgba(22,163,74,0.35);
 }
 
 /* ── Streaming state ──────────────────────────────── */
@@ -950,7 +1156,7 @@ tbody tr:hover { background: var(--cyan-light); }
 .agent-input-row button {
   justify-self: end;
   border: none;
-  background: var(--text);
+  background: var(--navy);
   color: #FFFFFF;
   border-radius: 10px;
   padding: 9px 14px;
@@ -961,7 +1167,7 @@ tbody tr:hover { background: var(--cyan-light); }
   transition: background 0.15s, transform 0.15s;
 }
 
-.agent-input-row button:hover { background: #0f172a; transform: translateY(-1px); }
+.agent-input-row button:hover { background: var(--navy-mid); transform: translateY(-1px); }
 .agent-input-row button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
 .agent-structured-zone { margin-top: 10px; display: grid; gap: 8px; }
@@ -969,7 +1175,7 @@ tbody tr:hover { background: var(--cyan-light); }
 .agent-structured-card {
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: #FFFFFF;
+  background: var(--panel);
   padding: 9px;
 }
 
@@ -979,6 +1185,50 @@ tbody tr:hover { background: var(--cyan-light); }
   color: var(--text);
   text-transform: uppercase;
   letter-spacing: 0.07em;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.agent-chart-drilldown-hint {
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.agent-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  background: var(--panel-alt);
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 3px 7px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.agent-export-btn:hover {
+  background: var(--cyan-light);
+  color: var(--cyan);
+  border-color: var(--cyan-border);
+}
+
+.agent-table-truncated-note {
+  margin: 6px 0 0;
+  font-size: 0.68rem;
+  color: var(--muted);
+  font-style: italic;
 }
 
 .agent-kpi-grid {
@@ -1037,6 +1287,10 @@ tbody tr:hover { background: var(--cyan-light); }
 .severity-medium { background: var(--amber-light);   border-color: var(--amber-border); color: #8a4e00; }
 .severity-low    { background: #f0fdf4; border-color: #86efac; color: #14532d; }
 
+.dark .severity-high   { color: #FF6680; }
+.dark .severity-medium { color: var(--amber); }
+.dark .severity-low    { background: rgba(22,163,74,0.13); border-color: rgba(22,163,74,0.3); color: #4ade80; }
+
 /* ═══════════════════════════════════════════════════════════════
    DIMENSION NAVIGATION BAR
 ═══════════════════════════════════════════════════════════════ */
@@ -1074,13 +1328,14 @@ tbody tr:hover { background: var(--cyan-light); }
   background: var(--cyan-light);
 }
 
-/* Active tab: amber underline — Keyrus swoosh color */
 .dim-nav-tab.active {
-  color: var(--text);
+  color: var(--navy-mid);
   border-bottom-color: var(--amber);
-  font-weight: 600;
-  background: var(--amber-light);
+  font-weight: 700;
+  background: rgba(252, 153, 15, 0.07);
 }
+
+.dark .dim-nav-tab.active { color: var(--text); }
 
 .dim-tab-icon  { font-size: 1rem; line-height: 1; }
 .dim-tab-label { letter-spacing: 0.01em; }
@@ -1092,14 +1347,13 @@ tbody tr:hover { background: var(--cyan-light); }
 
 .dim-kpi-row {
   display: grid;
-  /* auto-fit stretches existing columns to fill width; auto-fill would leave phantom empty columns */
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 0.75rem;
   margin-bottom: 1.25rem;
 }
 
 .dim-kpi-card {
-  background: #FFFFFF;
+  background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 0.75rem 0.9rem;
@@ -1107,12 +1361,12 @@ tbody tr:hover { background: var(--cyan-light); }
   align-items: flex-start;
   gap: 0.6rem;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-  transition: box-shadow 0.18s, transform 0.18s;
+  transition: box-shadow 0.18s, transform 0.18s, background 0.25s;
   position: relative;
   overflow: hidden;
 }
 
-/* Cyan → amber gradient line appears on hover */
+/* Cyan→amber gradient on hover */
 .dim-kpi-card::before {
   content: "";
   position: absolute;
@@ -1124,7 +1378,7 @@ tbody tr:hover { background: var(--cyan-light); }
   border-radius: 12px 12px 0 0;
 }
 
-.dim-kpi-card:hover { box-shadow: 0 4px 12px rgba(0, 74, 141, 0.1); transform: translateY(-2px); }
+.dim-kpi-card:hover { box-shadow: 0 4px 14px rgba(5,7,46,0.12); transform: translateY(-2px); }
 .dim-kpi-card:hover::before { opacity: 1; }
 
 .dim-kpi-icon  { font-size: 1.25rem; line-height: 1; flex-shrink: 0; margin-top: 2px; }
@@ -1162,7 +1416,6 @@ tbody tr:hover { background: var(--cyan-light); }
 
 .dim-charts-grid {
   display: grid;
-  /* 3 charts per row on wide screens, 2 on medium, 1 on narrow */
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1rem;
 }
@@ -1201,18 +1454,13 @@ tbody tr:hover { background: var(--cyan-light); }
   .agent-section-layout { grid-template-columns: 1fr; }
   .agent-tools-panel    { position: static; }
 
-  /* Stack history panel above chat on narrow screens */
-  .agent-workspace {
-    grid-template-columns: 1fr;
-  }
+  .agent-workspace { grid-template-columns: 1fr; }
   .agent-history-panel {
     min-height: unset;
     max-height: 220px;
     position: static;
   }
-  .agent-history-list {
-    max-height: 140px;
-  }
+  .agent-history-list { max-height: 140px; }
 }
 
 @media (max-width: 680px) {
@@ -1222,3 +1470,162 @@ tbody tr:hover { background: var(--cyan-light); }
   .kpi-grid      { grid-template-columns: 1fr; }
   .map-shell     { height: 360px; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   MLOPS SECTION DARK MODE
+   Override Tailwind utility classes inside Insurance Intelligence
+   when .dark is active. Selector specificity (3 classes) beats
+   Tailwind single-class utilities; !important used as safety net.
+═══════════════════════════════════════════════════════════════ */
+
+.dark .mlops-root {
+  background-color: var(--panel);
+  border-color: var(--border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+.dark .mlops-sidebar {
+  background-color: var(--panel-alt);
+  border-right-color: var(--border);
+}
+
+.dark .mlops-main {
+  background-color: var(--bg-main);
+}
+
+/* Panels and surfaces */
+.dark .mlops-root .bg-white        { background-color: var(--panel) !important; }
+.dark .mlops-root .bg-slate-50     { background-color: var(--panel-alt) !important; }
+.dark .mlops-root .bg-slate-100    { background-color: rgba(255, 255, 255, 0.06) !important; }
+.dark .mlops-root .bg-white.shadow { background-color: rgba(37, 198, 255, 0.12) !important; }
+
+/* Hover states */
+.dark .mlops-root .hover\:bg-white:hover   { background-color: rgba(255, 255, 255, 0.05) !important; }
+.dark .mlops-root .hover\:bg-slate-50:hover { background-color: rgba(255, 255, 255, 0.04) !important; }
+.dark .mlops-root .hover\:bg-slate-100:hover { background-color: rgba(255, 255, 255, 0.07) !important; }
+
+/* Borders */
+.dark .mlops-root .border-slate-100 { border-color: var(--border) !important; }
+.dark .mlops-root .border-slate-200 { border-color: var(--border) !important; }
+
+/* Text scale — light → dark equivalents */
+.dark .mlops-root .text-slate-800  { color: var(--text) !important; }
+.dark .mlops-root .text-slate-700  { color: var(--text) !important; }
+.dark .mlops-root .text-slate-600  { color: var(--muted) !important; }
+.dark .mlops-root .text-slate-500  { color: var(--muted) !important; }
+.dark .mlops-root .text-slate-400  { color: var(--subtle) !important; }
+.dark .mlops-root .text-slate-300  { color: var(--subtle) !important; }
+
+/* Sub-tab pill (bg-slate-100 container) */
+.dark .mlops-root .rounded-xl.bg-slate-100 {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* MLOps sidebar: inactive nav buttons */
+.dark .mlops-sidebar button:not([class*="from-"]) {
+  color: var(--muted);
+  border-color: transparent;
+}
+.dark .mlops-sidebar button:not([class*="from-"]):hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: var(--text) !important;
+}
+
+/* Model registry footer */
+.dark .mlops-sidebar .bg-slate-100 { background-color: rgba(255, 255, 255, 0.08) !important; }
+.dark .mlops-sidebar .text-slate-300 { color: var(--subtle) !important; }
+.dark .mlops-sidebar .text-slate-400 { color: var(--subtle) !important; }
+.dark .mlops-sidebar .text-slate-500 { color: var(--muted) !important; }
+.dark .mlops-sidebar .border-slate-200 { border-color: var(--border) !important; }
+
+/* ═══════════════════════════════════════════════════════════════
+   DARK MODE — HARDCODED COLOR VISIBILITY
+   #004A8D (dark navy) is near-invisible on dark panels.
+   Rules below fix every surface it appears on:
+     • Tailwind class selectors  (text-, bg-, border-)
+     • SVG presentation attrs    (stroke, fill on Recharts paths)
+     • Recharts internals        (tooltip, grid, axis, legend)
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Tailwind utility class overrides ───────────────────────── */
+
+/* Text: dark navy → Keyrus cyan (high contrast on dark bg) */
+.dark [class*="text-[#004A8D]"]              { color: var(--cyan) !important; }
+.dark [class*="hover:text-[#004A8D]"]:hover  { color: var(--cyan) !important; }
+
+/* Button/surface backgrounds: dark navy → visible medium blue */
+.dark [class*="bg-[#004A8D]"]                { background-color: #1e63c3 !important; }
+.dark [class*="hover:bg-[#004A8D]"]:hover    { background-color: #2272d4 !important; }
+.dark [class*="hover:bg-blue-800"]:hover     { background-color: #1e63c3 !important; }
+
+/* Borders */
+.dark [class*="border-[#004A8D]"]            { border-color: rgba(37, 198, 255, 0.35) !important; }
+.dark [class*="hover:border-[#004A8D]"]:hover { border-color: rgba(37, 198, 255, 0.55) !important; }
+
+/* Focus / ring */
+.dark [class*="ring-[#004A8D]"],
+.dark [class*="focus:ring-[#004A8D]"]:focus  { --tw-ring-color: rgba(37, 198, 255, 0.28) !important; }
+
+/* Gradient overlays — lighten so overlaid text stays readable */
+.dark [class*="from-[#004A8D]"]              { --tw-gradient-from: rgba(30, 99, 195, 0.14) !important; }
+.dark [class*="to-[#004A8D]"]               { --tw-gradient-to:   rgba(30, 99, 195, 0.14) !important; }
+
+/* Drop-shadow utilities */
+.dark [class*="shadow-[#004A8D]"]            { --tw-shadow-color: rgba(37, 198, 255, 0.12) !important; }
+
+/* Active sub-tab pill (bg-white shadow text-[#004A8D]) */
+.dark [class*="bg-white"][class*="shadow"][class*="text-[#004A8D]"] {
+  background-color: rgba(37, 198, 255, 0.10) !important;
+  color: var(--cyan) !important;
+}
+
+/* ── SVG presentation attribute overrides (Recharts) ────────── */
+
+/* Line / stroke → cyan so chart lines are visible */
+.dark path[stroke="#004A8D"]    { stroke: var(--cyan) !important; }
+.dark line[stroke="#004A8D"]    { stroke: var(--cyan) !important; }
+.dark circle[stroke="#004A8D"]  { stroke: var(--cyan) !important; }
+.dark polyline[stroke="#004A8D"]{ stroke: var(--cyan) !important; }
+
+/* Bar / area fills → medium blue (visible but not as bright as lines) */
+.dark rect[fill="#004A8D"]      { fill: #1e63c3 !important; }
+.dark path[fill="#004A8D"]      { fill: #1e63c3 !important; }
+
+/* Dot markers on lines → use cyan */
+.dark circle[fill="#004A8D"]    { fill: var(--cyan) !important; }
+
+/* Radar polygon */
+.dark polygon[fill="#004A8D"]   { fill: rgba(37, 198, 255, 0.20) !important; }
+.dark polygon[stroke="#004A8D"] { stroke: var(--cyan) !important; }
+
+/* rgba(0,74,141,…) semi-transparent strokes used as CartesianGrid color */
+.dark line[stroke*="0,74,141"]  { stroke: rgba(255, 255, 255, 0.07) !important; }
+
+/* ── Recharts internals — all charts, all pages ─────────────── */
+
+/* Grid lines (when stroke set via Recharts prop, not attribute) */
+.dark .recharts-cartesian-grid-horizontal line,
+.dark .recharts-cartesian-grid-vertical   line { stroke: rgba(255, 255, 255, 0.07) !important; }
+
+/* Axis tick labels */
+.dark .recharts-cartesian-axis-tick-value  { fill: var(--muted) !important; }
+.dark .recharts-polar-angle-axis-tick-value{ fill: var(--muted) !important; }
+.dark .recharts-polar-radius-axis-tick     { fill: var(--subtle) !important; }
+
+/* Polar (radar) grid lines */
+.dark .recharts-polar-grid-concentric circle,
+.dark .recharts-polar-grid-angle line      { stroke: rgba(255, 255, 255, 0.08) !important; }
+
+/* Tooltip box */
+.dark .recharts-default-tooltip {
+  background-color: var(--panel)  !important;
+  border:           1px solid var(--border) !important;
+  color:            var(--text)   !important;
+  box-shadow:       0 4px 20px rgba(0, 0, 0, 0.45) !important;
+  border-radius:    10px !important;
+}
+.dark .recharts-tooltip-label  { color: var(--text)  !important; }
+.dark .recharts-tooltip-item   { color: var(--muted) !important; }
+
+/* Legend */
+.dark .recharts-legend-item-text { color: var(--muted) !important; }

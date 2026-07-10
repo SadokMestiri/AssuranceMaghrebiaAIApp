@@ -10,7 +10,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from agent_graph import get_agent_capabilities, run_agent_query_sync, _progress_cb
+from agent_graph import get_agent_capabilities, run_agent_query_sync, _progress_cb, _call_ollama_chat
 from indexer import run_indexing
 from session_store import append_turn, get_history
 from config import OLLAMA_HOST, QDRANT_URL, DATA_YEAR_FROM, DATA_YEAR_TO
@@ -44,6 +44,11 @@ class AgentWarmupRequest(BaseModel):
     preindex: bool = False
     max_docs_per_collection: int = Field(default=250, ge=20, le=5000)
     strict: bool = False
+
+
+class AgentTitleRequest(BaseModel):
+    question: str = Field(min_length=3, max_length=1500)
+    answer: str = Field(default="", max_length=2000)
 
 
 def _check_http_endpoint(url: str, timeout_seconds: float = 2.5) -> dict[str, Any]:
@@ -245,6 +250,30 @@ def get_session_history(session_id: str) -> dict[str, Any]:
         "turns": turns,
         "count": len(turns),
     }
+
+
+@router.post("/title")
+def generate_conversation_title(payload: AgentTitleRequest) -> dict[str, Any]:
+    """
+    Short (4-6 word) title for a conversation, generated from its first
+    exchange — one quick non-streaming Ollama call, never blocks the chat
+    itself. Falls back to a truncated question on any failure.
+    """
+    fallback = payload.question.strip()[:52]
+    try:
+        raw_title = _call_ollama_chat(
+            system_prompt=(
+                "Tu resumes une question utilisateur en un titre court de 4 a 6 mots, "
+                "en francais, sans guillemets, sans point final, sans le mot 'titre'."
+            ),
+            user_prompt=payload.question.strip()[:400],
+        )
+        title = raw_title.strip().strip('"').strip("«»").rstrip(".!?").strip()
+        if not title or len(title) > 80:
+            title = fallback
+    except Exception:
+        title = fallback
+    return {"status": "ok", "title": title}
 
 
 @router.post("/query")

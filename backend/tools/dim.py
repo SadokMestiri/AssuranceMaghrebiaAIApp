@@ -6,7 +6,7 @@ import requests
 
 from utils import normalize_text as _normalize_text
 from config import NEXTJS_API_URL
-from tools._shared import _normalize_branch, _resolve_period_context
+from tools._shared import _normalize_branch, _resolve_period_context, _build_chart_payload
 
 def dim_tool(question: str, context: dict[str, Any]) -> dict[str, Any]:
     """
@@ -52,7 +52,7 @@ def dim_tool(question: str, context: dict[str, Any]) -> dict[str, Any]:
         kpis = clients_data.get("kpis", {})
         
         # Répartition par sexe
-        if "sexe" in normalized:
+        if any(token in normalized for token in ("sexe", "femme", "femmes", "homme", "hommes")):
             rows = clients_data.get("sexe", [])
             return {
                 "tool": "dim_tool",

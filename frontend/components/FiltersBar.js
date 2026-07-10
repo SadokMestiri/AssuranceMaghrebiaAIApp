@@ -1,3 +1,4 @@
+import { FileDown, Loader2 } from "lucide-react";
 import { useFilters, YEAR_MAX, YEAR_MIN } from "../contexts/FilterContext";
 
 const BRANCH_OPTIONS = ["ALL", "AUTO", "IRDS", "SANTE"];
@@ -51,7 +52,7 @@ function FilterLabel({ children, support }) {
   );
 }
 
-export default function FiltersBar({ governorates, loading, filterSupport = {} }) {
+export default function FiltersBar({ governorates, loading, filterSupport = {}, onExportPdf, exportingPdf = false }) {
   const { filters, setFilter, resetFilters } = useFilters();
 
   const branchSupport = filterSupport.branch ?? true;
@@ -63,9 +64,23 @@ export default function FiltersBar({ governorates, loading, filterSupport = {} }
     <section className="panel filters-panel">
       <div className="panel-headline">
         <h2>Filtres analytiques</h2>
-        <button type="button" className="ghost-btn" onClick={resetFilters}>
-          Reinitialiser
-        </button>
+        <div className="panel-headline-actions">
+          {onExportPdf && (
+            <button
+              type="button"
+              className="ghost-btn"
+              onClick={onExportPdf}
+              disabled={exportingPdf}
+              title="Exporter un snapshot PDF de ce tableau de bord"
+            >
+              {exportingPdf ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />}
+              {exportingPdf ? "Export en cours..." : "Exporter PDF"}
+            </button>
+          )}
+          <button type="button" className="ghost-btn" onClick={resetFilters}>
+            Reinitialiser
+          </button>
+        </div>
       </div>
 
       <div className="filters-grid">

@@ -1,7 +1,9 @@
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Moon, Sun } from "lucide-react";
 
 import AgentChat from "../components/AgentChat";
+import { KeyrusMark } from "../components/KeyrusLogo";
 import ResiliationChart from "../components/ResiliationChart";
 import ChartsPanel from "../components/ChartsPanel";
 import DimNav from "../components/dims/DimNav";
@@ -56,6 +58,16 @@ const DIM_FILTER_SUPPORT = {
   vehicules: { branch: "auto",     year: false, month: false,     gouvernorat: false },
 };
 
+const DIM_LABELS = {
+  overview:  "Vue Globale",
+  clients:   "Clients",
+  agents:    "Agents",
+  produits:  "Produits",
+  vehicules: "Véhicules",
+  polices:   "Polices",
+  sinistres: "Sinistres",
+};
+
 async function fetchJson(url) {
   const response = await fetch(url);
   if (!response.ok) {
@@ -92,6 +104,7 @@ function buildCommonQuery(filters, { includeMonth = false } = {}) {
 
 export default function DashboardPage() {
   const { filters } = useFilters();
+  const [darkMode, setDarkMode]             = useState(false);
   const [activeSection, setActiveSection]   = useState("dashboard");
   const [activeDim, setActiveDim]           = useState("overview");
   const [loading, setLoading]               = useState(true);
@@ -108,6 +121,9 @@ export default function DashboardPage() {
   const [smokeLoading, setSmokeLoading]     = useState(false);
   const [warmupReport, setWarmupReport]     = useState(null);
   const [warmupLoading, setWarmupLoading]   = useState(false);
+  const [pdfExporting, setPdfExporting]     = useState(false);
+  const [pdfError, setPdfError]             = useState("");
+  const dashboardCaptureRef = useRef(null);
 
   // Dimension data state
   const [dimData, setDimData]         = useState(null);
@@ -115,14 +131,148 @@ export default function DashboardPage() {
   const [dimLoading, setDimLoading]   = useState(false);
   const [dimError, setDimError]       = useState("");
 
+  // ── Dark mode ────────────────────────────────────────────────
+  useEffect(() => {
+    const saved = localStorage.getItem("theme");
+    if (saved === "dark") {
+      setDarkMode(true);
+      document.documentElement.classList.add("dark");
+    }
+  }, []);
+
+  function toggleDarkMode() {
+    const next = !darkMode;
+    setDarkMode(next);
+    if (next) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }
+
+  async function exportDashboardPdf() {
+    if (!dashboardCaptureRef.current || pdfExporting) return;
+    setPdfExporting(true);
+    setPdfError("");
+    try {
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf"),
+      ]);
+
+      const node = dashboardCaptureRef.current;
+
+      // Leaflet's tile layer loads raster tiles asynchronously and positions
+      // them with CSS transforms; html2canvas clones the DOM into a detached
+      // container to rasterize it, which desyncs Leaflet's zoom/pan math from
+      // its real container size — the map renders blank, mis-zoomed, or with
+      // the wrong extent depending on exactly when the capture lands. Rather
+      // than chase that timing race, skip the map during capture and stamp a
+      // labeled placeholder in its place so the PDF stays consistent.
+      const mapPanel = node.querySelector(".pdf-map-panel");
+      const nodeRectPre = node.getBoundingClientRect();
+      const mapGapPx = mapPanel
+        ? (() => {
+            const r = mapPanel.getBoundingClientRect();
+            return { x: r.left - nodeRectPre.left, y: r.top - nodeRectPre.top, width: r.width, height: r.height };
+          })()
+        : null;
+
+      const surfaceColor = getComputedStyle(document.documentElement).getPropertyValue("--panel").trim() || "#ffffff";
+      const canvas = await html2canvas(node, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: surfaceColor,
+        ignoreElements: (el) => el.classList?.contains("pdf-map-panel"),
+      });
+
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+      const headerHeight = 16;
+
+      const branchLabel = filters.branch === "ALL" ? "Toutes branches" : filters.branch;
+      const periodLabel = `${filters.yearFrom}-${filters.yearTo}`;
+      const dimLabel = DIM_LABELS[activeDim] || activeDim;
+
+      pdf.setFontSize(13);
+      pdf.setFont(undefined, "bold");
+      pdf.text(`Maghrebia — Dashboard : ${dimLabel}`, margin, margin + 2);
+      pdf.setFontSize(8.5);
+      pdf.setFont(undefined, "normal");
+      pdf.text(
+        `${branchLabel} · période ${periodLabel} · exporté le ${new Date().toLocaleString("fr-TN")}`,
+        margin,
+        margin + 8
+      );
+
+      const imgData = canvas.toDataURL("image/png");
+      const imgWidth = pageWidth - margin * 2;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const pageContentHeight = pageHeight - margin * 2;
+      const mmPerPx = imgWidth / nodeRectPre.width;
+
+      // Draws the "carte non incluse" placeholder wherever the excluded map's
+      // gap intersects the page currently on top — the gap's position in the
+      // full image is fixed, but which page (and where on it) it lands on
+      // shifts with every addImage call below.
+      function drawMapPlaceholder(imagePositionMm) {
+        if (!mapGapPx) return;
+        const gapTop = imagePositionMm + mapGapPx.y * mmPerPx;
+        const gapBottom = gapTop + mapGapPx.height * mmPerPx;
+        if (gapBottom <= 0 || gapTop >= pageHeight) return; // no overlap with this page
+        const boxX = margin + mapGapPx.x * mmPerPx;
+        const boxY = Math.max(gapTop, 0);
+        const boxW = mapGapPx.width * mmPerPx;
+        const boxH = Math.min(gapBottom, pageHeight) - boxY;
+        if (boxH < 4) return;
+        pdf.setDrawColor(200, 200, 200);
+        pdf.setFillColor(246, 247, 250);
+        pdf.rect(boxX, boxY, boxW, boxH, "FD");
+        pdf.setFontSize(8.5);
+        pdf.setTextColor(120, 120, 120);
+        pdf.text("Carte interactive non incluse — voir le tableau de bord en direct", boxX + boxW / 2, boxY + boxH / 2, {
+          align: "center",
+        });
+        pdf.setTextColor(0, 0, 0);
+      }
+
+      let heightLeft = imgHeight;
+      let position = margin + headerHeight;
+
+      pdf.addImage(imgData, "PNG", margin, position, imgWidth, imgHeight);
+      drawMapPlaceholder(position);
+      heightLeft -= pageContentHeight - headerHeight;
+
+      while (heightLeft > 0) {
+        position -= pageContentHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", margin, position, imgWidth, imgHeight);
+        drawMapPlaceholder(position);
+        heightLeft -= pageContentHeight;
+      }
+
+      pdf.save(`maghrebia-dashboard-${activeDim}-${Date.now()}.pdf`);
+    } catch (exportError) {
+      setPdfError(`Export PDF echoue: ${String(exportError.message || exportError)}`);
+    } finally {
+      setPdfExporting(false);
+    }
+  }
+
   function buildPrevQuery(filters) {
     const rawYearFrom = Number(filters.yearFrom);
     const rawYearTo   = Number(filters.yearTo);
     const yFrom = Number.isFinite(rawYearFrom) ? Math.min(YEAR_MAX, Math.max(YEAR_MIN, Math.trunc(rawYearFrom))) : YEAR_MIN;
     const yTo   = Number.isFinite(rawYearTo)   ? Math.min(YEAR_MAX, Math.max(YEAR_MIN, Math.trunc(rawYearTo)))   : YEAR_MAX;
-    // YoY only makes sense for a single-year selection
+    // YoY only makes sense for a single selected year — a multi-year span
+    // has no well-defined "previous period" to compare against.
     if (yFrom !== yTo) return null;
     const prevYear = yFrom - 1;
+    // Only fetch if that prior year is within available data
     if (prevYear < YEAR_MIN) return null;
     const params = new URLSearchParams();
     if (filters.branch !== "ALL") params.set("branch", filters.branch);
@@ -319,7 +469,7 @@ export default function DashboardPage() {
           <ChartsPanel dashboard={dashboard} monthFilter={filters.month} />
           <section className="layout-geo">
             <div style={{ display: "flex", flexDirection: "column", gap: "12px", height: "100%" }}>
-              <article className="panel map-panel">
+              <article className="panel map-panel pdf-map-panel">
                 <h3>Carte Leaflet Tunisie — heatmap polices</h3>
                 <CarteWidget points={filteredHeatmap} />
               </article>
@@ -363,7 +513,7 @@ export default function DashboardPage() {
     <main className="app-shell">
       <aside className="app-nav-sidebar">
         <div className="app-brand-block">
-          <img src="/images/keyrus-logo.png" alt="Keyrus" className="app-brand-logo" />
+          <KeyrusMark className="app-brand-logo" />
           <h2>Control Center</h2>
         </div>
 
@@ -380,7 +530,10 @@ export default function DashboardPage() {
             className={`app-nav-item ${activeSection === "agent" ? "active" : ""}`}
             onClick={() => setActiveSection("agent")}
           >
-            AI Agent
+            <span className="keyrus-ai-logo">
+              <img src="/images/KeyrusAILightMode.png" alt="Keyrus Ai" className="kai-img kai-img-light" />
+              <img src="/images/KeyrusAIDarkMode.png" alt="Keyrus Ai" className="kai-img kai-img-dark" />
+            </span>
           </button>
           <button
             type="button"
@@ -393,6 +546,16 @@ export default function DashboardPage() {
 
         <p className="app-nav-note">Dashboard executif et Agent IA.</p>
       </aside>
+
+      <button
+        type="button"
+        className="theme-toggle-float"
+        onClick={toggleDarkMode}
+        title={darkMode ? "Passer en mode clair" : "Passer en mode sombre"}
+        aria-label={darkMode ? "Passer en mode clair" : "Passer en mode sombre"}
+      >
+        {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+      </button>
 
       <section className="page-shell">
         <header className="hero">
@@ -423,7 +586,16 @@ export default function DashboardPage() {
             governorates={governorates}
             loading={loading}
             filterSupport={DIM_FILTER_SUPPORT[activeDim] ?? DIM_FILTER_SUPPORT.overview}
+            onExportPdf={exportDashboardPdf}
+            exportingPdf={pdfExporting}
           />
+        ) : null}
+
+        {pdfError ? (
+          <section className="panel error-panel">
+            <h3>Export PDF</h3>
+            <p>{pdfError}</p>
+          </section>
         ) : null}
 
         {error ? (
@@ -434,7 +606,7 @@ export default function DashboardPage() {
         ) : null}
 
         {activeSection === "dashboard" ? (
-          <section className="dashboard-section">
+          <section className="dashboard-section" ref={dashboardCaptureRef}>
             {/* ── Power BI–style dimension nav ── */}
             <DimNav activeDim={activeDim} onDimChange={setActiveDim} />
 
@@ -541,7 +713,7 @@ export default function DashboardPage() {
           </section>
         )}
 
-        {loading && activeSection === "dashboard" && activeDim === "overview" ? (
+        {loading && dashboard && activeSection === "dashboard" && activeDim === "overview" ? (
           <section className="panel loading-panel">
             <p>Chargement en cours...</p>
           </section>

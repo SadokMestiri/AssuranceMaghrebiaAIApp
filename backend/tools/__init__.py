@@ -18,6 +18,7 @@ from tools.client import client_tool
 from tools.sql import sql_tool, data_query_tool
 from tools.ml_predict import ml_predict_tool
 from tools.dim import dim_tool
+from tools.comparison import comparison_tool
 
 TOOL_REGISTRY: dict[str, Any] = {
     "data_query_tool": data_query_tool,
@@ -32,6 +33,7 @@ TOOL_REGISTRY: dict[str, Any] = {
     "client_tool": client_tool,
     "sql_tool": sql_tool,
     "dim_tool": dim_tool,
+    "comparison_tool": comparison_tool,
     # Compatibility aliases
     "kpi": kpi_tool,
     "rag": rag_tool,

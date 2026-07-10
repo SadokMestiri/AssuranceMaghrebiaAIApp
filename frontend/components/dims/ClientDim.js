@@ -3,6 +3,7 @@ import {
   Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import DimKpiRow from "./DimKpiRow";
+import { Users, UserRound, UserCheck, Building2, MapPin, Calendar } from 'lucide-react';
 
 const fmt = new Intl.NumberFormat("fr-TN");
 const fmtPct = (v) => `${Number(v || 0).toFixed(1)} %`;
@@ -52,12 +53,12 @@ export default function ClientDim({ data, dataPrev }) {
   return (
     <div className="dim-panel">
       <DimKpiRow cards={[
-        { icon: "👥", title: "Total clients",     value: fmt.format(kpis.total),         sub: "portefeuille actif",             current: kpis.total,      previous: prev.total },
-        { icon: "♀",  title: "Femmes",            value: fmtPct(kpis.pct_f),             sub: fmt.format(kpis.nb_f) + " clients", current: kpis.pct_f,    previous: prev.pct_f },
-        { icon: "♂",  title: "Hommes",            value: fmtPct(kpis.pct_m),             sub: fmt.format(kpis.nb_m) + " clients", current: kpis.pct_m,    previous: prev.pct_m },
-        { icon: "🏢", title: "Personnes morales", value: fmtPct(kpis.pct_moral),         sub: "vs physiques",                   current: kpis.pct_moral,  previous: prev.pct_moral },
-        { icon: "📍", title: "Villes couvertes",  value: fmt.format(kpis.nb_villes),     sub: "localisations distinctes",       current: kpis.nb_villes,  previous: prev.nb_villes },
-        { icon: "🎂", title: "Âge moyen",         value: kpis.age_moyen + " ans",        sub: "clients avec date naissance",    current: kpis.age_moyen,  previous: prev.age_moyen },
+        { icon: <Users size={18} />,       title: "Total clients",     value: fmt.format(kpis.total),         sub: "portefeuille actif",             current: kpis.total,      previous: prev.total },
+        { icon: <UserRound size={18} />,   title: "Femmes",            value: fmtPct(kpis.pct_f),             sub: fmt.format(kpis.nb_f) + " clients", current: kpis.pct_f,    previous: prev.pct_f },
+        { icon: <UserCheck size={18} />,   title: "Hommes",            value: fmtPct(kpis.pct_m),             sub: fmt.format(kpis.nb_m) + " clients", current: kpis.pct_m,    previous: prev.pct_m },
+        { icon: <Building2 size={18} />,   title: "Personnes morales", value: fmtPct(kpis.pct_moral),         sub: "vs physiques",                   current: kpis.pct_moral,  previous: prev.pct_moral },
+        { icon: <MapPin size={18} />,      title: "Villes couvertes",  value: fmt.format(kpis.nb_villes),     sub: "localisations distinctes",       current: kpis.nb_villes,  previous: prev.nb_villes },
+        { icon: <Calendar size={18} />,    title: "Âge moyen",         value: kpis.age_moyen + " ans",        sub: "clients avec date naissance",    current: kpis.age_moyen,  previous: prev.age_moyen },
       ]} />
 
       <div className="dim-charts-grid">
@@ -87,7 +88,7 @@ export default function ClientDim({ data, dataPrev }) {
             <BarChart data={ageTranches} layout="vertical" margin={{ right: 45 }}>
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
               <XAxis type="number" tick={{ fontSize: 11 }} />
-              <YAxis type="category" dataKey="label" tick={{ fontSize: 12 }} width={55} />
+              <YAxis type="category" dataKey="label" tick={{ fontSize: 12 }} width={55} interval={0} />
               <Tooltip formatter={(v) => [fmt.format(v), 'Nombre']} />
               <Bar dataKey="count" name="Clients" fill={AGE_COLOR} radius={[0, 6, 6, 0]} label={{ position: "right", fontSize: 11 }} />
             </BarChart>

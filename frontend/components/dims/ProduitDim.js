@@ -1,8 +1,9 @@
-import {
+﻿import {
   Bar, BarChart, CartesianGrid, Cell,
   Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend,
 } from "recharts";
 import DimKpiRow from "./DimKpiRow";
+import { Package, Tag, Landmark, Banknote, Receipt, Trophy } from 'lucide-react';
 
 const fmt = new Intl.NumberFormat("fr-TN");
 const fmtTND = new Intl.NumberFormat("fr-TN", { style: "currency", currency: "TND", maximumFractionDigits: 0 });
@@ -69,12 +70,12 @@ export default function ProduitDim({ data, dataPrev }) {
   return (
     <div className="dim-panel">
       <DimKpiRow cards={[
-        { icon: "📦", title: "Produits distincts", value: fmt.format(kpis.nb_produits),         sub: "catalogue actif",    current: kpis.nb_produits },
-        { icon: "🔖", title: "Familles de risque", value: fmt.format(kpis.nb_familles),         sub: "catégories",         current: kpis.nb_familles },
-        { icon: "🏦", title: "Branches couvertes", value: fmt.format(kpis.nb_branches),         sub: "AUTO · IRDS · SANTE",current: kpis.nb_branches },
-        { icon: "💰", title: "Prime nette totale", value: formatShortCurrency(kpis.total_pnet), sub: "toutes périodes",    current: kpis.total_pnet,   previous: prev.total_pnet },
-        { icon: "📄", title: "Quittances émises",  value: fmt.format(kpis.total_quitt),         sub: "toutes périodes",    current: kpis.total_quitt,  previous: prev.total_quitt },
-        { icon: "🥇", title: "Produit top",        value: kpis.top_produit,                     sub: formatShortCurrency(kpis.top_pnet), current: kpis.top_pnet, previous: prev.top_pnet },
+        { icon: <Package size={18} />,   title: "Produits distincts", value: fmt.format(kpis.nb_produits),         sub: "catalogue actif",    current: kpis.nb_produits },
+        { icon: <Tag size={18} />,       title: "Familles de risque", value: fmt.format(kpis.nb_familles),         sub: "catégories",         current: kpis.nb_familles },
+        { icon: <Landmark size={18} />,  title: "Branches couvertes", value: fmt.format(kpis.nb_branches),         sub: "AUTO · IRDS · SANTE",current: kpis.nb_branches },
+        { icon: <Banknote size={18} />,  title: "Prime nette totale", value: formatShortCurrency(kpis.total_pnet), sub: "toutes périodes",    current: kpis.total_pnet,   previous: prev.total_pnet },
+        { icon: <Receipt size={18} />,   title: "Quittances émises",  value: fmt.format(kpis.total_quitt),         sub: "toutes périodes",    current: kpis.total_quitt,  previous: prev.total_quitt },
+        { icon: <Trophy size={18} />,    title: "Produit top",        value: kpis.top_produit,                     sub: formatShortCurrency(kpis.top_pnet), current: kpis.top_pnet, previous: prev.top_pnet },
       ]} />
 
       <div className="dim-charts-grid">
@@ -85,9 +86,9 @@ export default function ProduitDim({ data, dataPrev }) {
             <BarChart data={topProduits} layout="vertical" margin={{ right: 75 }}>
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
               <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v/1e6).toFixed(0)}M`} />
-              <YAxis type="category" dataKey="label" tick={{ fontSize: 11 }} width={160} />
+              <YAxis type="category" dataKey="label" tick={{ fontSize: 11 }} width={160} interval={0} />
               <Tooltip formatter={(v) => [formatShortCurrency(v), 'Prime nette']} />
-              <Bar dataKey="pnet" name="Prime nette" label={{ position: "right", fontSize: 10, formatter: (v) => formatShortCurrency(v) }}>
+              <Bar dataKey="pnet" name="Prime nette" label={{ position: "right", fontSize: 10, formatter: (v) => { const n=Number(v||0); return n>=1e6?`${(n/1e6).toFixed(1)}M`:n>=1e3?`${Math.round(n/1e3)}K`:`${n}`; } }}>
                 {topProduits.map((entry) => (
                   <Cell key={entry.label} fill={BRANCHE_COLORS[entry.branche] || "#94a3b8"} />
                 ))}
@@ -103,7 +104,7 @@ export default function ProduitDim({ data, dataPrev }) {
             <BarChart data={topProduitsQuittances} layout="vertical" margin={{ right: 45 }}>
               <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,74,141,0.15)" />
               <XAxis type="number" tick={{ fontSize: 11 }} />
-              <YAxis type="category" dataKey="label" tick={{ fontSize: 11 }} width={160} />
+              <YAxis type="category" dataKey="label" tick={{ fontSize: 11 }} width={160} interval={0} />
               <Tooltip formatter={(v) => fmt.format(v)} />
               <Bar dataKey="count" name="Quittances" fill="#F38F1D" radius={[0, 6, 6, 0]}
                 label={{ position: "right", fontSize: 10 }} />
