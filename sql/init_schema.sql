@@ -15,6 +15,22 @@ WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'airflow')\gexec
 SELECT 'CREATE DATABASE mlflow_tracking'
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'mlflow_tracking')\gexec
 
+-- ── APPLICATION AUTH ───────────────────────────────────────────────────────
+-- Local auth for the dashboard app (not the domain warehouse). Roles:
+-- ceo, agent, sinistres, analyst, admin — see backend/auth.py ROLES.
+
+CREATE TABLE IF NOT EXISTS users (
+    id_user       SERIAL PRIMARY KEY,
+    email         VARCHAR(150) UNIQUE NOT NULL,
+    password_hash VARCHAR(200) NOT NULL,
+    nom           VARCHAR(100),
+    prenom        VARCHAR(100),
+    role          VARCHAR(30) NOT NULL DEFAULT 'agent',
+    is_active     BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at    TIMESTAMP DEFAULT NOW(),
+    updated_at    TIMESTAMP DEFAULT NOW()
+);
+
 -- ── DIMENSIONS ─────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS dim_agent (

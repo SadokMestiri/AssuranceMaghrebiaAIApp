@@ -10,11 +10,12 @@ const DIMS = [
   { key: "sinistres", label: "Sinistres",     Icon: AlertTriangle },
 ];
 
-export default function DimNav({ activeDim, onDimChange }) {
+export default function DimNav({ activeDim, onDimChange, allowedDims }) {
+  const visibleDims = allowedDims ? DIMS.filter((dim) => allowedDims.includes(dim.key)) : DIMS;
   return (
     <nav className="dim-nav">
       <div className="dim-nav-track">
-        {DIMS.map((dim) => (
+        {visibleDims.map((dim) => (
           <button
             key={dim.key}
             type="button"

@@ -8,6 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from alerts_router import router as alerts_router
+from auth_router import router as auth_router
 from db import get_db
 from geo_router import router as geo_router
 from kpi_router import router as kpi_router
@@ -41,6 +43,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth_router, prefix="/api/v1")
+app.include_router(alerts_router, prefix="/api/v1")
 app.include_router(kpi_router, prefix="/api/v1")
 app.include_router(geo_router, prefix="/api/v1")
 app.include_router(ml_router, prefix="/api/v1")

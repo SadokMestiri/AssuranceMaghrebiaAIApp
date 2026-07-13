@@ -39,6 +39,11 @@ ALERTE_PRODUCTION_DROP_PCT: float = float(
     os.getenv("ALERTE_PRODUCTION_DROP_PCT", "15.0")
 )
 
+# ─── Auth ────────────────────────────────────────────────────────────────────
+JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "dev-only-change-me-in-production")
+JWT_ALGORITHM: str = "HS256"
+JWT_EXPIRE_MINUTES: int = int(os.getenv("JWT_EXPIRE_MINUTES", str(60 * 24 * 7)))  # 7 days
+
 # ─── Agent behaviour ─────────────────────────────────────────────────────────
 AGENT_INTENT_MIN_CONFIDENCE: float = float(
     os.getenv("AGENT_INTENT_MIN_CONFIDENCE", "0.45")

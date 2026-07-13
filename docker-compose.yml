@@ -263,6 +263,8 @@ services:
       CLEAN_DIR: /app/data/clean
       REPORT_DIR: /app/reports/data_quality
       DATABASE_URL: postgresql+psycopg2://maghrebia:maghrebia@postgres:5432/maghrebia
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-NIQeJWAWupci5-DlLsbq8lnFEYXwy4mBvNpVgH_DzYM}
+      JWT_EXPIRE_MINUTES: "10080"
     ports:
       - "8000:8000"
     volumes:

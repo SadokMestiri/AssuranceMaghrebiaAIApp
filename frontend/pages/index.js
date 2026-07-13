@@ -1,9 +1,13 @@
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Moon, Sun } from "lucide-react";
+import { LogOut, Moon, Sun } from "lucide-react";
 
 import AgentChat from "../components/AgentChat";
+import AdminPanel from "../components/AdminPanel";
+import AlertsPanel from "../components/AlertsPanel";
+import LandingPage from "../components/LandingPage";
 import { KeyrusMark } from "../components/KeyrusLogo";
+import { useAuth } from "../contexts/AuthContext";
 import ResiliationChart from "../components/ResiliationChart";
 import ChartsPanel from "../components/ChartsPanel";
 import DimNav from "../components/dims/DimNav";
@@ -18,6 +22,7 @@ import ProduitDim from "../components/dims/ProduitDim";
 import SinistreDim from "../components/dims/SinistreDim";
 import VehiculeDim from "../components/dims/VehiculeDim";
 import { useFilters, YEAR_MAX, YEAR_MIN } from "../contexts/FilterContext";
+import { getAllowedSections, getAllowedDims } from "../lib/roleAccess";
 
 const CarteWidget = dynamic(() => import("../components/CarteWidget"), {
   ssr: false,
@@ -102,11 +107,54 @@ function buildCommonQuery(filters, { includeMonth = false } = {}) {
   return params.toString();
 }
 
-export default function DashboardPage() {
+function DashboardPage() {
   const { filters } = useFilters();
+  const { user, logout } = useAuth();
+  const allowedSections = useMemo(() => getAllowedSections(user?.role), [user?.role]);
+  const allowedDims     = useMemo(() => getAllowedDims(user?.role), [user?.role]);
   const [darkMode, setDarkMode]             = useState(false);
   const [activeSection, setActiveSection]   = useState("dashboard");
   const [activeDim, setActiveDim]           = useState("overview");
+  const [alertCount, setAlertCount]         = useState(0);
+  const [alertHasCritical, setAlertHasCritical] = useState(false);
+
+  // Lightweight poll just for the nav badge — AlertsPanel does its own full
+  // fetch when the tab is actually open. Skipped entirely for roles that
+  // can't see the tab (ceo/admin only) so it's not wasted API traffic.
+  useEffect(() => {
+    if (!allowedSections.includes("alerts")) return;
+    let cancelled = false;
+    const fetchCount = () => {
+      const params = new URLSearchParams({ months: "12" });
+      if (filters.branch !== "ALL") params.set("branch", filters.branch);
+      fetch(`${API_BASE}/api/v1/alerts?${params.toString()}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (cancelled || !data) return;
+          setAlertCount(data.count || 0);
+          setAlertHasCritical((data.alerts || []).some((a) => a.severity === "high"));
+        })
+        .catch(() => {});
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 90_000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [filters.branch]);
+
+  // Some roles don't have "dashboard"/"overview" in their allowed set (e.g.
+  // "agent" has no overview dim) — snap to the first thing that role can
+  // actually see instead of rendering a blank/forbidden default view.
+  useEffect(() => {
+    if (!allowedSections.includes(activeSection)) {
+      setActiveSection(allowedSections[0] || "dashboard");
+    }
+  }, [allowedSections, activeSection]);
+
+  useEffect(() => {
+    if (activeSection === "dashboard" && !allowedDims.includes(activeDim)) {
+      setActiveDim(allowedDims[0] || "overview");
+    }
+  }, [allowedDims, activeSection, activeDim]);
   const [loading, setLoading]               = useState(true);
   const [error, setError]                   = useState("");
   const [dashboard, setDashboard]           = useState(null);
@@ -518,33 +566,74 @@ export default function DashboardPage() {
         </div>
 
         <nav className="app-nav-menu">
-          <button
-            type="button"
-            className={`app-nav-item ${activeSection === "dashboard" ? "active" : ""}`}
-            onClick={() => setActiveSection("dashboard")}
-          >
-            Dashboard
-          </button>
-          <button
-            type="button"
-            className={`app-nav-item ${activeSection === "agent" ? "active" : ""}`}
-            onClick={() => setActiveSection("agent")}
-          >
-            <span className="keyrus-ai-logo">
-              <img src="/images/KeyrusAILightMode.png" alt="Keyrus Ai" className="kai-img kai-img-light" />
-              <img src="/images/KeyrusAIDarkMode.png" alt="Keyrus Ai" className="kai-img kai-img-dark" />
-            </span>
-          </button>
-          <button
-            type="button"
-            className={`app-nav-item ${activeSection === "mlops" ? "active" : ""}`}
-            onClick={() => setActiveSection("mlops")}
-          >
-            Insurance Intelligence
-          </button>
+          {allowedSections.includes("dashboard") && (
+            <button
+              type="button"
+              className={`app-nav-item ${activeSection === "dashboard" ? "active" : ""}`}
+              onClick={() => setActiveSection("dashboard")}
+            >
+              Dashboard
+            </button>
+          )}
+          {allowedSections.includes("alerts") && (
+            <button
+              type="button"
+              className={`app-nav-item ${activeSection === "alerts" ? "active" : ""}`}
+              onClick={() => setActiveSection("alerts")}
+            >
+              Alertes
+              {alertCount > 0 && (
+                <span className={`app-nav-badge ${alertHasCritical ? "" : "app-nav-badge-info"}`}>
+                  {alertCount}
+                </span>
+              )}
+            </button>
+          )}
+          {allowedSections.includes("agent") && (
+            <button
+              type="button"
+              className={`app-nav-item ${activeSection === "agent" ? "active" : ""}`}
+              onClick={() => setActiveSection("agent")}
+            >
+              <span className="keyrus-ai-logo">
+                <img src="/images/KeyrusAILightMode.png" alt="Keyrus Ai" className="kai-img kai-img-light" />
+                <img src="/images/KeyrusAIDarkMode.png" alt="Keyrus Ai" className="kai-img kai-img-dark" />
+              </span>
+            </button>
+          )}
+          {allowedSections.includes("mlops") && (
+            <button
+              type="button"
+              className={`app-nav-item ${activeSection === "mlops" ? "active" : ""}`}
+              onClick={() => setActiveSection("mlops")}
+            >
+              Insurance Intelligence
+            </button>
+          )}
+          {allowedSections.includes("admin") && (
+            <button
+              type="button"
+              className={`app-nav-item ${activeSection === "admin" ? "active" : ""}`}
+              onClick={() => setActiveSection("admin")}
+            >
+              Administration
+            </button>
+          )}
         </nav>
 
         <p className="app-nav-note">Dashboard executif et Agent IA.</p>
+
+        {user && (
+          <div className="app-user-footer">
+            <div className="app-user-info">
+              <span className="app-user-name">{user.prenom} {user.nom}</span>
+              <span className="app-user-role">{user.role_label}</span>
+            </div>
+            <button type="button" className="app-logout-btn" onClick={logout} title="Se deconnecter">
+              <LogOut size={15} />
+            </button>
+          </div>
+        )}
       </aside>
 
       <button
@@ -608,7 +697,7 @@ export default function DashboardPage() {
         {activeSection === "dashboard" ? (
           <section className="dashboard-section" ref={dashboardCaptureRef}>
             {/* ── Power BI–style dimension nav ── */}
-            <DimNav activeDim={activeDim} onDimChange={setActiveDim} />
+            <DimNav activeDim={activeDim} onDimChange={setActiveDim} allowedDims={allowedDims} />
 
             {/* ── Active dimension content ── */}
             {renderDimContent()}
@@ -617,6 +706,10 @@ export default function DashboardPage() {
           <section className="mlops-section-layout">
             <MLOpsContent />
           </section>
+        ) : activeSection === "admin" ? (
+          <AdminPanel />
+        ) : activeSection === "alerts" ? (
+          <AlertsPanel branch={filters.branch} />
         ) : (
           <section className="agent-section-layout">
             <AgentChat
@@ -721,4 +814,12 @@ export default function DashboardPage() {
       </section>
     </main>
   );
+}
+
+export default function IndexPage() {
+  const { isAuthenticated, ready } = useAuth();
+
+  if (!ready) return null;
+  if (!isAuthenticated) return <LandingPage />;
+  return <DashboardPage />;
 }
