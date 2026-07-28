@@ -35,4 +35,4 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run backend unit tests
-        run: pytest -q tests/test_promotion_policy.py tests/test_ml_router_api.py tests/test_geo_router_api.py tests/test_agent_graph.py tests/test_agent_router_api.py
+        run: pytest -q tests/

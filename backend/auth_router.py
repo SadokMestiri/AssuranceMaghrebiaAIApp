@@ -52,6 +52,9 @@ def _serialize_user(row: dict[str, Any]) -> dict[str, Any]:
         "prenom": row["prenom"],
         "role": row["role"],
         "role_label": ROLES.get(row["role"], row["role"]),
+        # include is_active so PATCH responses let the UI update the status
+        # immediately (without it, the toggle only showed after a page refresh)
+        "is_active": row["is_active"],
     }
 
 
@@ -187,3 +190,28 @@ def update_user_active(
         raise HTTPException(status_code=404, detail="Utilisateur introuvable.")
     db.commit()
     return {"user": _serialize_user(dict(row))}
+
+
+@router.delete("/users/{user_id}")
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    admin: dict[str, Any] = Depends(require_role("admin")),
+) -> dict[str, Any]:
+    # Same self-protection as the deactivate path: an admin can't lock
+    # themselves out of the platform by deleting their own account.
+    if user_id == admin["id_user"]:
+        raise HTTPException(status_code=400, detail="Vous ne pouvez pas supprimer votre propre compte.")
+
+    row = db.execute(
+        text("""
+            DELETE FROM users
+            WHERE id_user = :id
+            RETURNING id_user, email, nom, prenom, role
+        """),
+        {"id": user_id},
+    ).mappings().first()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable.")
+    db.commit()
+    return {"deleted": _serialize_user(dict(row))}

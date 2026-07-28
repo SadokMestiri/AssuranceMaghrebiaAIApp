@@ -2153,6 +2153,12 @@ tbody tr:hover { background: var(--amber-light); }
   opacity: 0.6;
 }
 
+/* clear hover affordance so it reads as a clickable control, not a badge */
+.admin-status-btn:not(:disabled):hover {
+  filter: brightness(0.96);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.04);
+}
+
 .admin-status-btn.active {
   color: #16a34a;
   border-color: rgba(22, 163, 74, 0.3);
@@ -2164,6 +2170,126 @@ tbody tr:hover { background: var(--amber-light); }
   border-color: rgba(218, 1, 39, 0.3);
   background: var(--crimson-light);
 }
+
+/* Delete account button + confirmation modal */
+.admin-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(218, 1, 39, 0.3);
+  padding: 5px 12px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--crimson);
+  background: var(--crimson-light);
+  transition: background 0.15s, transform 0.15s;
+}
+
+.admin-delete-btn:hover:not(:disabled) {
+  background: rgba(218, 1, 39, 0.14);
+  transform: translateY(-1px);
+}
+
+.admin-delete-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.admin-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(5, 7, 46, 0.5);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: adminConfirmFade 0.15s ease;
+}
+
+@keyframes adminConfirmFade { from { opacity: 0; } to { opacity: 1; } }
+
+.admin-confirm-modal {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  max-width: 440px;
+  width: 100%;
+  padding: 26px 26px 22px;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(5, 7, 46, 0.28);
+  animation: adminConfirmPop 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes adminConfirmPop {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.admin-confirm-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--crimson-light);
+  color: var(--crimson);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 14px;
+}
+
+.admin-confirm-modal h3 {
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+  color: var(--text);
+}
+
+.admin-confirm-modal p {
+  margin: 0 0 20px;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.admin-confirm-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.admin-confirm-cancel,
+.admin-confirm-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid var(--border);
+}
+
+.admin-confirm-cancel {
+  background: transparent;
+  color: var(--text);
+}
+
+.admin-confirm-cancel:hover:not(:disabled) { background: var(--bg-main); }
+
+.admin-confirm-delete {
+  background: var(--crimson);
+  color: #fff;
+  border-color: var(--crimson);
+}
+
+.admin-confirm-delete:hover:not(:disabled) { filter: brightness(1.08); }
+
+.admin-confirm-cancel:disabled,
+.admin-confirm-delete:disabled { cursor: not-allowed; opacity: 0.6; }
 
 /* ═══════════════════════════════════════════════════════════════
    ALERTS TAB — full alert history with status/type filters + pagination.

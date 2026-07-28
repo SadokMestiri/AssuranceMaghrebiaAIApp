@@ -27,8 +27,11 @@ RESILIATION_CRITICAL_PCT   = 8.0
 RESILIATION_WARNING_PCT    = 4.0
 
 # New-signup alerts are events, not threshold breaches — "info" severity,
-# distinct from the "high"/"medium" business alerts above.
-NEW_USER_ALERT_WINDOW_DAYS = 7
+# distinct from the "high"/"medium" business alerts above. 30 days rather than
+# 7: "newly created" accounts should stay visible long enough to actually be
+# noticed on an occasionally-checked dashboard (a 7-day window silently dropped
+# accounts before anyone looked).
+NEW_USER_ALERT_WINDOW_DAYS = 30
 
 
 def compute_alerts(branch: str | None, months: int = 12) -> dict[str, Any]:

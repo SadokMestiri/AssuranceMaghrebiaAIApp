@@ -806,15 +806,27 @@ def _classify_from_keywords(
         forecast_found = False
         for index, (score, rule) in enumerate(scored):
             if str(rule.get("intent")) == "forecast":
-                scored[index] = (max(score, 4), rule)
+                # Dominant score: a genuine predictive question must outrank the
+                # kpi/sql signal of its own metric noun ("prevision prime nette"
+                # otherwise loses to kpi) and the comparison signal of a named
+                # history range ("horizon ... 2019-2025" otherwise looks like a
+                # two-year comparison).
+                scored[index] = (max(score, 8), rule)
                 forecast_found = True
                 break
         if not forecast_found:
-            scored.append((4, forecast_rule))
+            scored.append((8, forecast_rule))
 
+        # Drop competing primaries so a predictive question routes to forecast.
+        # Keep sql only on an explicit SQL cue (e.g. "requete SQL de prevision").
         explicit_sql_cues = ["sql", "requete", "query", "base de donnees", "bdd"]
-        if not any(token in normalized for token in explicit_sql_cues):
-            scored = [(s, r) for s, r in scored if str(r.get("intent")) != "sql"]
+        keep_sql = any(token in normalized for token in explicit_sql_cues)
+        scored = [
+            (s, r)
+            for s, r in scored
+            if str(r.get("intent")) == "forecast"
+            or (str(r.get("intent")) == "sql" and keep_sql)
+        ]
 
     if scored:
         scored.sort(key=lambda item: item[0], reverse=True)
@@ -915,7 +927,12 @@ def classify_question(
     # existed, so neither can ever predict it and would silently misroute a
     # comparison question to whichever older intent looks closest (usually
     # "kpi"). An unambiguous comparison signal short-circuits straight to it.
-    if _is_comparison_question(normalized):
+    # A predictive question naturally names a target year plus a history range
+    # (e.g. "prevois 2026 sur l'historique 2019-2025"), which the ">= 2 years"
+    # heuristic would otherwise read as a comparison and short-circuit here,
+    # hijacking a genuine forecast. Let predictive questions fall through to the
+    # forecast-aware classification below.
+    if _is_comparison_question(normalized) and not _is_predictive_question(normalized):
         comparison_rule = next(rule for rule in INTENT_RULES if rule["intent"] == "comparison")
         return (
             "comparison",
@@ -938,8 +955,24 @@ def classify_question(
 
 
 def detect_requested_tools(question: str) -> list[str]:
+    """Surface every explicitly-requested tool family in a (possibly compound)
+    question — e.g. "fais une prevision ET detecte une anomalie" yields both
+    forecast and anomaly, not just the single primary intent. Falls back to the
+    classifier's primary intent, then to kpi, when no explicit tool keyword is
+    present."""
+    normalized = _normalize_text(question)
+    detected: list[str] = []
+    for rule in INTENT_RULES:
+        if str(rule["intent"]) == "comparison":
+            continue
+        if _keyword_score(normalized, rule["keywords"]) > 0:
+            for family in rule["tool_families"]:
+                if family not in detected:
+                    detected.append(family)
+    if detected:
+        return detected
     _, _, tool_families, _, _ = classify_question(question)
-    return tool_families
+    return tool_families or ["kpi"]
 
 
 def _infer_branch_from_question(question: str) -> str | None:
